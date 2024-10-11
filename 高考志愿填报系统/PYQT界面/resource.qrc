@@ -1,0 +1,6 @@
+<!DOCTYPE RCC>
+<RCC>
+  <qresource prefix="fonts">
+    <file>fonts/LXGWWenKai-Regular.ttf</file>
+  </qresource>
+</RCC>

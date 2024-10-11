@@ -1,0 +1,381 @@
+,id,PreferenceOrder,CategoryName,AdmissionPlanCount,CollegeName,CollegeCode,AdmissionRatio,LowestScoreAdmissionRatio,LowestAdmissionScore,ExpectedApplicantsCount,RegisteredApplicantsCount,Shortfall_Count,AdmissionRegulationsURL,ranking,CollegeLevel,CollegeProvince,CollegeCity
+0,131,本科一批第一次,理科,2,上海交通大学医学院,J23,1:1,667,667,2,3,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-199.dhtml,84,,上海市,上海市
+1,185,本科一批第一次,理科,5,重庆工商大学,045,1:1,456,456,5,8,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-912.dhtml,23253,,重庆市,重庆市
+2,191,本科一批第一次,理科,5,西南石油大学,M30,1:1,487,487,5,8,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-473.dhtml,16260,['DFC'],四川省,成都市
+3,236,本科一批第一次,理科,2,广西医科大学,471,1:1,582,582,2,3,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-457.dhtml,2862,,广西壮族自治区,南宁市
+4,362,本科一批第一次,理科,2,山西中医药大学,728,1:1,548,548,2,3,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-606.dhtml,6304,,山西省,太原市
+5,364,本科一批第一次,理科,4,中国人民大学（苏州校区）,K53,1:1,608,608,4,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-2.dhtml,1317,,江苏省,苏州市
+6,408,本科一批第一次,理科,20,广东医科大学,790,1:1,508,508,20,23,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-436.dhtml,11259,,广东省,湛江市
+7,565,本科一批第一次,理科,52,上海理工大学,900,1:1,510,510,52,57,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-201.dhtml,11901,,上海市,上海市
+8,619,本科一批第一次,理科,3,中国社会科学院大学,M32,1:1,563,563,3,4,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-1824984166.dhtml,4555,,北京市,北京市
+9,636,本科一批第一次,理科,30,西交利物浦大学,F98,1:1,509,509,30,33,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-1228482.dhtml,9686,,江苏省,苏州市
+10,648,本科一批第一次,理科,10,重庆邮电大学,233,1:1,550,550,10,12,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-475.dhtml,6041,,重庆市,重庆市
+11,822,本科一批第一次,理科,29,北京大学医学部,330,1:1,639,639,29,38,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-6405527.dhtml,435,,北京市,北京市
+12,881,本科一批第一次,理科,1,北京外国语大学,276,1:1,569,569,1,1,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-27.dhtml,3965,"['211', 'DFC']",北京市,北京市
+13,924,本科一批第一次,理科,14,浙江理工大学,442,1:1,477,477,14,15,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-259.dhtml,18153,,浙江省,杭州市
+14,941,本科一批第一次,理科,2,上海应用技术大学,LR7,1:1,505,505,2,3,0,,12776,,上海市,上海市
+15,962,本科一批第一次,理科,10,西安医学院,222,1:1,459,459,10,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-936.dhtml,16455,,陕西省,西安市
+16,1080,本科一批第一次,理科,5,安徽医科大学,K05,1:1,464,464,5,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-282.dhtml,21374,,安徽省,合肥市
+17,1107,本科一批第一次,理科,98,东北大学秦皇岛分校,182,1:1,517,517,98,100,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-121.dhtml,3609,,河北省,秦皇岛市
+18,1165,本科一批第一次,理科,47,北京师范大学一香港浸会大学联合国际学院,C98,1:1,465,465,47,59,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-398036.dhtml,19279,,广东省,珠海市
+19,1196,本科一批第一次,理科,33,山东大学威海分校,313,1:1,549,549,33,35,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-330.dhtml,2250,,山东省,威海市
+20,1219,本科一批第一次,理科,12,江西中医药大学,433,1:1,434,434,12,11,1,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-322.dhtml,17915,,江西省,南昌市
+21,1248,本科一批第一次,理科,54,哈尔滨工程大学,410,1:1,549,549,54,59,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-177.dhtml,6181,"['211', 'DFC']",黑龙江省,哈尔滨市
+22,1274,本科一批第一次,理科,19,沈阳药科大学,391,1:1,438,438,19,20,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-137.dhtml,14323,,辽宁省,沈阳市
+23,1284,本科一批第一次,理科,77,北京邮电大学,234,1:1.04,591,567,81,85,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-13.dhtml,2250,"['211', 'DFC']",北京市,北京市
+24,1309,本科一批第一次,理科,10,河南师范大学,K11,1:1,435,435,10,10,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-373.dhtml,28711,,河南省,新乡市
+25,1312,本科一批第一次,理科,19,哈尔滨医科大学,878,1:1,482,482,19,22,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-184.dhtml,9977,,黑龙江省,哈尔滨市
+26,1338,本科一批第一次,理科,25,北京工商大学,047,1:1,494,494,25,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-11.dhtml,14896,,北京市,北京市
+27,1359,本科一批第一次,理科,16,东华理工大学,466,1:1,436,436,16,16,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-316.dhtml,28447,,江西省,抚州市
+28,1364,本科一批第一次,理科,29,河北医科大学,581,1:1,466,466,29,31,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-76.dhtml,20873,,河北省,石家庄市
+29,1379,本科一批第一次,理科,12,武汉科技大学,177,1:1,519,519,12,12,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-385.dhtml,5675,,湖北省,武汉市
+30,1417,本科一批第一次,理科,25,西南政法大学,017,1:1,515,515,25,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-504.dhtml,2643,,重庆市,重庆市
+31,1423,本科一批第二次,理科,3,福建医科大学,G09,1:1,551,551,3,3,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-305.dhtml,5919,,福建省,福州市
+32,1427,本科一批第一次,理科,42,合肥工业大学（宣城校区）,J72,1:1,495,495,42,45,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-277.dhtml,13724,,安徽省,宣城市
+33,1438,本科一批第一次,理科,36,南京邮电大学,232,1:1,549,549,36,39,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-232.dhtml,4764,['DFC'],江苏省,南京市
+34,1466,本科一批第一次,理科,7,华东政法大学,384,1:1,504,504,7,9,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-217.dhtml,12966,,上海市,上海市
+35,1474,本科一批第一次,理科,68,华北电力大学（北京）,134,1:1,546,546,68,74,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-91460.dhtml,6427,['DFC'],北京市,北京市
+36,1480,本科一批第一次,理科,68,华北电力大学（保定）,131,1:1,524,524,68,70,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-69.dhtml,4278,['DFC'],河北省,保定市
+37,1494,本科一批第一次,理科,24,中南财经政法大学,020,1:1,514,514,24,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-402.dhtml,5202,"['211', 'DFC']",湖北省,武汉市
+38,1499,本科一批第一次,理科,2,海南大学,LR6,1:1,544,544,2,2,0,,6828,"['211', 'DFC']",海南省,海口市
+39,1501,本科一批第一次,理科,5,北京第二外国语学院,368,1:1,491,491,5,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-28.dhtml,9081,,北京市,北京市
+40,1507,本科一批第一次,理科,24,上海财经大学,024,1:1,570,570,24,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-213.dhtml,3883,"['211', 'DFC']",上海市,上海市
+41,1524,本科一批第一次,理科,72,中国民用航空飞行学院,362,1:1,466,466,72,76,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-481.dhtml,17268,,四川省,德阳市
+42,1531,本科一批第一次,理科,28,吉林财经大学,381,1:1,441,441,28,29,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-170.dhtml,26851,,吉林省,长春市
+43,1540,本科一批第一次,理科,4,北方工业大学,LN7,1:1,475,475,4,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-9.dhtml,18825,,北京市,北京市
+44,1546,本科一批第一次,理科,2,北京联合大学,530,1:1,493,493,2,3,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-799.dhtml,15072,,北京市,北京市
+45,1553,本科一批第一次,理科,20,上海海事大学,137,1:1,474,474,20,22,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-202.dhtml,7381,,上海市,上海市
+46,1573,本科一批第一次,理科,2,安徽建筑大学,B92,1:1,494,494,2,2,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-658.dhtml,14896,,安徽省,合肥市
+47,1593,本科一批第二次,理科,21,海南医学院,A81,1:1,482,482,21,25,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-920.dhtml,17268,,海南省,海口市
+48,1602,本科一批第一次,理科,20,重庆医科大学,883,1:1,458,458,20,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-485.dhtml,22756,,重庆市,重庆市
+49,1604,本科一批第一次,理科,6,昆明医科大学,341,1:1,473,473,6,9,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-527.dhtml,13516,,云南省,昆明市
+50,1630,本科一批第一次,理科,24,沈阳理工大学,198,1:1.2,471,442,29,31,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-120.dhtml,16455,,辽宁省,沈阳市
+51,1700,本科一批第一次,理科,15,上海政法学院,A08,1:1,469,469,15,19,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-2120.dhtml,20157,,上海市,上海市
+52,1707,本科一批第一次,理科,1,北京外国语大学,LE7,1:1,601,601,1,1,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-27.dhtml,1676,"['211', 'DFC']",北京市,北京市
+53,1710,本科一批第二次,理科,6,云南中医药大学,P24,1:1,465,465,6,8,0,,21120,,云南省,昆明市
+54,1716,本科一批第一次,理科,73,北京航空航天大学,119,1:1,636,636,73,80,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-6.dhtml,497,"['985', 'DFC']",北京市,北京市
+55,1730,本科一批第一次,理科,58,哈尔滨工业大学,107,1:1,636,636,58,68,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-174.dhtml,497,"['985', '211', 'DFC']",黑龙江省,哈尔滨市
+56,1773,本科一批第二次,理科,10,西南医科大学,K56,1:1,468,468,10,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-486.dhtml,20373,,四川省,泸州市
+57,1823,本科一批第一次,理科,6,同济大学,LK8,1:1,621,621,6,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-198.dhtml,311,"['985', '211', 'DFC']",上海市,上海市
+58,1859,本科一批第一次,理科,14,北方工业大学,427,1:1,479,479,14,16,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-9.dhtml,17915,,北京市,北京市
+59,1864,本科一批第一次,理科,42,沈阳建筑大学,150,1:1,439,439,42,44,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-129.dhtml,27654,,辽宁省,沈阳市
+60,1879,本科一批第一次,理科,60,齐鲁工业大学,617,1:1,467,467,60,77,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-337.dhtml,15072,,山东省,济南市
+61,1886,本科一批第一次,理科,67,北京理工大学,199,1:1,632,632,67,72,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-7.dhtml,586,"['985', '211', 'DFC']",北京市,北京市
+62,1887,本科一批第一次,理科,90,天津大学,303,1:1,612,612,90,95,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-49.dhtml,1197,"['985', '211', 'DFC']",天津市,天津市
+63,2006,本科一批第二次,理科,8,成都中医药大学,584,1:1,513,513,8,10,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-487.dhtml,11404,['DFC'],四川省,成都市
+64,2020,本科一批第一次,理科,4,上海戏剧学院,274,1:1,458,458,4,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-220.dhtml,11259,,上海市,上海市
+65,2086,本科一批第一次,理科,52,东南大学,283,1:1,618,618,52,59,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-225.dhtml,635,"['985', '211', 'DFC']",江苏省,南京市
+66,2146,本科一批第一次,理科,11,北京化工大学,L02,1:1,510,510,11,12,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-10.dhtml,11901,"['211', 'DFC']",北京市,北京市
+67,2190,本科一批第一次,理科,101,北京交通大学,243,1:1,544,544,101,106,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-4.dhtml,6181,"['211', 'DFC']",北京市,北京市
+68,2200,本科一批第一次,理科,25,中国医科大学,331,1:1,572,572,25,29,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-133.dhtml,3040,,辽宁省,沈阳市
+69,2206,本科一批第一次,理科,20,北京信息科技大学,897,1:1,483,483,20,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-742.dhtml,8650,,北京市,北京市
+70,2222,本科一批第一次,理科,37,北京中医药大学,399,1:1,519,519,37,44,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-23.dhtml,10442,['DFC'],北京市,北京市
+71,2261,本科一批第二次,理科,17,黑龙江中医药大学,879,1:1,479,479,17,18,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-185.dhtml,17915,,黑龙江省,哈尔滨市
+72,2265,本科一批第一次,理科,66,哈尔滨工业大学（威海）,E24,1:1,579,579,66,69,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-174.dhtml,3129,,山东省,威海市
+73,2275,本科一批第二次,理科,52,中国药科大学,390,1:1,544,544,52,53,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-245.dhtml,6828,"['211', 'DFC']",江苏省,南京市
+74,2281,本科一批第一次,理科,8,广州医科大学,691,1:1,483,483,8,8,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-435.dhtml,13906,,广东省,广州市
+75,2356,本科一批第一次,理科,37,上海立信会计金融学院,964,1:1,473,473,37,40,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-695.dhtml,19279,,上海市,上海市
+76,2390,本科一批第一次,理科,6,中国矿业大学,LS2,1:1,480,480,6,6,0,,14526,['211'],江苏省,徐州市
+77,2421,本科一批第一次,理科,3,复旦大学,308,1:1,639,639,3,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-197.dhtml,84,"['985', '211', 'DFC']",上海市,上海市
+78,2424,本科一批第一次,理科,6,北京交通大学,L76,1:1,550,550,6,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-4.dhtml,5442,"['211', 'DFC']",北京市,北京市
+79,2437,本科一批第二次,理科,10,陕西中医药大学,542,1:1,495,495,10,10,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-559.dhtml,14714,,陕西省,咸阳市
+80,2453,本科一批第一次,理科,12,武汉工程大学,670,1:1,451,451,12,22,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-387.dhtml,8797,,湖北省,武汉市
+81,2455,本科一批第一次,理科,29,南京审计大学,031,1:1,496,496,29,31,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-755.dhtml,5321,,江苏省,南京市
+82,2461,本科一批第一次,理科,90,沈阳农业大学,072,1:1,438,438,90,91,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-131.dhtml,17694,,辽宁省,沈阳市
+83,2466,本科一批第一次,理科,98,西安电子科技大学,189,1:1,579,579,98,105,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-549.dhtml,1957,"['211', 'DFC']",陕西省,西安市
+84,2470,本科一批第一次,理科,2,沈阳农业大学,LV6,1:1,477,477,2,4,0,,18379,,辽宁省,沈阳市
+85,2514,本科一批第一次,理科,9,吉林财经大学,LR3,1:1,438,438,9,9,0,,18825,,吉林省,长春市
+86,2517,本科一批第一次,理科,3,江汉大学,185,1:1,515,515,3,4,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-716.dhtml,11103,,湖北省,武汉市
+87,2541,本科一批第一次,理科,16,北京师范大学,307,1:1,599,599,16,16,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-24.dhtml,345,"['985', '211', 'DFC']",北京市,北京市
+88,2569,本科一批第一次,理科,45,河北工业大学,631,1:1,486,486,45,47,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-70.dhtml,4469,"['211', 'DFC']",河北省,天津市
+89,2570,本科一批第一次,理科,2,河北工程大学,A10,1:1,479,479,2,3,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-66.dhtml,17915,,河北省,邯郸市
+90,2574,本科一批第一次,理科,73,海南大学,925,1:1,479,479,73,76,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-450.dhtml,16260,"['211', 'DFC']",海南省,海口市
+91,2577,本科一批第六次,理科,28,大连外国语大学,033,1:1,434,434,28,28,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-144.dhtml,28969,,辽宁省,大连市
+92,2581,本科一批第一次,理科,133,中国矿业大学,463,1:1,512,512,133,136,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-229.dhtml,7668,['211'],江苏省,徐州市
+93,2583,本科一批第一次,理科,53,南京航空航天大学,117,1:1,529,529,53,58,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-226.dhtml,5919,"['211', 'DFC']",江苏省,南京市
+94,2628,本科一批第一次,理科,36,南京师范大学,317,1:1,489,489,36,37,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-246.dhtml,10915,"['211', 'DFC']",江苏省,南京市
+95,2630,本科一批第二次,理科,62,合肥工业大学,097,1:1,512,512,62,65,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-277.dhtml,11556,"['211', 'DFC']",安徽省,合肥市
+96,2635,本科一批第一次,理科,50,东北大学,291,1:1,527,527,50,52,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-121.dhtml,3284,"['985', '211', 'DFC']",辽宁省,沈阳市
+97,2638,本科一批第一次,理科,49,云南大学,749,1:1,488,488,49,50,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-523.dhtml,13516,"['211', 'DFC']",云南省,昆明市
+98,2653,本科一批第一次,理科,97,北京化工大学,210,1:1,543,543,97,98,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-10.dhtml,4652,"['211', 'DFC']",北京市,北京市
+99,2674,本科一批第一次,理科,20,大连理工大学（盘锦校区）,L70,1:1,509,509,20,23,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-117.dhtml,10600,,辽宁省,盘锦市
+100,2740,本科一批第一次,理科,22,大连理工大学（盘锦校区）,K06,1:1,507,507,22,22,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-117.dhtml,6041,,辽宁省,盘锦市
+101,2748,本科一批第一次,理科,111,中国民航大学,363,1:1,481,481,111,115,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-52.dhtml,17482,,天津市,天津市
+102,2764,本科一批第二次,理科,15,新乡医学院,411,1:1,448,448,15,18,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-371.dhtml,25324,,河南省,新乡市
+103,2767,本科一批第一次,理科,18,华南师范大学,844,1:1,549,549,18,20,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-439.dhtml,5000,"['211', 'DFC']",广东省,广州市
+104,2793,本科一批第一次,理科,15,广州中医药大学,796,1:1,470,470,15,16,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-437.dhtml,16049,['DFC'],广东省,广州市
+105,2844,本科一批第一次,理科,103,北京科技大学,170,1:1,549,549,103,105,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-8.dhtml,6181,"['211', 'DFC']",北京市,北京市
+106,2846,本科一批第一次,理科,25,安徽理工大学,453,1:1,495,495,25,28,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-279.dhtml,14714,,安徽省,淮南市
+107,2849,本科一批第四次,理科,32,大连医科大学,128,1:1,459,459,32,34,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-135.dhtml,22507,,辽宁省,大连市
+108,2861,本科一批第一次,理科,31,清华大学,294,1:1,674,674,31,132,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-3.dhtml,17,"['985', '211', 'DFC']",北京市,北京市
+109,2866,本科一批第一次,理科,3,上海交通大学,310,1:1.05,636,618,4,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-199.dhtml,980,"['985', '211', 'DFC']",上海市,上海市
+110,2867,本科一批第一次,理科,40,天津职业技术师范大学,022,1:1,471,471,40,43,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-58.dhtml,17694,,天津市,天津市
+111,2894,本科一批第一次,理科,9,首都经济贸易大学,522,1:1,489,489,9,10,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-34.dhtml,15879,,北京市,北京市
+112,2954,本科一批第一次,理科,92,大连海事大学,250,1:1,514,514,92,94,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-127.dhtml,5000,"['211', 'DFC']",辽宁省,大连市
+113,2997,本科一批第一次,理科,51,中国石油大学（北京）,435,1:1,511,511,51,53,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-798.dhtml,6692,"['211', 'DFC']",北京市,北京市
+114,3029,本科一批第一次,理科,16,北京交通大学（威海校区）,K54,1:1,504,504,16,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-4.dhtml,7668,,山东省,威海市
+115,3072,本科一批第一次,理科,15,西北政法大学,018,1:1,507,507,15,16,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-567.dhtml,12440,,陕西省,西安市
+116,3081,本科一批第一次,理科,6,深圳技术大学,P45,1:1,521,521,6,13,0,,9977,,广东省,深圳市
+117,3131,本科一批第一次,理科,24,陕西科技大学,224,1:1,458,458,24,26,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-554.dhtml,22756,,陕西省,西安市
+118,3147,本科一批第一次,理科,17,中国政法大学,019,1:1,547,547,17,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-47.dhtml,3213,"['211', 'DFC']",北京市,北京市
+119,3162,本科一批第一次,理科,13,西安财经大学,029,1:1,459,459,13,23,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-854.dhtml,22507,,陕西省,西安市
+120,3184,本科一批第一次,理科,27,北京物资学院,048,1:1,459,459,27,30,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-33.dhtml,18153,,北京市,北京市
+121,3198,本科一批第二次,理科,29,华东理工大学,311,1:1,549,549,29,31,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-200.dhtml,6181,"['211', 'DFC']",上海市,上海市
+122,3215,本科一批第二次,理科,4,中国医科大学,L89,1:1,434,434,4,3,1,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-133.dhtml,28969,,辽宁省,沈阳市
+123,3241,本科一批第二次,理科,43,山西医科大学,713,1:1,450,450,43,43,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-96.dhtml,24795,,山西省,太原市
+124,3247,本科一批第一次,理科,6,哈尔滨工业大学,LS8,1:1,561,561,6,7,0,,4764,"['985', '211', 'DFC']",黑龙江省,哈尔滨市
+125,3276,本科一批第一次,理科,90,中南民族大学,007,1:1,452,452,90,94,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-405.dhtml,22507,,湖北省,武汉市
+126,3280,本科一批第二次,理科,55,中国农业大学,073,1:1,550,550,55,61,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-18.dhtml,6041,"['985', '211', 'DFC']",北京市,北京市
+127,3289,本科一批第一次,理科,12,湖北工业大学,478,1:1,476,476,12,13,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-392.dhtml,10442,,湖北省,武汉市
+128,3317,本科一批第二次,理科,8,桂林理工大学,424,1:1,477,477,8,10,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-456.dhtml,18379,,广西壮族自治区,桂林市
+129,3322,本科一批第三次,理科,860,内蒙古科技大学包头医学院,759,1:1.2,434,434,1032,823,209,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-6426412.dhtml,28969,,内蒙古自治区,包头市
+130,3333,本科一批第二次,理科,119,南华大学,464,1:1,451,451,119,131,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-427.dhtml,24531,,湖南省,衡阳市
+131,3336,本科一批第一次,理科,45,河南大学,594,1:1,461,461,45,46,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-372.dhtml,20619,['DFC'],河南省,开封市
+132,3348,本科一批第一次,理科,61,石家庄铁道大学,244,1:1,461,461,61,71,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-90.dhtml,9368,,河北省,石家庄市
+133,3357,本科一批第一次,理科,44,安徽大学,920,1:1,497,497,44,45,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-275.dhtml,4652,"['211', 'DFC']",安徽省,合肥市
+134,3384,本科一批第一次,理科,25,天津医科大学,557,1:1,511,511,25,29,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-55.dhtml,11735,"['211', 'DFC']",天津市,天津市
+135,3391,本科一批第一次,理科,37,济南大学,306,1:1,464,464,37,40,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-334.dhtml,14714,,山东省,济南市
+136,3392,本科一批第一次,理科,49,华中科技大学,328,1:1,596,596,49,52,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-384.dhtml,1957,"['985', '211', 'DFC']",湖北省,武汉市
+137,3395,本科一批第一次,理科,20,天津财经大学,556,1:1,457,457,20,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-61.dhtml,23010,,天津市,天津市
+138,3402,本科一批第一次,理科,11,上海应用技术大学,217,1:1,457,457,11,15,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-205.dhtml,11404,,上海市,上海市
+139,3451,本科一批第一次,理科,15,北京语言大学,281,1:1,489,489,15,15,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-29.dhtml,10442,,北京市,北京市
+140,3453,本科一批第一次,理科,64,天津中医药大学,564,1:1,459,459,64,66,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-56.dhtml,3965,['DFC'],天津市,天津市
+141,3462,本科一批第一次,理科,42,西南财经大学,035,1:1,505,505,42,44,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-503.dhtml,5099,"['211', 'DFC']",四川省,成都市
+142,3510,本科一批第一次,理科,30,中山大学,279,1:1,584,584,30,31,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-428.dhtml,1041,"['985', '211', 'DFC']",广东省,广州市
+143,3512,本科一批第一次,理科,46,厦门大学,298,1:1,583,583,46,49,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-299.dhtml,1957,"['985', '211', 'DFC']",福建省,厦门市
+144,3522,本科一批第一次,理科,20,西安工业大学,B25,1:1,453,453,20,25,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-550.dhtml,17482,,陕西省,西安市
+145,3531,本科一批第一次,理科,117,内蒙古财经大学,L10,1:1,434,434,117,91,26,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-115.dhtml,21591,,内蒙古自治区,呼和浩特市
+146,3542,本科一批第一次,理科,9,中国农业大学,J78,1:1,518,518,9,9,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-18.dhtml,9081,"['985', '211', 'DFC']",北京市,北京市
+147,3546,本科一批第一次,理科,47,西北工业大学,105,1:1,611,611,47,51,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-547.dhtml,1236,"['985', '211', 'DFC']",陕西省,西安市
+148,3554,本科一批第一次,理科,98,华中农业大学,066,1:1,489,489,98,102,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-393.dhtml,15879,"['211', 'DFC']",湖北省,武汉市
+149,3556,本科一批第一次,理科,2,江西财经大学,LVL,1:1,472,472,2,2,0,,7242,,江西省,南昌市
+150,3557,本科一批第一次,理科,34,湖南中医药大学,B02,1:1,454,454,34,40,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-416.dhtml,9222,,湖南省,长沙市
+151,3572,本科一批第一次,理科,24,南京财经大学,049,1:1,476,476,24,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-250.dhtml,15676,,江苏省,南京市
+152,3588,本科一批第一次,理科,13,对外经济贸易大学,061,1:1,578,578,13,16,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-32.dhtml,2945,"['211', 'DFC']",北京市,北京市
+153,3597,本科一批第一次,理科,57,江南大学,288,1:1,506,506,57,59,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-234.dhtml,4555,"['211', 'DFC']",江苏省,无锡市
+154,3598,本科一批第一次,理科,56,重庆交通大学,B18,1:1,459,459,56,61,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-476.dhtml,17268,,重庆市,重庆市
+155,3607,本科一批第二次,理科,7,福建师范大学,D11,1:1,460,460,7,9,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-307.dhtml,22277,,福建省,福州市
+156,3630,本科一批第一次,理科,36,中央财经大学,025,1:1,561,561,36,42,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-31.dhtml,2312,"['211', 'DFC']",北京市,北京市
+157,3663,本科一批第一次,理科,33,青岛科技大学,211,1:1,454,454,33,39,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-333.dhtml,22756,,山东省,青岛市
+158,3683,本科一批第一次,理科,15,天津外国语大学,551,1:1,457,457,15,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-59.dhtml,13516,,天津市,天津市
+159,3722,本科一批第一次,理科,3,同济大学,LJ9,1:1,622,622,3,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-198.dhtml,852,"['985', '211', 'DFC']",上海市,上海市
+160,3734,本科一批第一次,理科,48,大连交通大学,238,1:1,466,466,48,56,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-126.dhtml,9686,,辽宁省,大连市
+161,3737,本科一批第一次,理科,2,天津外国语大学,LF8,1:1,475,475,2,2,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-59.dhtml,18825,,天津市,天津市
+162,3755,本科一批第一次,理科,40,安徽财经大学,052,1:1,441,441,40,43,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-294.dhtml,23766,,安徽省,蚌埠市
+163,3756,本科一批第一次,理科,4,河南财经政法大学,A95,1:1,450,450,4,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-381.dhtml,24795,,河南省,郑州市
+164,3771,本科一批第一次,理科,10,天津师范大学,LM5,1:1,489,489,10,13,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-57.dhtml,15879,,天津市,天津市
+165,3788,本科一批第一次,理科,94,武汉理工大学,253,1:1,523,523,94,97,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-391.dhtml,6565,"['211', 'DFC']",湖北省,武汉市
+166,3798,本科一批第一次,理科,2,江苏海洋大学,502,1:1,487,487,2,4,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-875.dhtml,16260,,江苏省,连云港市
+167,3807,本科一批第二次,理科,2,天津中医药大学,LN6,1:1,442,442,2,2,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-56.dhtml,26851,['DFC'],天津市,天津市
+168,3809,本科一批第二次,理科,48,东华大学,287,1:1,519,519,48,48,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-203.dhtml,10442,"['211', 'DFC']",上海市,上海市
+169,3817,本科一批第一次,理科,107,赤峰学院,767,1:1,465,465,107,133,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-114.dhtml,18153,,内蒙古自治区,赤峰市
+170,3818,本科一批第一次,理科,15,北京工业大学,525,1:1,518,518,15,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-5.dhtml,10600,"['211', 'DFC']",北京市,北京市
+171,3860,本科一批第一次,理科,54,中国计量大学,374,1:1,459,459,54,57,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-274.dhtml,15879,,浙江省,杭州市
+172,3864,本科一批第一次,理科,21,宁波诺丁汉大学,E76,1:1,481,481,21,25,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-405725.dhtml,15879,,浙江省,宁波市
+173,3876,本科一批第一次,理科,6,武汉理工大学,LA5,1:1,502,502,6,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-391.dhtml,13333,"['211', 'DFC']",湖北省,武汉市
+174,3892,本科一批第一次,理科,8,西安交通大学,285,1:1,640,640,8,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-546.dhtml,416,"['985', '211', 'DFC']",陕西省,西安市
+175,3896,本科一批第一次,理科,34,苏州大学,327,1:1,519,519,34,39,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-224.dhtml,6565,"['211', 'DFC']",江苏省,苏州市
+176,3904,本科一批第一次,理科,7,中国人民警察大学,012,1:1.1,487,470,8,8,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-731.dhtml,15879,,河北省,廊坊市
+177,3924,本科一批第一次,理科,64,南京工业大学,192,1:1,458,458,64,73,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-230.dhtml,14323,,江苏省,南京市
+178,3933,本科一批第一次,理科,49,南开大学,302,1:1,621,621,49,53,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-48.dhtml,852,"['985', '211', 'DFC']",天津市,天津市
+179,3940,本科一批第二次,理科,15,山东第一医科大学,619,1:1,459,459,15,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-342.dhtml,22507,,山东省,济南市
+180,3951,本科一批第一次,理科,50,杭州电子科技大学,188,1:1,519,519,50,52,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-257.dhtml,9522,,浙江省,杭州市
+181,3981,本科一批第二次,理科,26,海南师范大学,927,1:1,470,470,26,32,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-883.dhtml,19942,,海南省,海口市
+182,3987,本科一批第二次,理科,39,西安工程大学,B29,1:1,458,458,39,43,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-555.dhtml,22756,,陕西省,西安市
+183,4001,本科一批第一次,理科,3,东北师范大学,LM2,1:1,469,469,3,4,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-163.dhtml,20157,"['211', 'DFC']",吉林省,长春市
+184,4009,本科一批第一次,理科,70,天津商业大学,046,1:1,452,452,70,75,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-60.dhtml,19501,,天津市,天津市
+185,4046,本科一批第一次,理科,51,西安建筑科技大学,171,1:1,450,450,51,61,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-551.dhtml,12271,,陕西省,西安市
+186,4048,本科一批第一次,理科,150,西南民族大学,006,1:1,452,452,150,163,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-508.dhtml,22055,,四川省,成都市
+187,4053,本科一批第一次,理科,67,山东大学,300,1:1,539,539,67,71,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-330.dhtml,7536,"['985', '211', 'DFC']",山东省,济南市
+188,4063,本科一批第一次,理科,16,西安邮电大学,231,1:1,497,497,16,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-887.dhtml,10270,,陕西省,西安市
+189,4073,本科一批第一次,理科,64,西南科技大学,621,1:1,451,451,64,68,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-477.dhtml,22277,,四川省,绵阳市
+190,4092,本科一批第一次,理科,87,中国地质大学（北京）,160,1:1,489,489,87,93,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-27214.dhtml,7668,"['211', 'DFC']",北京市,北京市
+191,4099,本科一批第一次,理科,108,大连民族大学,021,1:1,447,447,108,116,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-949.dhtml,15676,,辽宁省,大连市
+192,4109,本科一批第一次,理科,5,湖州师范学院,510,1:1,462,462,5,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-266.dhtml,21823,,浙江省,湖州市
+193,4130,本科一批第二次,理科,20,广西大学,745,1:1,489,489,20,22,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-453.dhtml,15879,"['211', 'DFC']",广西壮族自治区,南宁市
+194,4161,本科一批第一次,理科,4,西南交通大学,LB2,1:1,510,510,4,4,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-471.dhtml,10600,"['211', 'DFC']",四川省,成都市
+195,4171,本科一批第一次,理科,97,东北农业大学,877,1:1,459,459,97,104,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-182.dhtml,15879,"['211', 'DFC']",黑龙江省,哈尔滨市
+196,4177,本科一批第一次,理科,6,北京工业大学,LN3,1:1,514,514,6,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-5.dhtml,11259,"['211', 'DFC']",北京市,北京市
+197,4201,本科一批第一次,理科,27,天津工业大学,LN9,1:1,487,487,27,30,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-51.dhtml,16260,['DFC'],天津市,天津市
+198,4209,本科一批第一次,理科,16,上海海洋大学,062,1:1,495,495,16,19,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-207.dhtml,8797,['DFC'],上海市,上海市
+199,4215,本科一批第一次,理科,77,中国石油大学（华东）,439,1:1,492,492,77,78,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-27215.dhtml,7242,['211'],山东省,青岛市
+200,4225,本科一批第一次,理科,181,天津工业大学,219,1:1,483,483,181,187,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-51.dhtml,10600,['DFC'],天津市,天津市
+201,4253,本科一批第一次,理科,11,北京体育大学,338,1:1,487,487,11,12,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-38.dhtml,12614,"['211', 'DFC']",北京市,北京市
+202,4254,本科一批第一次,理科,71,华侨大学,378,1:1,459,459,71,78,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-300.dhtml,22507,,福建省,泉州市
+203,4255,本科一批第一次,理科,90,西北农林科技大学,074,1:1,519,519,90,94,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-557.dhtml,10442,"['985', '211', 'DFC']",陕西省,咸阳市
+204,4260,本科一批第一次,理科,74,南京农业大学,070,1:1,514,514,74,80,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-241.dhtml,8650,"['211', 'DFC']",江苏省,南京市
+205,4266,本科一批第一次,理科,58,西安科技大学,452,1:1,456,456,58,63,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-552.dhtml,23253,,陕西省,西安市
+206,4273,本科一批第一次,理科,65,中国地质大学（武汉）,162,1:1,527,527,65,67,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-388.dhtml,5442,['211'],湖北省,武汉市
+207,4275,本科一批第三次,理科,8,河南工业大学,053,1:1,438,438,8,9,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-364.dhtml,27899,,河南省,郑州市
+208,4316,本科一批第二次,理科,32,宁夏大学,972,1:1,457,457,32,33,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-587.dhtml,23010,"['211', 'DFC']",宁夏回族自治区,银川市
+209,4318,本科一批第一次,理科,25,浙江大学,292,1:1,661,661,25,39,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-256.dhtml,121,"['985', '211', 'DFC']",浙江省,杭州市
+210,4322,本科一批第一次,理科,218,东北林业大学,083,1:1,483,483,218,222,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-183.dhtml,11404,"['211', 'DFC']",黑龙江省,哈尔滨市
+211,4372,本科一批第一次,理科,6,成都理工大学,156,1:1,462,462,6,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-474.dhtml,10600,['DFC'],四川省,成都市
+212,4386,本科一批第一次,理科,10,北京大学,304,1:1,679,679,10,65,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-1.dhtml,14,"['985', '211', 'DFC']",北京市,北京市
+213,4387,本科一批第一次,理科,96,南京理工大学,203,1:1,543,543,96,99,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-227.dhtml,6181,"['211', 'DFC']",江苏省,南京市
+214,4388,本科一批第一次,理科,51,兰州交通大学,241,1:1,471,471,51,62,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-573.dhtml,10915,,甘肃省,兰州市
+215,4396,本科一批第二次,理科,10,华中师范大学,324,1:1,534,534,10,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-395.dhtml,8226,"['211', 'DFC']",湖北省,武汉市
+216,4400,本科一批第一次,理科,22,烟台大学,737,1:1,453,453,22,28,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-710.dhtml,16660,,山东省,烟台市
+217,4422,本科一批第一次,理科,1304,内蒙古大学,751,1:1.05,484,459,1370,1410,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-107.dhtml,17268,"['211', 'DFC']",内蒙古自治区,呼和浩特市
+218,4426,本科一批第一次,理科,35,华北水利水电大学,145,1:1,456,456,35,39,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-68.dhtml,15879,,河南省,郑州市
+219,4437,本科一批第一次,理科,11,首都师范大学,529,1:1,525,525,11,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-25.dhtml,7381,['DFC'],北京市,北京市
+220,4448,本科一批第一次,理科,5,华侨大学,LVR,1:1,464,464,5,5,0,,21374,,福建省,泉州市
+221,4449,本科一批第一次,理科,6,上海大学,441,1:1,546,546,6,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-221.dhtml,3284,"['211', 'DFC']",上海市,上海市
+222,4456,本科一批第一次,理科,66,天津科技大学,229,1:1,457,457,66,73,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-50.dhtml,18825,,天津市,天津市
+223,4467,本科一批第一次,理科,38,山东科技大学,612,1:1,453,453,38,44,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-332.dhtml,14323,,山东省,青岛市
+224,4470,本科一批第一次,理科,17,宁波大学,908,1:1,466,466,17,19,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-876.dhtml,20873,['DFC'],浙江省,宁波市
+225,4472,本科一批第一次,理科,56,湖南大学,301,1:1,549,549,56,62,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-410.dhtml,2715,"['985', '211', 'DFC']",湖南省,长沙市
+226,4474,本科一批第一次,理科,7,长安大学,LF1,1:1,520,520,7,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-556.dhtml,9522,"['211', 'DFC']",陕西省,西安市
+227,4478,本科一批第一次,理科,82,长安大学,278,1:1,519,519,82,83,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-556.dhtml,6181,"['211', 'DFC']",陕西省,西安市
+228,4493,本科一批第一次,理科,26,山东建筑大学,A69,1:1,450,450,26,31,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-336.dhtml,24270,,山东省,济南市
+229,4495,本科一批第一次,理科,10,浙江师范大学,A48,1:1,458,458,10,12,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-264.dhtml,22756,,浙江省,金华市
+230,4501,本科一批第一次,理科,33,上海工程技术大学,913,1:1,458,458,33,40,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-639.dhtml,21374,,上海市,上海市
+231,4508,本科一批第一次,理科,17,温州大学,603,1:1,453,453,17,23,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-269.dhtml,15281,,浙江省,温州市
+232,4511,本科一批第一次,理科,13,东北财经大学,026,1:1,452,452,13,14,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-145.dhtml,24270,,辽宁省,大连市
+233,4514,本科一批第一次,理科,6,中国海洋大学,LF9,1:1,555,555,6,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-331.dhtml,5442,"['985', '211', 'DFC']",山东省,青岛市
+234,4535,本科一批第一次,理科,49,山西大学,711,1:1,456,456,49,51,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-91.dhtml,5919,,山西省,太原市
+235,4537,本科一批第一次,理科,1155,内蒙古财经大学,754,1:1,434,434,1155,1053,102,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-115.dhtml,14323,,内蒙古自治区,呼和浩特市
+236,4550,本科一批第二次,理科,29,西北大学,941,1:1,518,518,29,32,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-545.dhtml,10600,"['211', 'DFC']",陕西省,西安市
+237,4551,本科一批第一次,理科,8,西北农林科技大学,LE8,1:1,514,514,8,8,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-557.dhtml,10915,"['985', '211', 'DFC']",陕西省,咸阳市
+238,4552,本科一批第一次,理科,10,大连理工大学,L73,1:1,567,567,10,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-117.dhtml,4177,"['985', '211', 'DFC']",辽宁省,大连市
+239,4559,本科一批第一次,理科,75,中南民族大学,L65,1:1,453,453,75,81,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-405.dhtml,20873,,湖北省,武汉市
+240,4562,本科一批第一次,理科,71,郑州大学,605,1:1,486,486,71,76,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-361.dhtml,9368,"['211', 'DFC']",河南省,郑州市
+241,4567,本科一批第一次,理科,30,温州医科大学,504,1:1,459,459,30,33,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-262.dhtml,16660,,浙江省,温州市
+242,4571,本科一批第一次,理科,10,大连理工大学,L63,1:1,552,552,10,10,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-117.dhtml,4555,"['985', '211', 'DFC']",辽宁省,大连市
+243,4574,本科一批第一次,理科,113,辽宁工程技术大学,450,1:1,438,438,113,116,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-123.dhtml,18379,,辽宁省,阜新市
+244,4576,本科一批第一次,理科,27,桂林电子科技大学,B12,1:1,466,466,27,31,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-455.dhtml,10758,,广西壮族自治区,桂林市
+245,4578,本科一批第一次,理科,15,福州大学,931,1:1,507,507,15,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-301.dhtml,8087,"['211', 'DFC']",福建省,福州市
+246,4582,本科一批第一次,理科,53,中央民族大学,003,1:1,556,556,53,61,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-46.dhtml,5099,"['985', 'DFC']",北京市,北京市
+247,4583,本科一批第一次,理科,4,北京航空航天大学,LS9,1:1,605,605,4,5,0,,1514,"['985', 'DFC']",北京市,北京市
+248,4599,本科一批第六次,理科,1906,内蒙古工业大学,753,1:1.05,434,434,2002,1774,228,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-109.dhtml,28969,,内蒙古自治区,呼和浩特市
+249,4617,本科一批第一次,理科,174,内蒙古工业大学,L05,1:1.05,457,453,183,196,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-109.dhtml,22055,,内蒙古自治区,呼和浩特市
+250,4619,本科一批第一次,理科,106,太原理工大学,458,1:1,489,489,106,111,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-94.dhtml,6692,"['211', 'DFC']",山西省,太原市
+251,4621,本科一批第一次,理科,68,石河子大学,076,1:1,459,459,68,74,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-593.dhtml,16847,"['211', 'DFC']",新疆维吾尔自治区,石河子市
+252,4623,本科一批第一次,理科,19,浙江农林大学,A41,1:1,457,457,19,24,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-261.dhtml,16660,,浙江省,杭州市
+253,4640,本科一批第一次,理科,23,江苏科技大学,409,1:1,452,452,23,25,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-228.dhtml,13146,,江苏省,镇江市
+254,4641,本科一批第一次,理科,3,广东财经大学,086,1:1,485,485,3,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-452.dhtml,12966,,广东省,广州市
+255,4645,本科一批第一次,理科,10,北京建筑大学,060,1:1,464,464,10,10,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-15.dhtml,15676,,北京市,北京市
+256,4646,本科一批第一次,理科,4,北京林业大学,LS5,1:1,506,506,4,5,0,,12614,"['211', 'DFC']",北京市,北京市
+257,4649,本科一批第一次,理科,2,复旦大学医学院,K04,1:1,665,665,2,2,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-197.dhtml,98,,上海市,上海市
+258,4655,本科一批第一次,理科,33,华南理工大学,280,1:1,573,573,33,38,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-431.dhtml,2025,"['985', '211', 'DFC']",广东省,广州市
+259,4657,本科一批第三次,理科,88,中南林业科技大学,B00,1:1,442,442,88,97,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-415.dhtml,26851,,湖南省,长沙市
+260,4667,本科一批第三次,理科,201,内蒙古科技大学包头师范学院,757,1:1,443,443,201,225,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-6433938.dhtml,26592,,内蒙古自治区,包头市
+261,4669,本科一批第一次,理科,74,北京林业大学,082,1:1,503,503,74,80,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-20.dhtml,7812,"['211', 'DFC']",北京市,北京市
+262,4680,本科一批第一次,理科,13,上海电力大学,181,1:1,519,519,13,14,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-204.dhtml,10442,,上海市,上海市
+263,4681,本科一批第六次,理科,12,东北财经大学,L72,1:1,434,434,12,7,5,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-145.dhtml,28969,,辽宁省,大连市
+264,4684,本科一批第二次,理科,9,安徽师范大学,042,1:1,450,450,9,9,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-286.dhtml,24795,,安徽省,芜湖市
+265,4706,本科一批第一次,理科,2,山东建筑大学,LVM,1:1,453,453,2,3,0,,24028,,山东省,济南市
+266,4713,本科一批第一次,理科,22,西安理工大学,096,1:1,488,488,22,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-548.dhtml,12440,,陕西省,西安市
+267,4731,本科一批第一次,理科,27,大连大学,823,1:1,450,450,27,33,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-750.dhtml,14896,,辽宁省,大连市
+268,4742,本科一批第一次,理科,5,上海大学,LA4,1:1,533,533,5,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-221.dhtml,8374,"['211', 'DFC']",上海市,上海市
+269,4748,本科一批第一次,理科,23,江西财经大学,027,1:1,450,450,23,25,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-329.dhtml,17915,,江西省,南昌市
+270,4753,本科一批第二次,理科,23,中国传媒大学,269,1:1,549,549,23,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-30.dhtml,6181,"['211', 'DFC']",北京市,北京市
+271,4754,本科一批第一次,理科,53,哈尔滨理工大学,099,1:1,450,450,53,55,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-175.dhtml,16260,,黑龙江省,哈尔滨市
+272,4762,本科一批第一次,理科,28,天津师范大学,562,1:1,459,459,28,30,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-57.dhtml,22507,,天津市,天津市
+273,4763,本科一批第一次,理科,19,延边大学,837,1:1,457,457,19,28,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-155.dhtml,4764,"['211', 'DFC']",吉林省,延边朝鲜族自治州
+274,4774,本科一批第一次,理科,5,南昌大学,L16,1:1,559,559,5,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-314.dhtml,5000,"['211', 'DFC']",江西省,南昌市
+275,4776,本科一批第二次,理科,5,中国人民警察大学,N27,1:1,463,463,5,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-731.dhtml,21591,,河北省,廊坊市
+276,4781,本科一批第一次,理科,170,中北大学,202,1:1,449,449,170,174,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-93.dhtml,13724,,山西省,太原市
+277,4782,本科一批第一次,理科,17,辽宁大学,801,1:1,483,483,17,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-116.dhtml,6041,"['211', 'DFC']",辽宁省,沈阳市
+278,4785,本科一批第一次,理科,65,四川农业大学,067,1:1,473,473,65,67,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-483.dhtml,10600,"['211', 'DFC']",四川省,雅安市
+279,4803,本科一批第一次,理科,35,南昌大学,935,1:1,462,462,35,37,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-314.dhtml,7536,"['211', 'DFC']",江西省,南昌市
+280,4813,本科一批第一次,理科,74,西南交通大学,237,1:1,530,530,74,75,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-471.dhtml,6993,"['211', 'DFC']",四川省,成都市
+281,4817,本科一批第一次,理科,4,成都理工大学,LVC,1:1,464,464,4,4,0,,14323,['DFC'],四川省,成都市
+282,4819,本科一批第一次,理科,64,暨南大学,377,1:1.02,508,494,66,67,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-429.dhtml,14896,"['211', 'DFC']",广东省,广州市
+283,4829,本科一批第一次,理科,7,延边大学,L92,1:1,473,473,7,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-155.dhtml,19279,"['211', 'DFC']",吉林省,延边朝鲜族自治州
+284,4833,本科一批第一次,理科,10,河南科技大学,104,1:1.05,510,502,11,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-365.dhtml,11901,,河南省,洛阳市
+285,4837,本科一批第二次,理科,13,集美大学,627,1:1,456,456,13,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-304.dhtml,20373,,福建省,厦门市
+286,4838,本科一批第一次,理科,13,湘潭大学,702,1:1,480,480,13,14,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-408.dhtml,9831,,湖南省,湘潭市
+287,4842,本科一批第六次,理科,6,东北农业大学,LV9,1:1,434,434,6,5,1,,28969,"['211', 'DFC']",黑龙江省,哈尔滨市
+288,4848,本科一批第一次,理科,58,兰州大学,296,1:1,519,519,58,60,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-571.dhtml,10442,"['985', '211', 'DFC']",甘肃省,兰州市
+289,4852,本科一批第一次,理科,25,广州大学,971,1:1,469,469,25,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-720.dhtml,20157,,广东省,广州市
+290,4854,本科一批第一次,理科,31,郑州轻工业大学,223,1:1,477,477,31,44,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-363.dhtml,17482,,河南省,郑州市
+291,4858,本科一批第一次,理科,4,华南农业大学,078,1:1,503,503,4,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-432.dhtml,13146,,广东省,广州市
+292,4865,本科一批第一次,理科,2,江西师范大学,329,1:1,436,436,2,2,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-324.dhtml,28447,,江西省,南昌市
+293,4869,本科一批第一次,理科,3,浙江财经大学,H13,1:1,486,486,3,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-821.dhtml,15676,,浙江省,杭州市
+294,4876,本科一批第一次,理科,4,中央民族大学,LF7,1:1,527,527,4,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-46.dhtml,9222,"['985', 'DFC']",北京市,北京市
+295,4883,本科一批第一次,理科,55,中国矿业大学（北京）,462,1:1,511,511,55,57,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-27213.dhtml,10442,"['211', 'DFC']",北京市,北京市
+296,4895,本科一批第一次,理科,13,新疆大学,981,1:1,459,459,13,17,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-590.dhtml,14714,"['211', 'DFC']",新疆维吾尔自治区,乌鲁木齐市
+297,4901,本科一批第一次,理科,14,山东理工大学,197,1:1,456,456,14,16,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-338.dhtml,11901,,山东省,淄博市
+298,4911,本科一批第一次,理科,24,青岛大学,738,1:1,455,455,24,27,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-709.dhtml,9522,,山东省,青岛市
+299,4916,本科一批第一次,理科,18,北京印刷学院,373,1:1,470,470,18,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-14.dhtml,13333,,北京市,北京市
+300,4925,本科一批第一次,理科,61,四川大学,289,1:1,579,579,61,65,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-469.dhtml,2643,"['985', '211', 'DFC']",四川省,成都市
+301,4940,本科一批第一次,理科,35,江苏大学,299,1:1,485,485,35,39,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-236.dhtml,16049,,江苏省,镇江市
+302,4946,本科一批第一次,理科,21,西安交通大学,LB5,1:1,577,577,21,24,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-546.dhtml,3284,"['985', '211', 'DFC']",陕西省,西安市
+303,4948,本科一批第一次,理科,13,西安外国语大学,942,1:1,443,443,13,13,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-566.dhtml,21374,,陕西省,西安市
+304,4969,本科一批第一次,理科,38,燕山大学,295,1:1,447,447,38,44,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-176.dhtml,15879,,河北省,秦皇岛市
+305,4979,本科一批第一次,理科,51,河北大学,630,1:1,448,448,51,55,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-65.dhtml,12440,,河北省,保定市
+306,4982,本科一批第一次,理科,55,中国海洋大学,148,1:1,545,545,55,61,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-331.dhtml,6692,"['985', '211', 'DFC']",山东省,青岛市
+307,4988,本科一批第一次,理科,2,福建农林大学,147,1:1,463,463,2,3,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-303.dhtml,21591,,福建省,福州市
+308,4991,本科一批第一次,理科,111,东北电力大学,132,1:1,469,469,111,120,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-157.dhtml,15281,,吉林省,吉林市
+309,4999,本科一批第二次,理科,86,大连理工大学,284,1:1,593,593,86,92,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-117.dhtml,2130,"['985', '211', 'DFC']",辽宁省,大连市
+310,5000,本科一批第一次,理科,176,北方民族大学,005,1:1,434,434,176,140,36,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-797.dhtml,25814,,宁夏回族自治区,银川市
+311,5001,本科一批第一次,理科,54,华北理工大学,632,1:1,444,444,54,55,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-71.dhtml,22756,,河北省,唐山市
+312,5006,本科一批第一次,理科,20,浙江工业大学,D40,1:1,470,470,20,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-258.dhtml,16049,,浙江省,杭州市
+313,5009,本科一批第一次,理科,27,南京信息工程大学,357,1:1,508,508,27,29,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-237.dhtml,5442,['DFC'],江苏省,南京市
+314,5011,本科一批第一次,理科,4,浙江大学医学院,M29,1:1,651,651,4,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-256.dhtml,230,,浙江省,杭州市
+315,5024,本科一批第一次,理科,40,贵州大学,591,1:1,475,475,40,42,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-509.dhtml,6181,"['211', 'DFC']",贵州省,贵阳市
+316,5031,本科一批第一次,理科,6,贵州大学,LP2,1:1,459,459,6,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-509.dhtml,21591,"['211', 'DFC']",贵州省,贵阳市
+317,5057,本科一批第一次,理科,37,吉林大学,LA8,1:1,519,519,37,38,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-154.dhtml,6993,"['985', '211', 'DFC']",吉林省,长春市
+318,5079,本科一批第一次,理科,86,哈尔滨商业大学,054,1:1,434,434,86,72,14,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-194.dhtml,18153,,黑龙江省,哈尔滨市
+319,5082,本科一批第一次,理科,239,吉林大学,297,1:1,519,519,239,249,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-154.dhtml,6427,"['985', '211', 'DFC']",吉林省,长春市
+320,5091,本科一批第一次,理科,64,南京林业大学,080,1:1,466,466,64,67,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-235.dhtml,12614,['DFC'],江苏省,南京市
+321,5094,本科一批第一次,理科,36,辽宁科技大学,167,1:1,442,442,36,39,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-122.dhtml,17268,,辽宁省,鞍山市
+322,5096,本科一批第一次,理科,5,北方民族大学,L69,1:1,446,446,5,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-797.dhtml,25814,,宁夏回族自治区,银川市
+323,5099,本科一批第一次,理科,318,内蒙古民族大学,761,1:1,438,438,318,334,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-113.dhtml,24531,,内蒙古自治区,通辽市
+324,5111,本科一批第一次,理科,78,湖南科技大学,A99,1:1,448,448,78,84,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-412.dhtml,20373,,湖南省,湘潭市
+325,5138,本科一批第一次,理科,25,深圳大学,B82,1:1,541,541,25,28,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-451.dhtml,4369,,广东省,深圳市
+326,5151,本科一批第二次,理科,34,长春中医药大学,A32,1:1,486,486,34,36,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-162.dhtml,16455,,吉林省,长春市
+327,5164,本科一批第一次,理科,17,长春理工大学,LF2,1:1,491,491,17,20,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-156.dhtml,13724,,吉林省,长春市
+328,5180,本科一批第一次,理科,15,扬州大学,911,1:1,465,465,15,18,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-737.dhtml,9977,,江苏省,扬州市
+329,5183,本科一批第一次,理科,178,中南大学,312,1:1,561,561,178,184,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-411.dhtml,3284,"['985', '211', 'DFC']",湖南省,长沙市
+330,5194,本科一批第一次,理科,44,华东交通大学,242,1:1,457,457,44,51,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-315.dhtml,21120,,江西省,南昌市
+331,5195,本科一批第一次,理科,6,南方医科大学,B54,1:1,518,518,6,8,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-988.dhtml,10600,,广东省,广州市
+332,5213,本科一批第二次,理科,14,三峡大学,293,1:1,472,472,14,19,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-718.dhtml,19501,,湖北省,宜昌市
+333,5232,本科一批第一次,理科,8,东北师范大学,321,1:1,528,528,8,9,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-163.dhtml,2793,"['211', 'DFC']",吉林省,长春市
+334,5248,本科一批第二次,理科,7,宁夏医科大学,138,1:1,456,456,7,8,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-588.dhtml,23253,,宁夏回族自治区,银川市
+335,5264,本科一批第一次,理科,37,中国石油大学（北京）克拉玛依校区,M31,1:1,474,474,37,38,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-798.dhtml,14714,,新疆维吾尔自治区,克拉玛依市
+336,5279,本科一批第六次,理科,6,中南大学,LR9,1:1,546,546,6,7,0,,6565,"['985', '211', 'DFC']",湖南省,长沙市
+337,5280,本科一批第一次,理科,45,重庆大学,290,1:1,585,585,45,46,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-470.dhtml,1957,"['985', '211', 'DFC']",重庆市,重庆市
+338,5298,本科一批第一次,理科,8,南昌航空大学,L90,1:1,459,459,8,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-317.dhtml,13146,,江西省,南昌市
+339,5305,本科一批第一次,理科,72,大连民族大学,L61,1:1,453,453,72,81,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-949.dhtml,17482,,辽宁省,大连市
+340,5312,本科一批第一次,理科,28,南昌航空大学,D07,1:1,452,452,28,34,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-317.dhtml,11404,,江西省,南昌市
+341,5317,本科一批第一次,理科,28,黑龙江大学,875,1:1,434,434,28,27,1,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-173.dhtml,10105,,黑龙江省,哈尔滨市
+342,5323,本科一批第一次,理科,1,重庆大学,LS7,1:1,470,470,1,1,0,,19942,"['985', '211', 'DFC']",重庆市,重庆市
+343,5336,本科一批第一次,理科,29,东北石油大学,440,1:1,434,434,29,28,1,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-179.dhtml,12271,,黑龙江省,大庆市
+344,5341,本科一批第一次,理科,20,常州大学,127,1:1,449,449,20,24,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-231.dhtml,25058,,江苏省,常州市
+345,5344,本科一批第二次,理科,57,电子科技大学,187,1:1,582,582,57,65,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-472.dhtml,2862,"['985', '211', 'DFC']",四川省,成都市
+346,5359,本科一批第一次,理科,1412,内蒙古农业大学,755,1:1,434,434,1412,1292,120,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-110.dhtml,25058,,内蒙古自治区,呼和浩特市
+347,5370,本科一批第一次,理科,5,上海外国语大学,277,1:1,517,517,5,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-212.dhtml,4278,"['211', 'DFC']",上海市,上海市
+348,5373,本科一批第一次,理科,20,东北师范大学,L30,1:1,512,512,20,22,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-163.dhtml,7938,"['211', 'DFC']",吉林省,长春市
+349,5397,本科一批第一次,理科,3,北京理工大学,LS4,1:1,591,591,3,3,0,,2250,"['985', '211', 'DFC']",北京市,北京市
+350,5401,本科一批第二次,理科,22,沈阳工业大学,095,1:1,445,445,22,23,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-118.dhtml,26060,,辽宁省,沈阳市
+351,5403,本科一批第一次,理科,4,天津商业大学,LN2,1:1,459,459,4,6,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-60.dhtml,22507,,天津市,天津市
+352,5407,本科一批第一次,理科,10,中国科学技术大学,403,1:1,653,653,10,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-276.dhtml,202,"['985', '211', 'DFC']",安徽省,合肥市
+353,5410,本科一批第一次,理科,6,陕西科技大学,LN8,1:1,463,463,6,7,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-554.dhtml,13906,,陕西省,西安市
+354,5413,本科一批第一次,理科,4,北京理工大学,L17,1:1,591,591,4,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-7.dhtml,2187,"['985', '211', 'DFC']",北京市,北京市
+355,5414,本科一批第二次,理科,36,东北林业大学,L79,1:1,463,463,36,38,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-183.dhtml,21591,"['211', 'DFC']",黑龙江省,哈尔滨市
+356,5416,本科一批第一次,理科,70,内蒙古师范大学,L07,1:1,449,449,70,109,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-112.dhtml,25058,,内蒙古自治区,呼和浩特市
+357,5426,本科一批第一次,理科,63,武汉大学,305,1:1,617,617,63,67,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-383.dhtml,1008,"['985', '211', 'DFC']",湖北省,武汉市
+358,5427,本科一批第一次,理科,23,同济大学,309,1:1,631,631,23,28,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-198.dhtml,380,"['985', '211', 'DFC']",上海市,上海市
+359,5434,本科一批第一次,理科,71,江西理工大学,428,1:1,444,444,71,77,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-318.dhtml,15495,,江西省,赣州市
+360,5444,本科一批第一次,理科,30,安徽工业大学,040,1:1,452,452,30,33,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-278.dhtml,14116,,安徽省,马鞍山市
+361,5447,本科一批第六次,理科,1046,内蒙古科技大学,764,1:1,434,434,1046,760,286,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-108.dhtml,28969,,内蒙古自治区,包头市
+362,5448,本科一批第一次,理科,3,西北民族大学,004,1:1,485,485,3,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-582.dhtml,16660,,甘肃省,兰州市
+363,5492,本科一批第一次,理科,6,长春理工大学,LS3,1:1,454,454,6,6,0,,17268,,吉林省,长春市
+364,5501,本科一批第一次,理科,11,西南大学,071,1:1,468,468,11,11,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-489.dhtml,5000,"['211', 'DFC']",重庆市,重庆市
+365,5523,本科一批第一次,理科,21,南京大学,282,1:1,654,654,21,25,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-223.dhtml,192,"['985', '211', 'DFC']",江苏省,南京市
+366,5524,本科一批第一次,理科,17,中国人民大学,286,1:1,638,638,17,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-2.dhtml,453,"['985', '211', 'DFC']",北京市,北京市
+367,5543,本科一批第一次,理科,28,河北师范大学,316,1:1,457,457,28,35,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-80.dhtml,11901,,河北省,石家庄市
+368,5545,本科一批第一次,理科,945,内蒙古师范大学,752,1:1,434,434,945,932,13,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-112.dhtml,27392,,内蒙古自治区,呼和浩特市
+369,5548,本科一批第一次,理科,40,长春理工大学,201,1:1,434,434,40,39,1,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-156.dhtml,14526,,吉林省,长春市
+370,5552,本科一批第一次,理科,58,天津理工大学,559,1:1,457,457,58,64,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-53.dhtml,10442,,天津市,天津市
+371,5554,本科一批第一次,理科,3,西南大学（荣昌校区）,N98,1:1,511,511,3,4,0,,11735,,重庆市,重庆市
+372,5556,本科一批第三次,理科,10,曲阜师范大学,B94,1:1,434,434,10,8,2,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-349.dhtml,28969,,山东省,济宁市
+373,5562,本科一批第一次,理科,4,天津科技大学,LP7,1:1,502,502,4,5,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-50.dhtml,13333,,天津市,天津市
+374,5568,本科一批第五次,理科,28,青岛理工大学,173,1:1,458,458,28,29,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-335.dhtml,22756,,山东省,青岛市
+375,5569,本科一批第一次,理科,42,河海大学,144,1:1,520,520,42,43,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-233.dhtml,6304,"['211', 'DFC']",江苏省,南京市
+376,5570,本科一批第一次,理科,41,湖南师范大学,D31,1:1,482,482,41,43,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-417.dhtml,13516,"['211', 'DFC']",湖南省,长沙市
+377,5572,本科一批第一次,理科,78,长沙理工大学,126,1:1,461,461,78,82,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-413.dhtml,10758,,湖南省,长沙市
+378,5576,本科一批第一次,理科,19,西安石油大学,438,1:1,454,454,19,21,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-553.dhtml,23766,,陕西省,西安市
+379,5579,本科一批第一次,理科,1425,内蒙古医科大学,758,1:1,436,436,1425,1459,0,https://gaokao.chsi.com.cn/zsgs/zhangcheng/listZszc--schId-111.dhtml,25324,,内蒙古自治区,呼和浩特市

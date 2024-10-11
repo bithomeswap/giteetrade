@@ -1,0 +1,339 @@
+# 克隆自聚宽文章：https://www.joinquant.com/post/48966
+# 标题：ETF时序宏观策略(改)
+# 作者：leevits
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import minimize
+
+# 初始化函数
+def initialize(context):
+    # 设定基准
+    set_benchmark('000300.XSHG')
+    # 用真实价格交易
+    set_option('use_real_price', True)
+    # 打开防未来函数
+    set_option("avoid_future_data", True)
+    # 设置滑点
+    set_slippage(FixedSlippage(0.002))
+    # 设置交易成本
+    set_order_cost(OrderCost(open_tax=0, close_tax=0, open_commission=0.0002,
+                   close_commission=0.0002, close_today_commission=0, min_commission=5), type='fund')
+    # 过滤一定级别的日志
+    log.set_level('system', 'error')
+    # 参数
+     # 参数
+    g.etf_goods_pool = [
+        '518880.XSHG',  # 黄金ETF
+        '510170.XSHG',  # 商品etf
+        '159985.XSHE',  # 豆粕etf
+        '162719.XSHE',  # 石油etf
+        '159980.XSHE',  # 有色etf
+    ]
+    
+    g.etf_bounds_pool = [
+        '511260.XSHG',  # 国债10年期
+        '511010.XSHG',  # 国债etf
+    ]       
+
+    
+    g.etf_stocks_pool = [
+        '515660.XSHG',  # 沪深300
+        '513660.XSHG',  # 恒生
+        '513100.XSHG',  # 纳指100
+        '513880.XSHG',  # 日经225
+        '513080.XSHG',  # 法国40 
+        '513030.XSHG',  # 德国30                              
+        # '513520.XSHG', # 日经ETF
+        ]
+
+    # 可调参数:
+    # 动量计算
+    g.m_days = 20
+    # 目标波动率:(0~1之间,波动率越大风险越大收益越大)
+    g.σ_target = 0.5
+    # 调仓月份(每季度调仓)
+    g.change_months = [1, 4, 8, 12]
+    # 函数运行
+    run_monthly(trade, 1, '9:30')
+
+#1 操作模块
+#1.1 股票获取
+def get_etf(context):
+    target_etf = []
+    
+    def update_target_etf(etf_pool):
+        selected = selected_etf(etf_pool)
+        if selected:
+            return selected[:2]
+        return []
+        
+    target_etf = []
+    target_etf.extend(update_target_etf(g.etf_goods_pool))
+    target_etf.extend(update_target_etf(g.etf_bounds_pool))
+    target_etf.extend(update_target_etf(g.etf_stocks_pool))
+    print(f'目标ETF列表: {target_etf}')
+    return target_etf
+#1.2 计算仓位
+def calculate_positions(target_etf):
+    if len(target_etf)!= 0:
+        num = 1 / len(target_etf)
+        w1 = np.full(len(target_etf), num)
+        σ_predict, w2 = adjust_etf_weights(target_etf, w1,σ_target=g.σ_target)
+        log.info(f'预测组合波动率:{σ_predict}')
+        if np.isnan(w2).any() or np.sum(w2) == 0:
+            log.info(f'自动分仓出现问题,进行平均分仓')
+            return np.round(w1, 2)
+        else:
+            return w2
+#1.3 调仓模块
+def trade(context):
+    # # 判断当前月份是否在指定月份范围内
+    month = context.current_dt.month
+    if month in g.change_months:    
+        target_etf = get_etf(context)
+        positions_num = calculate_positions(target_etf)
+        log.info(f'目标仓位:{positions_num}')
+        
+        # 卖出 
+        hold_list = list(context.portfolio.positions)
+        for etf in hold_list:
+            if etf not in target_etf:
+                order_target_value(etf, 0)
+                log.info('全仓卖出' + str(etf))
+    
+        # 计算总资产值（包含现金）
+        total_value = context.portfolio.total_value
+        # 调整目标ETF的仓位
+        for etf, position in zip(target_etf, positions_num):
+            target_value = total_value * position  # 计算目标仓位值
+            order_target_value(etf, target_value)  # 调整仓位
+            log.info(f'调整 {etf} 持仓至目标值：{target_value}')
+
+#2 指标筛选模块
+#2.1 INVVOL计算
+def calculate_invvol(code, N1=20, N2=250):
+    """
+    计算 Invvol
+    :param code: 股票代码
+    :param date: 截止日期
+    :param N1: 短期时间窗口长度
+    :param N2: 长期时间窗口长度
+    :return: 短期和长期 Invvol 值
+    """
+    # 获取较长时间窗口的收盘价数据
+    prices = attribute_history(code, count=N2+1, unit='1d', fields=['close']).values
+    
+    # 计算收益率
+    returns = [(prices[i] / prices[i-1]) - 1 for i in range(1, len(prices))]
+    
+    # 计算短期和长期标准差的逻辑
+    def calculate_std(returns, N):
+        """
+        计算标准差
+        :param returns: 收益率列表
+        :param N: 时间窗口长度
+        :return: 标准差
+        """
+        mean_return = np.mean(returns[-N:])
+        variance = np.sum([(r - mean_return)**2 for r in returns[-N:]]) / (N - 1)
+        return np.sqrt(variance)
+
+    # 计算短期和长期标准差
+    std_short_term = calculate_std(returns, N1)
+    std_long_term = calculate_std(returns, N2)
+    
+    # 计算 Invvol
+    invvol_short_term = 1 / std_short_term if std_short_term != 0 else np.inf
+    invvol_long_term = 1 / std_long_term if std_long_term != 0 else np.inf
+    return 1 if invvol_short_term > invvol_long_term else 0 
+#2.2 # 计算THRESAVG
+def calculate_Percent(code,N=120):
+    """
+    计算 Percent 值
+    :param code: 股票代码
+    :param date: 截止日期
+    :param N: 时间窗口长度
+    :return: Percent 值
+    """
+    # 获取近 N 天的收盘价数据
+    prices = attribute_history(code, count=N, unit='1d', fields=['close']).values
+    
+    # 计算 indexDEV 值的逻辑
+    indexDEV_values = []
+    for i in range(N):
+        # 计算移动平均值 (MA)
+        if i+1 < N:
+            ma_N = np.mean(prices[:i+1])
+        else:
+            ma_N = np.mean(prices[i+1-N:i+1])
+        # 计算 DEV 值
+        close_t = prices[i]
+        dev = close_t - ma_N
+        # 计算 indexDEV 值
+        indexDEV_value = 1 if dev > 0 else 0
+        indexDEV_values.append(indexDEV_value)
+    # 计算 Percent
+    Percent_N_t_K = np.mean(indexDEV_values)
+    return 1 if Percent_N_t_K > 0.5 else 0
+#2.3 # TMA计算
+def get_TMA(code, N=60):
+    """
+    获取指定日期的 TMA 值
+    :param code: 股票代码
+    :param date: 截止日期
+    :param N: 时间窗口长度
+    :return: TMA 值
+    """
+    # 获取足够长时间的收盘价数据
+    prices = attribute_history(code, count=N*2, unit='1d', fields=['close']).values
+    prices_today = attribute_history(code, count=1, unit='1d', fields=['close']).values[0, 0]
+    
+    # 计算三重移动平均值 (TMA) 的逻辑
+    ma_values = []
+    for i in range(len(prices) - N + 1):
+        ma_N = np.mean(prices[i:i+N])
+        ma_values.append(ma_N)
+    
+    TMA_N_t_K = np.mean(ma_values[-N:])
+    return 1 if prices_today > TMA_N_t_K else 0
+
+#2.4 动量打分
+def calculate_momentum(etf_pool):
+    # 初始化一个空列表，用于存储每个ETF的得分
+    score_list = []
+    # 遍历ETF池中的每个ETF
+    for etf in etf_pool:
+        # 获取每个ETF的历史收盘价数据，时间长度由g.m_days指定，数据频率为每天
+        df = attribute_history(etf, g.m_days, '1d', ['close'])
+        # 计算收盘价的自然对数，并将结果存储在新列"log"中(解决不同时间点上方差不一致的问题)
+        y = df['log'] = np.log(df.close)
+        # 创建一个与日志大小相等的数值序列, 并储存在新列"num"中
+        x = df['num'] = np.arange(df.log.size)
+        # 使用一次多项式拟合对数收盘价与数值序列，获取斜率和截距.(拟合对数收盘价和数值序列)
+        slope, intercept = np.polyfit(x, y, 1)
+        # 将斜率年化（假设一年有250个交易日），计算年化收益率 (将日对数收益转化为普通收益, 在通过幂运算将其复合到年, 减去1后得到年化收益率)
+        annualized_returns = math.pow(math.exp(slope), 250) - 1
+        # 计算决定系数R²，用于评估拟合的好坏 (R²越高越能够捕捉到价格变化趋势)
+        r_squared = 1 - (sum((y - (slope * x + intercept))**2) / ((len(y) - 1) * np.var(y, ddof=1)))
+        # 将年化收益率与决定系数相乘，得到最终得分
+        score = annualized_returns * r_squared
+        # 将得分添加到得分列表中
+        score_list.append(score)
+    # 存储ETF和其得分, 并按得分高低排序
+    df = pd.DataFrame(index=etf_pool, data={'score':score_list})
+    df = df.sort_values(by='score', ascending=False)
+    rank_list = list(df.index)
+    return rank_list
+
+
+#3 其他工具模块
+#3.1 筛选模块
+def selected_etf(etf_pool):
+    hold_etf = []
+    for etf in etf_pool:
+        code_score = 0
+        code_score += calculate_invvol(etf)
+        code_score += calculate_Percent(etf)
+        code_score += get_TMA(etf)
+        if code_score >= 2:
+            hold_etf.append(etf)
+    print(f"通过初筛的股票为{hold_etf}")
+    # 进行打分排序
+    hold_etf = calculate_momentum(hold_etf)
+    # print(f'筛选出的股票为:{hold_etf}')
+    return hold_etf
+    
+    
+#3.2 计算分配权重
+def adjust_etf_weights(etf_codes, w1, σ_target):
+    """
+    根据给定的ETF代码列表、初始权重、目标波动率和最小限度比例，调整资产权重。
+
+    参数:
+    etf_codes (list of str): ETF代码列表
+    w1 (numpy array): 初始资产权重
+    σ_target (float): 目标波动率
+
+    返回:
+    tuple: 调整后的资产权重
+    """
+    def calculate_halflife_covariance(returns, halflife=250):
+        """
+        使用半衰期权重计算协方差矩阵
+
+        参数:
+        returns (DataFrame): 每日收益率数据
+        halflife (int): 半衰期天数，默认为125
+
+        返回:
+        numpy array: 协方差矩阵
+        """
+        lambda_ = np.log(2) / halflife
+        weights = np.exp(-lambda_ * np.arange(len(returns))[::-1])
+        weights /= weights.sum()
+
+        weighted_returns = returns.mul(weights, axis=0)
+        mean_returns = weighted_returns.sum(axis=0)
+
+        centered_returns = returns - mean_returns
+        weighted_centered_returns = centered_returns.mul(np.sqrt(weights), axis=0)
+        covariance_matrix = np.dot(weighted_centered_returns.T, weighted_centered_returns) / weights.sum()
+        
+        return covariance_matrix
+
+    # 初始化一个空的DataFrame来存储所有ETF的收盘价
+    all_data = pd.DataFrame()
+
+    # 循环获取每个ETF的收盘价数据
+    for code in etf_codes:
+        # 获取历史数据
+        df = attribute_history(code, 250, '1d', ['close'])
+        # 填充缺失值
+        df_filled = df.fillna(method='bfill')
+        # 重命名列为ETF代码
+        df_filled.columns = [code]
+        # 合并数据
+        if all_data.empty:
+            all_data = df_filled
+        else:
+            all_data = all_data.join(df_filled, how='outer')
+
+    # 使用后向填充的方法处理所有空值
+    all_data = all_data.fillna(method='bfill')
+    # 计算每日收益率
+    returns = all_data.pct_change().dropna() * 100
+    # 计算半衰期加权协方差矩阵 Σ
+    Σ = calculate_halflife_covariance(returns)
+    # 计算组合的预测波动率 σ_predict
+    σ_predict = np.sqrt(np.dot(w1.T, np.dot(Σ, w1)))
+    
+    # 如果σ_predict高于σ_target，调整权重
+    if σ_predict > σ_target:
+        # 按比例缩小资产权重
+        w2 = w1 * (σ_target / σ_predict)
+    else:
+        # 如果σ_predict小于σ_target，求解w2
+        def objective(w):
+            # 目标函数：最小化与初始权重的偏差
+            return np.sqrt(np.dot((w - w1).T, np.dot(Σ, (w - w1))))
+
+        # 约束条件
+        constraints = (
+            # 组合波动率等于目标波动率
+            {'type': 'eq', 'fun': lambda w: np.sqrt(np.dot(w.T, np.dot(Σ, w))) - σ_target},
+            # 权重和不超过1
+            {'type': 'ineq', 'fun': lambda w: 1 - np.sum(w)}
+        )
+        # 初始猜测
+        w0 = w1
+        # 使用最小化函数求解优化问题
+        result = minimize(objective, w0, constraints=constraints, bounds=[(0, 1) for _ in w1])
+        w2 = result.x
+        
+    # 设置权重小于0.1的为0
+    w2 = np.where(w2 < 0.1, 0, w2)
+    # 重新调整权重，使总和为1
+    w2 = w2 / np.sum(w2)
+    w2 = np.round(w2, 2)
+    return σ_predict, w2

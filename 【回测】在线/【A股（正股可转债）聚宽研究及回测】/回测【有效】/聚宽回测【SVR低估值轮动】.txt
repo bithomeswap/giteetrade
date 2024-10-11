@@ -1,0 +1,122 @@
+# 克隆自聚宽文章：https://www.joinquant.com/post/10778
+# 标题：【量化课堂】机器学习多因子策略
+# 作者：JoinQuant量化课堂
+
+#lianghuajiaoyi123456
+
+# 进一步的改进：
+# 1，本作和原作都基于单一时间节点做截面回归，其实，可以基于最近N日做双重回归，模型将更为稳健。但是，JQ有30分钟限制，且开盘前计算繁重，N不要太大。
+# 2，本策略使用了6个因子，致敬”原作“，即，净资产、净利润、研发投入、市盈率、资产杠杆率、营业同比增长率，可以增加一些有用的因子，可以替换一些因子，比如说，roe，现金回报率。
+# 3，尝试更复杂的AI模型。
+#对市值预测的偏差可以使用比值【进行测试】
+
+# 模拟盘调整了三处：
+# 1，PE比PB对于小盘策略更为有效。
+# 2，从纯粹微盘调整为4-因子。
+# 3，股-债融合。
+# 抗风险能力，刚刚的，2008、2015、2018、2024全部大跌都坦途。收益，勉强10年10倍的样子吧，比上一版的17倍还低了，不发了。
+
+import pandas as pd
+import numpy as np
+import datetime as dt
+from sklearn.svm import SVR
+from jqdata import *
+
+# yesterday ln
+def signlog(X):
+    return sign(X) * np.log(1.0 + abs(X))
+    #sign(X)：返回 X 的符号。如果 X 是正数，返回1；如果 X 是负数，返回-1；如果 X 是0，返回0。
+    #np.log(1.0 + abs(X))：计算 1.0 + abs(X) 的自然对数，其中 np 通常指的是 Python 中的 NumPy 库，np.log 表示自然对数。
+
+def initialize(context):
+    # setting system
+    log.set_level("order", "error")
+    set_option("use_real_price", True)
+    set_option("avoid_future_data", True)
+    # 300只持仓的时候有时候低估的股票数量不够，可能选不到300只，所以收益比较低
+    # run_monthly(trade, 1, time="9:35", reference_security="000300.XSHG")
+    run_weekly(trade,2,"9:40")
+    # run_daily(trade, "open")#开盘后计算执行交易计划
+
+def trade(context):
+    #训练模型、预测结果并选股【可以在盘前进行】
+    # parameter
+    numbuystock = 100 # 持股数
+    index = "399317.XSHE" # 市场指数
+    cdata  = get_current_data()
+    yesterday = context.previous_date
+    print("yesterday",yesterday)
+    # stocks
+    stocks = get_index_stocks(index,yesterday)
+    # fundamental data
+    df = get_fundamentals(query(
+            valuation.code,#代码
+            valuation.market_cap,#市值
+            # balance.total_assets - balance.total_liability,#净资产total_assets资产总计，total_liability负债合计
+            balance.total_assets / balance.total_liability,#signlogtotal_assets资产总计，total_liability负债合计
+            income.net_profit,#净利润
+            income.operating_revenue,#营业收入
+            balance.development_expenditure,#开发支出
+            # valuation.pe_ratio,#市盈率(PE, TTM)
+            indicator.inc_revenue_year_on_year/100,#营业收入同比增长率(%)
+        ).filter(
+            valuation.code.in_(stocks),
+            balance.total_assets > balance.total_liability,#非资不抵债
+            income.net_profit > 0,#净利润大于0
+        ),yesterday).fillna(0).set_index("code")#把代码设置成索引，索引是不参与模型的训练
+    columnslist=["市值",
+                # "净资产",#去掉净资产收益会提高【原因是资产评估方式不准】
+                "资产负债率", 
+                "净利润",
+                # "营业收入",#加上营收因子看看效果【按说有提高】
+                "开发支出",
+                # "PE",
+                # "grow"
+                ]#用前一天的基本面数据同时进行训练和输出
+    df.columns= columnslist
+    for column in columnslist:
+        df[column] = signlog(df[column])
+    print(df)
+    # industry factor行业因子（申万宏源一级行业）
+    industry_list = get_industries("sw_l1", yesterday).index.tolist()#获取所有申万一级行业
+    for sector in industry_list:#遍历所有行业
+        istocks = get_industry_stocks(sector, yesterday)#获取成分股
+        s = pd.Series(0,index=df.index)#生成一个所有数据都是0的列
+        s[set(istocks) & set(df.index)] = 1#只对序列当中复合要求的标的赋值为1
+        df[sector] = s #每个行业是一个单独的特征列
+    # SVR model
+    svr = SVR(kernel="rbf")
+    # training model #预测的目标是市值【这是一个估值模型】
+    Y = df["市值"]
+    X = df.drop("市值", axis=1)
+    model = svr.fit(X, Y)#根据前一天的基本面和市值情况预测
+
+    # buystokcs并选股
+    r = Y - pd.Series(svr.predict(X), Y.index)#再拿昨天的值（不含市值）重新进行预测判断高估还是低估
+    #选择预测值与实际值当中市值差最小的部分【也就是被低估的部分，但是奇怪的是为什么会选到小市值呢】
+    r = r[r < 0].sort_values().head(int(1.2*numbuystock))#【保留拟持仓标的的1.2倍的】只要实际值小于预测值的部分
+    buystokcs = r.index.tolist()
+    # sell list
+    for s in context.portfolio.positions:
+        if s not in buystokcs:
+            log.info("to sell", s, cdata[s].name)
+    # buy list
+    for s in buystokcs:
+        if s not in context.portfolio.positions:
+            log.info("to buy", s, cdata[s].name)
+    # 设置单股下单金额
+    value = 1.0/numbuystock * context.portfolio.total_value
+    cdata  = get_current_data()
+    # sell
+    for s in context.portfolio.positions:
+        if (s not in buystokcs) and (not cdata[s].paused):
+            log.info("sell", s, cdata[s].name)
+            order_target(s, 0, LimitOrderStyle(cdata[s].last_price))
+    # buy
+    for s in buystokcs:
+        if context.portfolio.available_cash < value:
+            break
+        if s not in context.portfolio.positions and\
+            not cdata[s].paused:
+            log.info("buy", s, cdata[s].name)
+            order_value(s, value, LimitOrderStyle(cdata[s].last_price))

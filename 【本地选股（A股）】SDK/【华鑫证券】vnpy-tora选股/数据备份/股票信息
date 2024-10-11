@@ -1,0 +1,126 @@
+/// 证券信息
+struct CTORATstpSecurityField
+{
+    ///交易日
+    TTORATstpDateType	TradingDay;
+
+    ///交易所代码
+    TTORATstpExchangeIDType	ExchangeID;
+
+    ///证券代码
+    TTORATstpSecurityIDType	SecurityID;
+
+    ///证券名称
+    TTORATstpSecurityNameType	SecurityName;
+
+    ///证券名称(短)
+    TTORATstpSecurityNameType	ShortSecurityName;
+
+    ///基础证券代码
+    TTORATstpSecurityIDType	UnderlyingSecurityID;
+
+    ///市场代码
+    TTORATstpMarketIDType	MarketID;
+
+    ///产品代码
+    TTORATstpProductIDType	ProductID;
+
+    ///证券类别
+    TTORATstpSecurityTypeType	SecurityType;
+
+    ///申报单位
+    TTORATstpOrderUnitType	OrderUnit;
+
+    ///限价买入交易单位
+    TTORATstpTradingUnitType	LimitBuyTradingUnit;
+
+    ///限价单买最大下单量
+    TTORATstpVolumeType	MaxLimitOrderBuyVolume;
+
+    ///限价单买最小下单量
+    TTORATstpVolumeType	MinLimitOrderBuyVolume;
+
+    ///限价卖出交易单位
+    TTORATstpTradingUnitType	LimitSellTradingUnit;
+
+    ///限价单卖最大下单量
+    TTORATstpVolumeType	MaxLimitOrderSellVolume;
+
+    ///限价单卖最小下单量
+    TTORATstpVolumeType	MinLimitOrderSellVolume;
+
+    ///市价买入交易单位
+    TTORATstpTradingUnitType	MarketBuyTradingUnit;
+
+    ///市价单买最大下单量
+    TTORATstpVolumeType	MaxMarketOrderBuyVolume;
+
+    ///市价单买最小下单量
+    TTORATstpVolumeType	MinMarketOrderBuyVolume;
+
+    ///市价卖出交易单位
+    TTORATstpTradingUnitType	MarketSellTradingUnit;
+
+    ///市价单卖最大下单量
+    TTORATstpVolumeType	MaxMarketOrderSellVolume;
+
+    ///市价单卖最小下单量
+    TTORATstpVolumeType	MinMarketOrderSellVolume;
+
+    ///盘后定价买入交易单位
+    TTORATstpTradingUnitType	FixPriceBuyTradingUnit;
+
+    ///盘后定价买最大下单量
+    TTORATstpVolumeType	MaxFixPriceOrderBuyVolume;
+
+    ///盘后定价买最小下单量
+    TTORATstpVolumeType	MinFixPriceOrderBuyVolume;
+
+    ///盘后定价卖出交易单位
+    TTORATstpTradingUnitType	FixPriceSellTradingUnit;
+
+    ///盘后定价卖最大下单量
+    TTORATstpVolumeType	MaxFixPriceOrderSellVolume;
+
+    ///盘后定价卖最小下单量
+    TTORATstpVolumeType	MinFixPriceOrderSellVolume;
+
+    ///数量乘数
+    TTORATstpVolumeMultipleType	VolumeMultiple;
+
+    ///最小变动价位
+    TTORATstpPriceTickType	PriceTick;
+
+    ///上市日
+    TTORATstpDateType	OpenDate;
+
+    ///面值
+    TTORATstpParValueType	ParValue;
+
+    ///证券状态
+    TTORATstpSecurityStatusType	SecurityStatus;
+
+    ///债券应计利息
+    TTORATstpInterestType	BondInterest;
+
+    ///折算率
+    TTORATstpRatioType	ConversionRate;
+
+    ///总股本
+    TTORATstpLargeVolumeType	TotalEquity;
+
+    ///流通股本
+    TTORATstpLargeVolumeType	CirculationEquity;
+
+    ///是否限制涨跌停板价
+    TTORATstpBoolType	bPriceLimit;
+
+    ///昨收盘价
+    TTORATstpPriceType	PreClosePrice;
+
+    ///涨停板价
+    TTORATstpPriceType	UpperLimitPrice;
+
+    ///跌停板价
+    TTORATstpPriceType	LowerLimitPrice;
+};

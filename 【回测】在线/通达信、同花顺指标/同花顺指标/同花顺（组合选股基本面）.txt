@@ -1,0 +1,17 @@
+//{如果选出来的股票数量不对，应该是数据下载不全}
+//净利润
+净利润:JLR;
+//扣非净利润
+扣非净利润:KFJLR;
+///未分配利润
+未分配利润:WFPLR;
+///资产负债率
+资产总计:ZCZJ;
+负债合计:FZHJ;
+//总市值
+总股本:REF(TOTALCAPITAL_UNTS,1);
+总市值:总股本*REF(CLOSE,1)*100;
+//主板非ST次新
+主板:CODELIKE('00') OR CODELIKE('60') OR CODELIKE('30');
+上市:OPEN>=0;
+SELECT 主板 AND 上市;

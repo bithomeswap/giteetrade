@@ -1,0 +1,256 @@
+工作场景：
+你是一名非常优秀的计算机工程师，同时也是一名中国市场上非常优秀的期权交易大师和期货交易大师，注重代码的简洁性和可维护性，熟练使用聚宽API进行量化交易及回测
+同时你的代码当中很少有bug存在。此外，你在任务开始时，习惯性添加一句print（'任务已经开始'），以方便测试
+
+注意事项：
+只使用真格量化API文件当中提供的函数，不要使用其他任何方法，初始资金设置为一百万，给我完整版的聚宽代码
+
+工作任务:
+解读参考资料当中的代码
+
+真格量化API：
+https://quant.pobo.net.cn/doc?name=api#%E8%B4%A6%E5%8F%B7%E2%80%94account
+
+参考资料:
+#!/usr/bin/env python
+# coding:utf-8
+
+from PoboAPI import *
+import datetime
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+#import seaborn as sns
+
+Day_index=30 #训练窗口长度
+
+
+#协整关系判断
+def find_cointegrated_pairs(future1,future2):
+    result=sm.tsa.stattools.coint(future1,future2)
+    pvalue=result[1]
+    print("p值="+str(pvalue))
+    if pvalue<0.05:
+        return True
+    else:
+        return False
+
+#线性回归函数
+def LinearRegression(argument,dependent):
+    x=sm.add_constant(argument)
+    y=dependent
+    model=sm.OLS(y,x)
+    results=model.fit()
+    outcome=results.params
+    return outcome
+
+#标准差计算函数
+def RMSE(x,y,b,e,n):
+    squaredError=0
+    for i in range(n):
+        #计算累计方差
+        val=(y[i] -(b * x[i]+e))
+        squaredError+=val ** 2 #target-prediction之差的平方
+    rmse=np.sqrt(squaredError /(n - 1))
+    return rmse
+ 
+#开始时间，用于初始化一些参数
+def OnStart(context):
+#     #将rb1910合约的手续费率设置开仓为开仓固定3元，平仓按合约价值的万分之4，平今按合约价值的万分之5，最小手续费3元
+#     fee = PBObj();
+#     fee.OpenUnit = 3
+#     fee.CloseRate = 0.0004
+#     fee.CloseTodayRate = 0.0005
+#     fee.MiniFee = 3
+#     context.accounts["回测期货"].SetFee("rb1910.SHFE", fee)
+
+#     SHFE	上海期货交易所	上期所
+#     DCE	大连商品交易所	大商所
+#     CZCE	郑州商品交易所	郑商所
+#     CFFEX	中国金融期货交易所	中金所
+#     INE	上海国际能源交易中心	能源中心
+#     GFEX	广州期货交易所	广期所
+#     SHSE	上海证券交易所	上交所
+#     SZSE	深圳证券交易所	深交所
+
+#     事件	监听函数名	解释
+#     开始	OnStart	监听程序开始事件
+#     回测取消	OnStop	监听策略停止事件，并不包括回测失败的情况
+#     定时器	OnTimer	监听设定的一个时间段是否经过
+#     实时行情	OnQuote	监听已订阅品种的行情
+#     K线更新	OnBar	监听新的一根K线出现
+#     闹钟事件	OnAlarm	监听一个设定的时间是否达到
+#     日期事件	OnSchedule	监听设定的日期是否达到
+#     委托回报	OnOrderChange	监听委托回报，比如报单成功、部分成交等
+#     成交回报	OnTradeDeal	监听报单成交事件
+#     智能单状态	OnSmartOrderChange	监听智能单状态变化
+#     用户断线	OnTradeAccountDisconnected	监听账户网络连接中断
+#     行情初始化	OnMarketQuotationInitialEx	监听交易所行情初始化
+#     开盘	OnExchangeOpen	监听交易所开盘
+#     收盘	OnExchangeClose	监听交易所收盘
+    print("I\'m starting...")
+    #登录交易账号，需在主页用户管理中设置账号，并把期货测试替换成您的账户名称
+    context.myacc=None
+    #g.code=GetMainContract('DCE','j',20)
+    g.number_of_shares_A,g.number_of_shares_B=0,0
+    g.bsFlag_A,g.bsFlag_B=False,False
+    g.bsFlag=True
+    g.last_codeA,g.last_codeB=None,None
+#     #登录期权账号【对期货策略来说在期权策略上无法产生交易】
+#     if "回测期权" in context.accounts:
+#         print("登录交易账号 回测期权")
+#         if context.accounts["回测期权"].Login():
+#             context.myacc=context.accounts["回测期权"]
+    #登录期货账号
+    if "回测期货" in context.accounts:
+        print("登录交易账号 回测期货")
+        if context.accounts["回测期货"].Login():
+            context.myacc=context.accounts["回测期货"]
+            
+    #有报错下单价格超出涨跌停价格范围看看什么原因
+
+def OnMarketQuotationInitialEx(context,exchange,daynight):
+    if not(exchange=="SHFE" or exchange=="DCE"):
+        return
+    
+
+    #获取主力合约
+    g.codeB=GetMainContract('DCE','j',20)
+    g.codeA=GetMainContract('DCE','jm',20)
+    #订阅K线数据，用于驱动OnBar事件
+    SubscribeBar(g.codeA,BarType.Min) 
+    
+#实时行情事件，当有新行情出现时调用该事件Ex
+def OnBar(context,code,bartype):
+    #过滤掉不需要的行情通知
+    if not(code==g.codeA or code==g.codeB):
+        return
+    option=PBObj()
+    option.EndDate=GetCurrentTime()
+    option.Count=60
+    
+    # 取得当前价格
+    dyndataA=GetQuote(g.codeA)
+    current_priceA=dyndataA.now
+    current_priceA1=PriceType(PbPriceType.Limit,limit_price_type=16,limit_price_offset=0)
+    dyndataB=GetQuote(g.codeB)
+    current_priceB=dyndataB.now
+    
+    optionA,optionB=PBObj(),PBObj()
+    if g.last_codeA and g.last_codeB:
+        optionA.contract=g.last_codeA
+        optionB.contract=g.last_codeB
+        option.buysellflag='1'
+        currentBalanceA=context.myacc.GetPositions(optionA)
+        currentBalanceB=context.myacc.GetPositions(optionB)
+        if currentBalanceA:
+            g.sellposA=currentBalanceA[0].volume
+        if currentBalanceB:
+            g.sellposB=currentBalanceB[0].volume    
+        option.buysellflag='0'
+        currentBalanceA=context.myacc.GetPositions(optionA)
+        currentBalanceB=context.myacc.GetPositions(optionB)
+        if currentBalanceA:
+            g.buyposA=currentBalanceA[0].volume
+        if currentBalanceB:
+            g.buyposB=currentBalanceB[0].volume    
+
+    # 如果期货合约改变，重置参数
+    if g.last_codeA==None and g.last_codeB==None:
+        g.last_codeA=g.codeA
+        g.last_codeB=g.codeB
+    elif g.last_codeA !=g.codeA:
+        if g.sellposA>0:
+            #平空
+            QuickInsertOrder(context.myacc ,g.last_codeA,'buy','close',current_priceA,g.sellposA)
+        if g.buyposA>0:
+            #平多
+            QuickInsertOrder(context.myacc ,g.last_codeA,'sell','close',current_priceA,g.buyposA)
+        g.last_codeA=g.codeA
+        log.info("主力合约改变，平仓！")
+    elif g.last_codeB !=g.codeB:
+        if g.sellposB>0:
+            #平空
+            QuickInsertOrder(context.myacc ,g.last_codeB,'buy','close',current_priceB,g.sellposB)
+        if g.buyposA>0:
+            #平多
+            QuickInsertOrder(context.myacc ,g.last_codeB,'sell','close',current_priceB,g.buyposB)
+        g.last_codeB=g.codeB
+        log.info("主力合约改变，平仓！")
+       
+    #获取历史收盘价格
+    klinedataA=GetHisDataByField(g.codeA,BarType.Min,"close",option)
+    klinedataB=GetHisDataByField(g.codeB,BarType.Min,"close",option)
+    #进行协整关系判断
+    cointergration=find_cointegrated_pairs(klinedataA,klinedataB)
+    #进行回归运算
+    param=LinearRegression(klinedataA,klinedataB)
+    #取得线性回归参数y=bx+e
+    param_e,param_b=param[0],param[1]
+    #计算标准差
+    rmse=RMSE(klinedataA,klinedataB,param_b,param_e,Day_index)
+    print("rmse="+str(rmse))
+    #获取两种期货的差价
+    diff=current_priceB -(param_b*current_priceA+param_e)
+    print("diff="+str(diff))
+    
+    #当前空仓则可以开仓
+    if g.bsFlag:
+        if diff>(1*rmse):
+            record=diff
+            #获取可开仓位
+            n_A=context.myacc.GetValidVolume(g.codeA,BSType.BuyOpen,current_priceA)
+            n_B=context.myacc.GetValidVolume(g.codeB,BSType.SellOpen,current_priceB)
+            #设定仓位数量
+            g.number_of_shares_A,g.number_of_shares_B=int(n_A * 0.25),int(n_B * 0.25)
+            #可开仓位>0则开仓
+            if g.number_of_shares_A>0 and g.number_of_shares_B>0:
+                print("买A卖B")
+                #记录开仓
+                g.bsFlag=False
+                #记录开仓方向
+                g.bsFlag_A=True
+                #记录交易合约以防止主力合约变动
+                g.tradecode_A,g.tradecode_B=g.codeA,g.codeB
+                #下单
+                QuickInsertOrder(context.myacc,g.codeA,'buy','open',current_priceA,g.number_of_shares_A)
+                QuickInsertOrder(context.myacc,g.codeB,'sell','open',current_priceB,g.number_of_shares_B)
+                g.last_codeA=g.codeA
+                g.last_codeB=g.codeB
+        elif diff<(-1*rmse):
+            record=diff
+            #获取可开仓位
+            n_A=context.myacc.GetValidVolume(g.codeA,BSType.SellOpen,current_priceA)
+            n_B=context.myacc.GetValidVolume(g.codeB,BSType.BuyOpen,current_priceB)
+            #设定仓位数量
+            g.number_of_shares_A,g.number_of_shares_B=int(n_A * 0.25),int(n_B * 0.25)
+            #可开仓位>0则开仓
+            if g.number_of_shares_A>0 and g.number_of_shares_B>0:
+                print("买B卖A")
+                #记录开仓
+                g.bsFlag_B=True
+                #记录开仓方向
+                g.bsFlag=False
+                #记录交易合约以防止主力合约变动
+                g.tradecode_A,g.tradecode_B=g.codeA,g.codeB
+                #下单
+                QuickInsertOrder(context.myacc,g.codeA,'sell','open',current_priceA,g.number_of_shares_A)
+                QuickInsertOrder(context.myacc,g.codeB,'buy','open',current_priceB,g.number_of_shares_B)
+                g.last_codeA=g.codeA
+                g.last_codeB=g.codeB
+    else:
+        #TimeFlagA,TimeFlagB=TimeFlag(g.tradecode_A),TimeFlag(g.tradecode_B)
+        #检验平仓条件
+        if g.bsFlag_A and diff <=0:
+            QuickInsertOrder(context.myacc,g.tradecode_A,'sell','close',current_priceA,g.number_of_shares_A)
+            QuickInsertOrder(context.myacc,g.tradecode_B,'buy','close',current_priceB,g.number_of_shares_B,today_first=False)
+            #开仓信号恢复
+            g.bsFlag_A=False
+            g.bsFlag=True
+        #检验平仓条件
+        if g.bsFlag_B and diff >=0:
+            QuickInsertOrder(context.myacc,g.tradecode_A,'buy','close',current_priceA,g.number_of_shares_A)
+            QuickInsertOrder(context.myacc,g.tradecode_B,'sell','close',current_priceB,g.number_of_shares_B,today_first=False) 
+            #开仓信号恢复
+            g.bsFlag_B=False
+            g.bsFlag=True

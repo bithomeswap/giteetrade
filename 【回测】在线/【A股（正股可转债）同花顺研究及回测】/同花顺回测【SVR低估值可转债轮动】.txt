@@ -1,0 +1,383 @@
+# 进一步的改进：
+# 1，本作和原作都基于单一时间节点做截面回归，其实，可以基于最近N日做双重回归，模型将更为稳健。但是，JQ有30分钟限制，且开盘前计算繁重，N不要太大。
+# 2，本策略使用了6个因子，致敬”原作“，即，净资产、净利润、研发投入、市盈率、资产杠杆率、营业同比增长率，可以增加一些有用的因子，可以替换一些因子，比如说，roe，现金回报率。
+# 3，尝试更复杂的AI模型。
+#对市值预测的偏差可以使用比值【进行测试】
+
+# 模拟盘调整了三处：
+# 1，PE比PB对于小盘策略更为有效。
+# 2，从纯粹微盘调整为4-因子。
+# 3，股-债融合。
+# 抗风险能力，刚刚的，2008、2015、2018、2024全部大跌都坦途。收益，勉强10年10倍的样子吧，比上一版的17倍还低了，不发了。
+
+import math
+import pandas as pd
+import numpy as np
+import datetime
+from sklearn.svm import SVR
+
+def reverse_signlog(X):#反标准化
+    # 步骤1: (np.exp(X)-1)将转换后的数据乘以e以消除对数的影响
+    temp_data = np.exp(X) - 1
+    # 步骤2: np.sign(X)恢复原始数据的符号
+    return np.sign(X)*(np.exp(X)-1)
+    
+# yesterday ln
+def signlog(X):
+    #np.sign((X)：返回 X 的符号。如果 X 是正数，返回1；如果 X 是负数，返回-1；如果 X 是0，返回0。
+    #np.log(1.0 + abs(X))：计算 1.0 + abs(X) 的自然对数，其中 np 通常指的是 Python 中的 NumPy 库，np.log 表示自然对数。
+    # factor value因子值
+    return np.sign(X)*np.log(1.0 + abs(X))
+
+def init(context):
+    set_benchmark("000001.SH") # 设置基准收益为上证指数
+    log.info("策略开始运行,初始化函数全局只运行一次") # 打印日志
+    # 印花税千分之一不用单独设置【A股、ETF、可转债都是默认千一的印花税】
+    set_commission(PerShare(type="stock",cost=0.0003,min_trade_cost=5.0)) # 手续费0.03%
+    set_slippage(PriceSlippage(0.00246)) # 设置股票交易滑点0.00246,上下0.00123
+    
+    # g.numbuystock=50# 持股数
+    # g.numbuystock=30# 持股数
+    g.numbuystock=10# 持股数
+    # g.numbuystock=6# 持股数
+    # 日换仓
+    run_daily(func=trade, time_rule="after_open", hours=0, minutes=10)
+    
+def trade(context,bar_dict):
+    now=get_datetime()
+    print(now)
+    
+    trade=True
+    # #只在每周的周一执行
+    # if now.weekday()==int(1):
+    #     trade=True
+    # # #只在每个月的10号执行
+    # # if now.day==int(11):
+    # #     trade=True
+    if trade==True:
+        thisnow=now.strftime("%m-%d")
+        start_date=now.strftime("%Y-%m-%d")
+        last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+        print(start_date,last_date)
+        
+        today=get_trade_days(end_date=start_date, count=2).values[1]
+        today=np.datetime_as_string(today, unit="D").replace("-", "")
+        yesterday=get_trade_days(end_date=start_date, count=2).values[0]
+        yesterday=np.datetime_as_string(yesterday, unit="D")
+        yesterday=yesterday.replace("-", "")#有些函数的参数需要保留-
+        print("today",today,"yesterday",yesterday)
+        
+        # 获取所有可转债（当前可交易的）【这个函数回测的时候会报错】
+        df=get_all_securities('cbond',today).reset_index(drop=False)
+        print("当日可交易转债总数",len(df)) # 这里只有579只
+        df=df.rename(columns={"symbol":"代码","display_name":"转债名称"})
+        df=df[["代码","转债名称","end_date","start_date","market_hq"]]
+        df=df[df["start_date"]<(datetime.datetime.strptime(yesterday,"%Y%m%d"))] # 去掉未上市的
+        df=df[df["end_date"]>=(datetime.datetime.strptime(yesterday,"%Y%m%d")+datetime.timedelta(days=180))] # 去掉半年内到期的
+        print("去掉即将到期的之后",len(df)) # 去掉即将退市的有559只
+        # 获取全市场可转债余额变动表
+        balancedf=run_query(query(cbond_remaining_change))
+        balancedf=balancedf.rename(columns={
+            "cbond_remaining_change_symbol":"代码",
+            "cbond_remaining_change_change_date":"转债余额变更日",
+            "cbond_remaining_change_remaining":"转债余额"}) # 转债余额的单位是万
+        # balancedf.to_csv("balancedf.csv")
+        # balancedf=balancedf[balancedf["转债余额变更日"]<(datetime.datetime.strptime(yesterday,"%Y%m%d")+datetime.timedelta(days=180)).date()] # 去掉180天内到期或者赎回的
+        balancedf=balancedf[balancedf["转债余额变更日"]<=(datetime.datetime.strptime(yesterday,"%Y%m%d")+datetime.timedelta(days=-1)).date()] # 去掉-1天内到期或者赎回的【这个相当于不过滤强赎了，这些公告主要算余额的不是强赎公告】
+        balancedf=balancedf.sort_values(by='转债余额变更日', ascending=False)
+        balancedf=balancedf.groupby("代码").apply(lambda x: x[:1]) # 只保留最后一天
+        balancedf=balancedf.reset_index(drop=True) # 重置索引
+        balancedf=balancedf[["代码","转债余额变更日","转债余额"]]
+        balancedf=balancedf[(balancedf["转债余额"]!=0)] # 单位是万元，这里其实是小于2.5亿
+        # balancedf.to_csv("可转债余额变动表.csv")
+        # # 获取全市场可转债转股价变更表【总共600只】
+        rateprice=run_query(query(cbond_conversion_change))
+        rateprice=rateprice.rename(columns={"cbond_conversion_change_symbol":"代码",
+                                        "cbond_conversion_change_change_date":"转股价变更日",
+                                        "cbond_conversion_change_report_date":"转股价变更公告日",
+                                        "cbond_conversion_change_conversion_price":"更新后转股价格",
+                                       }) # 转债余额的单位是万
+        rateprice=rateprice.sort_values(by='转股价变更日', ascending=False)
+        rateprice=rateprice.groupby("代码").apply(lambda x: x[:1]) # 只保留最后一天
+        rateprice=rateprice.reset_index(drop=True) # 重置索引
+        rateprice=rateprice[["代码","转股价变更日","转股价变更公告日","更新后转股价格"]]
+        # rateprice.to_csv("可转债转股价变更表.csv")
+        # # 可转债标的和正股标的对应关系
+        df_cbonds=run_query(query(cbond_info))
+        df_cbonds=df_cbonds[(df_cbonds["cbond_info_pub_enddate"]>=(datetime.datetime.strptime(yesterday,"%Y%m%d")+datetime.timedelta(days=180)).date())] # 转债结束日期在180天之后
+        df_cbonds=df_cbonds.rename(columns={"cbond_info_symbol":"代码","cbond_info_stock_symbol":"正股代码"})
+        df_cbonds=df_cbonds[["代码","正股代码","cbond_info_pub_enddate"]] # 这里只有448只
+        df_cbonds=df_cbonds[(df_cbonds["代码"].str.startswith("12"))|df_cbonds["代码"].str.startswith("118")] # 只保留12开头的深债或者118开头的科创板债
+        # 拼接之前的数据
+        df_cbonds=df_cbonds.merge(df,on="代码",how="inner").reset_index(drop=True) # 拼接之前的可转债余额变动表
+        df_cbonds=df_cbonds.merge(balancedf,on="代码",how="inner").reset_index(drop=True) # 拼接之前的可转债余额变动表
+        df_cbonds=df_cbonds.merge(rateprice,on="代码",how="inner").reset_index(drop=True) # 拼接之前的可转债转股价变更表
+        # 剔除正股ST的标的
+        stocks=get_all_securities('stock',today).index.tolist()
+        # 去除科创北交
+        for stock in stocks[:]:
+            if stock[0]=="4" or stock[0]=="8":#全市场选股，主板、创业板、科创板
+                stocks.remove(stock)
+            # # if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68" or stock[:2]=="30":
+            # #     stocks.remove(stock)
+            # if stock[0]=="4" or stock[0]=="8" or stock[:2]!="68":#去掉非科创板股票
+            #     stocks.remove(stock)
+            # if stock[0]=="4" or stock[0]=="8" or stock[:2]!="30":#去掉非创业板股票
+            #     stocks.remove(stock)
+        stocks=[stock for stock in stocks if stock in df_cbonds["正股代码"].tolist()] # 提前去掉正股不符合基本面要求的标的
+        df_stocks = get_price(
+            securities=stocks,
+            start_date=None,
+            end_date=today,
+            fre_step='1d',
+            fields=["is_st"], # 获取全部数据列
+            skip_paused=True,
+            fq='pre',
+            # fq=None, # 这里动态复权或者不复权都是可以的
+            bar_count=1,
+            is_panel=1,).to_frame()
+        df_stocks=df_stocks[(df_stocks["is_st"]==0)] # 当天去除ST，但是不去除停牌，因为正股停牌不影响ST
+        df_stocks=df_stocks.reset_index() # 重置索引
+        df_stocks = df_stocks.rename(columns={"minor":"正股代码"})
+        df_stocks = df_stocks[["正股代码"]]
+        # 对正股数据拼接基本面【预防未来ST】（加上这个之后选出来的股票总数会去掉两只）
+        olddf=get_fundamentals(query(
+                asharevalue.symbol,#代码
+                asharevalue.total_shares,#总股本
+                asharevalue.total_mv,#总市值
+                income.profit_before_tax,#利润总额【当计提历史亏损的时候利润总额大于当年净利润】
+                income.net_profit,#净利润
+                income.np_atsopc,#归母净利润
+                income.overall_income,#营业总收入
+                balance.undistributed_profits,#未分配利润
+                income.basic_eps,#基本每股收益（真实的，稀释每股收益是预期的）
+                balance.total_liabilities,#负债合计
+                balance.total_liab_and_holders_equity,#负债和股东权益总计
+            ).filter(asharevalue.symbol.in_(stocks),),date=yesterday)
+        olddf=olddf.rename(columns={
+                "asharevalue_symbol":"正股代码",
+                "asharevalue_total_shares":"总股本",
+                "asharevalue_total_mv":"总市值",
+                "income_profit_before_tax":"利润总额",
+                "income_net_profit":"净利润",
+                "income_np_atsopc":"归母净利润",
+                "income_overall_income":"营业总收入",
+                "balance_undistributed_profits":"未分配利润",
+                "income_basic_eps":"基本每股收益",
+                "balance_total_liabilities":"负债合计",
+                "balance_total_liab_and_holders_equity":"负债和股东权益总计",
+                })
+        olddf["净资产"]=olddf["负债和股东权益总计"]-olddf["负债合计"]
+        olddf["资产负债率"]=olddf["负债合计"]/olddf["负债和股东权益总计"]
+        olddf=olddf[olddf["资产负债率"]<1]#存在资产负债率大于1（资不抵债）的标的，跟历史数据一致
+        # olddf=olddf[olddf["利润总额"]>0]
+        # olddf=olddf[olddf["净利润"]>0]
+        olddf=olddf[olddf["归母净利润"]>0]
+        olddf=olddf[olddf["未分配利润"]>0]
+        olddf["市盈率"]=olddf["归母净利润"]/olddf["总市值"]
+        olddf["市净率"]=olddf["净资产"]/olddf["总市值"]
+        olddf["市销率"]=olddf["营业总收入"]/olddf["总市值"]
+        olddf = olddf[["正股代码","资产负债率","市盈率","市净率","市销率"]]
+        # industry factor行业因子（申万宏源一级行业）【带着行业因子可以选到大市值标的】
+        industrydf=get_industry_relate(types="s_industryid1",date=yesterday)
+        print("申万一级行业",industrydf)
+        for sector in industrydf.index.tolist():#遍历所有行业
+            tarsector=industrydf[industrydf.index==sector]["industry_symbol"].values[0]
+            istocks=get_industry_stocks(tarsector,yesterday)#获取成分股
+            # print("成分股",istocks,tarsector)
+            olddf.loc[olddf["正股代码"].isin(istocks),sector]=1#使该行业的成分股在该行业名列的值为1
+            olddf.loc[~(olddf["正股代码"].isin(istocks)),sector]=0
+        # print("添加行业数据",df)
+        # olddf.to_csv("olddf.csv")
+        
+        df_stocks = df_stocks.merge(olddf,on="正股代码",how="inner")
+        # 拼接正股数据
+        df_cbonds=df_cbonds.merge(df_stocks,on="正股代码",how="inner")
+        print("去掉正股ST的",len(df_cbonds))
+        
+        #过滤停牌标的
+        cbonds=df_cbonds["代码"].tolist()
+        limitdf=get_price(
+            securities=cbonds,
+            start_date=None,
+            end_date=today,
+            fre_step="1d",
+            fields=["open","is_paused","prev_close","high_limit","low_limit"], # 获取全部数据列，其中昨日收盘价是用来计算总股本的
+            # fq="pre",
+            fq=None, # 这里动态复权或者不复权都是可以的
+            bar_count=1,
+            is_panel=1).to_frame()
+        limitdf=limitdf.reset_index()
+        limitdf=limitdf[(limitdf["is_paused"]==0)]
+        # limitdf=limitdf[limitdf["open"]>4]
+        limitdf=limitdf.rename(columns={"minor": "代码","high_limit":"涨停价","low_limit":"跌停价"})
+        limitdf=limitdf[["代码","涨停价","跌停价"]]
+        
+        # 获取债券一分钟k数据
+        cbonds=limitdf["代码"].tolist()
+        timestame=(now-datetime.timedelta(minutes=2)).strftime("%Y%m%d %H:%M")
+        df_cbonds_price = get_price(
+            securities=cbonds,
+            start_date=None,
+            
+            # # 日级别数据
+            # end_date=today,
+            # fre_step='1d',
+            # fields=["open"],
+            
+            # # 分钟级别数据
+            end_date=timestame,
+            fre_step='1m',
+            fields=["open"],
+            skip_paused=True,
+            fq='pre',
+            # fq=None, # 这里动态复权或者不复权都是可以的
+            bar_count=1,
+            is_panel=1,).to_frame()
+        df_cbonds_price=df_cbonds_price.reset_index()
+        # df_cbonds_price=df_cbonds_price[df_cbonds_price["open"]<150]
+        df_cbonds_price=df_cbonds_price.rename(columns={"minor":"代码","open":"可转债价格"})
+        df_cbonds_price=df_cbonds_price[["代码","可转债价格"]]
+        df_cbonds=pd.merge(df_cbonds, df_cbonds_price, on="代码")
+        
+        #过滤涨跌停标的
+        limitdf=limitdf.merge(df_cbonds_price, on="代码", how="inner")
+        dfup=limitdf[limitdf["可转债价格"]==limitdf["涨停价"]]
+        g.todayup=dfup["代码"].tolist()#存放涨停标的
+        dfdown=limitdf[limitdf["可转债价格"]==limitdf["跌停价"]]
+        g.todaydown=dfdown["代码"].tolist()#存放跌停标的
+        print("当日涨停",len(g.todayup),g.todayup)
+        print("当日跌停",len(g.todaydown),g.todaydown)
+            
+        # 获取正股一分钟k数据
+        stocks=df_cbonds["正股代码"].tolist()
+        df_stocks_price = get_price(
+            securities=stocks,
+            start_date=None,
+            
+            # # 日级别数据
+            # end_date=today,
+            # fre_step='1d',
+            # fields=["open"],
+            
+            # # 分钟级别数据
+            end_date=timestame,
+            fre_step='1m',
+            fields=["open"],
+            skip_paused=True,
+            fq='pre',
+            # fq=None, # 这里动态复权或者不复权都是可以的
+            bar_count=1,
+            is_panel=1,).to_frame()
+        df_stocks_price=df_stocks_price.reset_index()
+        df_stocks_price=df_stocks_price.rename(columns={"minor":"正股代码","open":"正股价格"})
+        df_stocks_price=df_stocks_price[["正股代码","正股价格"]]
+        df_cbonds=pd.merge(df_cbonds, df_stocks_price, on="正股代码")
+        df_cbonds["转股价值"]=(100/df_cbonds["更新后转股价格"])*df_cbonds["正股价格"]
+        df_cbonds["转股溢价率"]=df_cbonds["可转债价格"]/df_cbonds["转股价值"]
+        df_cbonds["可转债总市值"]=df_cbonds["可转债价格"]*df_cbonds["转债余额"]/10000
+        
+        df_cbonds["三低指数"]=df_cbonds["可转债总市值"]*df_cbonds["转股溢价率"]
+        # df_cbonds["三低指数"]=df_cbonds["总市值"]
+        df_cbonds["排名"]=df_cbonds["三低指数"].rank(method="max", ascending=True,na_option='bottom')
+        # df_cbonds.to_csv("df_cbonds.csv")
+
+        #设置对应的基本面数据
+        baselist=["转债余额",
+                "市盈率",
+                "市净率",
+                "市销率",
+                "资产负债率", 
+                "转股溢价率",
+                "转股价值",
+                ]
+        for thisfactor in baselist:#直接处理因子避免空值
+            print("当前因子为",thisfactor)
+            df_cbonds[thisfactor]=signlog(df_cbonds[thisfactor])
+        df_cbonds=df_cbonds.reset_index(drop=True)
+        
+        df_cbonds["可转债总市值"]=signlog(df_cbonds["可转债总市值"])
+        # SVR model
+        svr=SVR(kernel="rbf")
+        # training model #预测的目标是市值【这是一个估值模型】
+        df_cbonds.set_index('代码',inplace=True)#重新设置索引，避免后面处理有问题
+        Y=df_cbonds["可转债总市值"]
+        X=df_cbonds[baselist]
+        model=svr.fit(X,Y)#根据前一天的基本面和市值情况预测
+
+        # stocks并选股
+        r=Y-pd.Series(svr.predict(X),Y.index,name='估值')#计算的低估程度【负数为低估】
+        r=r.reset_index(drop=False)
+        r=r.rename(columns={"代码":"代码"})
+        r=pd.DataFrame(r)
+        # 估值数据和基本面数据拼接
+        df_cbonds=df_cbonds.reset_index(drop=False)
+        df_cbonds=df_cbonds.rename(columns={"代码":"代码"})
+        r=r.merge(df_cbonds[["可转债总市值","代码"]],on="代码")
+        r=r.rename(columns={0:'估值'},inplace=False)
+        r["可转债总市值（反标准化）"]=reverse_signlog(df_cbonds["可转债总市值"])#对标准化的市值进行反标准化
+        # r.to_csv("r.csv")
+        r=r[r["估值"]<0]#只选择低估的标的
+        print(type(r))#DataFrame格式
+        dftwo=r.nsmallest(math.ceil(1.2*g.numbuystock),"估值")
+        dfone=r.nsmallest(math.ceil(g.numbuystock),"估值")
+        buylisttwo=dftwo["代码"].tolist()
+        g.buylistone=dfone["代码"].tolist()
+
+        #卖出持仓当中的标的
+        positions=context.portfolio.stock_account.positions.copy()
+        if len(positions)>0:
+            print(positions,type(positions))
+            print("开始卖出")
+            for stock in positions:
+                if stock not in g.todayup:#持仓标的不在涨停列表才执行卖出
+                    print("当前持仓的内部结构",stock,positions[stock])
+                    if stock not in buylisttwo:
+                        print("不在应保留列表中",stock)
+                        close_position(stock)
+        
+        print("开始买入") # 根据股票数量分仓
+        #计算当前的最新持仓【仓位的话把这里乘以0.8，平时就全仓就行】
+        position_count=len(context.portfolio.positions)
+        buycount=g.numbuystock-position_count#计算需要补仓的数量
+        targetcash=context.portfolio.available_cash# 余额处理
+        # targetcash=context.portfolio.total_value# 总额处理
+        value=targetcash/buycount if buycount!=0 else 0
+        for stock in context.portfolio.stock_account.positions:
+            thispostion=context.portfolio.stock_account.positions[stock]
+            print(thispostion)
+            thispostionmoney=thispostion.last_price*thispostion.amount
+            if thispostionmoney<value*0.8:#金额不足，补仓
+                open_position(stock,value)#这个是买够多少钱的仓位
+        if g.numbuystock>position_count:
+            if value>0:
+                for stock in g.buylistone:
+                    if (stock not in g.todayup)and(stock not in g.todaydown):#涨停或者跌停的不买入
+                        if (context.portfolio.stock_account.positions[stock].market_value)==0:
+                            if open_position(stock, value):
+                                if len(context.portfolio.stock_account.positions)==g.numbuystock:
+                                    break
+        print("现在持有股票数量",len(context.portfolio.stock_account.positions))
+
+def order_target_value_(security,value): #交易模块-自定义下单
+    if value==0:
+        print("Selling out %s" % (security))
+    else:
+        print("Order %s to value %f" % (security, value))
+    return order_target_value(security, value)
+def open_position(security,value): #交易模块-开仓
+    order=order_target_value_(security, value)
+    order=get_order(order)
+    print(order)
+    if (order !=None) and (order.status==ORDER_STATUS.FILLED):
+        print("买入成功")
+        return True
+    return False
+def close_position(position): #交易模块-平仓
+    order=order_target_value_(position,0)  # 可能会因停牌失败
+    order=get_order(order)
+    print(order)
+    if (order !=None) and (order.status==ORDER_STATUS.FILLED) and (order.filled_amount==order.amount):
+        print("卖出成功")
+        return True
+    return False

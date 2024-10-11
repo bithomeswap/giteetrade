@@ -1,0 +1,325 @@
+# 联系方式：lianghuajiaoyi123456
+# 通过调整下面两个参数确定策略类型是可转债、中小板、微盘股g.Strategy、g.stocknum
+import pandas as pd
+import numpy as np
+import time
+import datetime
+import math
+
+###策略仿真启动大概需要提前五分钟【注意启动策略的时候保留好这个时间】###
+
+def symbol_convert(x):#股票代码加后缀
+    if x.startswith("6"):
+        return str(str(x)+".SS")
+    elif x.startswith("00"):
+        return str(str(x)+".SZ")
+    elif x.startswith("30"):
+        return str(str(x)+".SZ")
+    else:
+        pass
+        
+def filter_kcb_stock(stocks):#过滤科创北交股票
+    for stock in stocks[:]:
+        # 去掉科创北交的股票
+        if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+            stocks.remove(stock)
+        # # 只要科创北交的股票
+        # if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+        #     pass
+        # else:
+        #     stocks.remove(stock)
+    return stocks
+    
+#金额设置单股最大金额，持仓数根据当前金额调整，但是不低于多少
+def initialize(context):
+    set_benchmark("000905.SS")#设置基准收益【实盘应该是没用的】
+    
+    now=get_trading_day(0)#获取当前交易日（0日前交易日）
+    start_date=now.strftime("%Y-%m-%d")#测试当天的数据
+    print("******","start_date",start_date)
+    last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+    today=get_trade_days(end_date=start_date,count=2)[1]
+    g.today=today.replace("-","")
+    yesterday=get_trade_days(end_date=start_date,count=2)[0]
+    g.yesterday=yesterday.replace("-","")
+    print("******","g.today",g.today,type(g.today),"g.yesterday",g.yesterday)
+
+    #设置交易参数并且获取买卖计划
+    g.bidrate=0.0025 #设置下单滑点为0.0025
+    # g.timetickwait=2000 #设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快，3秒一根但是返回的速度不够快】
+    g.targetmoney=5000 #设置下单时对手盘挂单金额阈值（满足阈值之后g.targetmoney的单笔下单金额，因为下单股数需要是100的整数倍所以实际金额比这个值低）【开通免五功能之后这个值可以很小（未开通也不能太大避免验证下单失败无法下单）】
+    g.traderate=2 #设置满足下单条件之后单次挂单金额是g.targetmoney的g.traderate倍以上时，按照g.targetmoney一笔进行下单，否则全部下单
+    # g.cancellorder=False #取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
+    g.cancellorder=True #设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
+    
+    #初始化全局变量
+    g.dforderalls=pd.DataFrame({})
+    g.dfordercancelled=pd.DataFrame({})
+    g.dfposition=pd.DataFrame({})
+
+def handle_data(context,data):
+    current_dt=context.blotter.current_dt
+    log.info(str(current_dt)+"时分秒数据"+str(current_dt.time())+"小时"+str(current_dt.time().hour)+"分钟"+str(current_dt.time().minute))
+    # 一直调仓【仅限测试】
+    if True:#唯一的问题是临近收盘时状态是break
+        print("选股前先获取持仓信息",current_dt.time())
+        #交易开始之前输出持仓
+        positions=context.portfolio.positions
+        # positions=get_positions()
+        g.dfposition=pd.DataFrame({})
+        for position in positions.values():
+            if position.amount>0:#只拼接总余额大于0的持仓
+                thisposition=pd.DataFrame({
+                            "代码":[position.sid],
+                            "余额":[position.amount],
+                            "可用余额":[position.enable_amount],
+                            "当前价":[position.last_sale_price],
+                            "成本价":[position.cost_basis],
+                            "类型":[position.business_type],
+                            })
+                thisposition["日期"]=g.today
+                thisposition["持仓市值"]=thisposition["余额"]*thisposition["当前价"]
+                thisposition["可用资金"]=context.portfolio.cash
+                thisposition["总资产"]=context.portfolio.portfolio_value
+                g.dfposition=pd.concat([g.dfposition,thisposition])
+        if not g.dfposition.empty:#持仓不为空值
+            g.dfposition["总持仓市值"]=g.dfposition["持仓市值"].sum()
+        # print("当前持仓状态",g.dfposition)
+        g.dfposition.to_csv("/home/fly/notebook/---g.dfposition"+".csv")
+        
+        # 【设置一键清仓】
+        selldflist=[]        
+        if not g.dfposition.empty:#持仓不为空值
+            g.dfposition["总持仓市值"]=g.dfposition["持仓市值"].sum()
+            # print("当前持仓状态",g.dfposition)
+            g.dfposition.to_csv("/home/fly/notebook/---g.dfposition"+".csv")
+            #打印当日调仓信息
+            positionsymbols=g.dfposition["代码"].tolist()
+            falsesymbol=[x for x in positionsymbols if x not in selldflist]
+            truesymbol=[x for x in positionsymbols if x in selldflist]
+            print("******",
+                "不在卖出观察池的需卖出标的",
+                falsesymbol,
+                "在卖出观察池的正确持仓标的",
+                truesymbol,
+                "持仓标的",
+                positionsymbols,
+            )
+            
+            selldf=g.dfposition.copy()#只针对持仓当中的标的筛选应卖出标的
+            selldf=selldf[~(selldf["代码"].isin(selldflist))]
+            print("实际应卖出股票，去掉应持有标的后",len(selldf))
+        else:
+            print(thistime.month,"当月空仓")
+            selldf=pd.DataFrame({"代码":[],"总市值":[]})
+        selldf=selldf.reset_index(drop=True)
+        selldf.to_csv("/home/fly/notebook/selldf.csv")
+
+        #初始化存储已经撤销订单的列表【只初始化一次，不要重置】
+        g.dfordercancelled=pd.DataFrame({})
+        ordernum=0#交易轮次计数，避免频繁撤单
+        while True:
+            ordernum+=1#交易轮次计数，避免频繁撤单
+            print("是否执行订单管理",g.cancellorder)
+            if ordernum>1:
+                print("从第二轮开始每执行一轮休息5秒避免订单过度冲击市场","当前轮次",ordernum)
+                time.sleep(5)#休息一秒，避免空转
+            if ordernum%10==0:
+                print("交易轮次达标，执行撤单任务")
+                if g.cancellorder:#执行订单管理功能的话则后面代码才起作用
+                    g.dforderalls=pd.DataFrame({})#初始化存储全部订单的列表【每一轮都可以重置】
+                    ##该接口用于获取当日该账户内所有订单，或按条件获取指定订单。
+                    todayorders=get_all_orders()#get_orders是只获取当前策略的订单
+                    print("todayorders",todayorders,type(todayorders))
+                    if len(todayorders)>0:
+                        print("当日存在已经委托的订单需要进行撤单计算")
+                        g.dforderalls=pd.DataFrame(todayorders)
+                        print("g.dforderalls",g.dforderalls,type(g.dforderalls))
+                        g.dforderalls=g.dforderalls.rename(columns={"symbol":"代码",
+                                                                "price":"委托价格",
+                                                                "amount":"委托数量",
+                                                                "filled_amount":"已成交数量",
+                                                                "entrust_no":"委托编号",
+                                                                "entrust_bs":"委托方向",
+                                                                # "status":"订单状态",#这里需要注销不然后续的代码还得改否则就报错了
+                                                                })
+                        # {'price': 29.42,#价格
+                        # 'entrust_no': 460,
+                        # 'status': '2',#订单状态(str)，该字段取值范围：
+                            # '0' -- "未报"
+                            # '1' -- "待报"
+                            # '2' -- "已报"
+                            # '3' -- "已报待撤"
+                            # '4' -- "部成待撤"
+                            # '5' -- "部撤"
+                            # '6' -- "已撤"
+                            # '7' -- "部成"
+                            # '8' -- "已成"
+                            # '9' -- "废单"
+                            # '+' -- "已受理"
+                            # '-' -- "已确认"
+                            # 'V' -- "已确认"
+                        # 'symbol': '301588.SZ',标的代码(备注：标的代码尾缀为四位，上证为XSHG，深圳为XSHE，如需对应到代码请做代码尾缀兼容)
+                        # 'filled_amount': 0,#成交数量，买入时为正数，卖出时为负数
+                        # 'entrust_bs': 2,#委托编号
+                        # 'amount': -500}#下单数量，买入是正数，卖出是负数
+                        g.dfordercancelled.to_csv("/home/fly/notebook/---g.dfordercancelled"+".csv")
+                        g.dforderalls.to_csv("/home/fly/notebook/---g.dforderalls"+".csv")
+                        #订单处理
+                        for index,thisorder in g.dforderalls.iterrows():
+                            orderid=thisorder["委托编号"]
+                            ordersymbol=thisorder["代码"]#标的代码
+                            orderprice=thisorder["委托价格"]
+                            orderamount=thisorder["委托数量"]
+                            orderfilled_amount=thisorder["已成交数量"]
+                            # print(thisorder["status"],type(thisorder["status"]))#这个就是字符串下面应该的是对的
+                            if thisorder["status"] in ["2","7"]:#针对已报2、部成7进行撤单
+                                print(ordersymbol,"只针对已报或者部成订单进行撤单，状态",thisorder["status"])
+                                if (orderfilled_amount==0):
+                                    print(ordersymbol,"订单未成交")
+                                    cancelinfo=cancel_order_ex(orderid)
+                                    print("撤单详情",cancelinfo)
+                                elif((orderamount-orderfilled_amount)*orderprice>g.targetmoney):
+                                    print(ordersymbol,"订单部分成交但剩余金额大于g.targetmoney")
+                                    cancelinfo=cancel_order_ex(orderid)
+                                    print("撤单详情",cancelinfo)
+                    else:
+                        print("当日尚且没有任何订单，无需进行撤单计算")
+            # #下限价单参数order()
+            # security: 股票代码(str)；
+            # amount: 交易数量，正数表示买入，负数表示卖出(int)；
+            # limit_price：买卖限价(float)；
+            ##下市价单参数order_market()
+            # security：股票代码(str)；
+            # amount：交易数量(int)，正数表示买入，负数表示卖出；
+            # market_type：市价委托类型(int)，上证股票支持参数0、1、2、4，深证股票支持参数0、2、3、4、5，必传参数；
+            # limit_price：保护限价(float)，委托上证股票时必传参数；
+            # 0：对手方最优价格；
+            # 1：最优五档即时成交剩余转限价；（深证不支持）
+            # 2：本方最优价格；
+            # 3：即时成交剩余撤销；
+            # 4：最优五档即时成交剩余撤销；
+            # 5：全额成交或撤单；（上证不支持）
+            #卖出函数
+            log.info("开始卖出委托")
+            if not g.dfposition.empty:#持仓不为空值
+                for stock in g.dfposition["代码"].tolist():
+                    if stock in selldf["代码"].tolist():
+                        thispostion=context.portfolio.positions[stock]
+                        thisamount=thispostion.amount
+                        thisenable_amount=thispostion.enable_amount#计算卖出订单用这个可用余额
+                        print("当前持仓",thispostion,"总共余额",thisamount,"可用余额",thisenable_amount)
+                        if thisenable_amount>0:
+                            print("可用余额大于0，执行卖出",stock)
+                            stock_trade_status=get_snapshot(stock)[stock]["trade_status"]
+                            print("stock_trade_status",stock_trade_status,type(stock_trade_status))
+                            # if (stock_trade_status!="STOPT"):#仅仅保留未停牌状态的标的【状态是START的时候也不能交易，这种是下午的时候券商对Ptrade接口调用多了之后产生的bug】                    
+                            if (stock_trade_status=="TRADE"):#仅仅保留处于连续竞价状态的标的
+                                print(stock,"未停牌，可以执行交易")
+                                log.info("卖出的股票名称：%s"% get_stock_name(stock))
+                                # 获取买卖价格范围，【一分钱价差】或者【0.005滑点+一分钱】的最大值
+                                tick=get_snapshot(stock)
+                                current_price=tick[stock]["last_px"]
+                                high_limit=tick[stock]["up_px"]
+                                low_limit=tick[stock]["down_px"]
+                                ask_price_1=tick[stock]["offer_grp"][1][0]
+                                ask_volume_1=tick[stock]["offer_grp"][1][1]
+                                bid_price_1=tick[stock]["bid_grp"][1][0]
+                                bid_volume_1=tick[stock]["bid_grp"][1][1]
+                                # print(tick[stock],tick[stock]["offer_grp"],tick[stock]["bid_grp"],"ask_price_1",ask_price_1,"ask_volume_1",ask_volume_1,"bid_price_1",bid_price_1,"bid_volume_1",bid_volume_1,)
+                                
+                                
+                                #********
+                                #********
+                                if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*g.bidrate):#这里的滑点比例仅仅用来过滤盘口滑点
+                                    print("盘口价差符合要求",g.bidrate,"ask_price_1",ask_price_1,"bid_price_1",bid_price_1)
+                                    #滑点小的时候固定对手价一档下单
+                                    buy_limit=ask_price_1
+                                    sell_limit=bid_price_1
+                                # else:
+                                    # #滑点大的时候按照固定滑点比例在己方一档和对手方一档之间接单【这个等金额大了涉及撤单才有用】
+                                    # buy_limit=min(round((bid_price_1+0.01),2),high_limit)
+                                    # sell_limit=max(round((sell_limit-0.01),2),low_limit)
+                                #********
+                                #********
+                                    if ((stock.startswith("12")) or (stock.startswith("11"))):
+                                        #可转债10股一手
+                                        if (thisenable_amount*sell_limit)<(g.traderate*g.targetmoney):#剩余应卖出金额小于g.traderate倍的g.targetmoney以下
+                                            log.info("卖出的股票名称：%s"% get_stock_name(stock),"全部卖出",thisenable_amount)
+                                            # 计算应下单金额
+                                            sellvolume=thisenable_amount
+                                            order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                            # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                            # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                            log.info("[%s]卖出股票" % stock)
+                                            log.info("[%s]卖出订单" % order_id)
+                                        else:
+                                            log.info("卖出的股票名称：%s"% get_stock_name(stock),"限额卖出",g.targetmoney)
+                                            # 计算应下单金额
+                                            sellvolume=(math.floor((g.targetmoney/current_price)/10)*10)
+                                            order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                            # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                            # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                            log.info("[%s]卖出股票" % stock)
+                                            log.info("[%s]卖出订单" % order_id)
+                                    else:
+                                        if (bid_price_1*bid_volume_1)>g.targetmoney:
+                                            print("对手盘买单一档足够下g.targetmoney的卖出订单，仅对非可转债标的进行验证")
+                                            #非可转债都是100股一手
+                                            if (thisenable_amount*sell_limit)<(g.traderate*g.targetmoney):#剩余应卖出金额小于g.traderate倍的g.targetmoney以下
+                                                log.info("卖出的股票名称：%s"% get_stock_name(stock),"全部卖出",thisenable_amount)
+                                                # 计算应下单金额
+                                                sellvolume=thisenable_amount
+                                                order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                                # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                                # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                                log.info("[%s]卖出股票" % stock)
+                                                log.info("[%s]卖出订单" % order_id)
+                                            else:
+                                                log.info("卖出的股票名称：%s"% get_stock_name(stock),"限额卖出",g.targetmoney)
+                                                # 计算应下单金额
+                                                sellvolume=(math.floor((g.targetmoney/current_price)/100)*100)
+                                                order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                                # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                                # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                                log.info("[%s]卖出股票" % stock)
+                                                log.info("[%s]卖出订单" % order_id)
+                log.info("卖出订单已全部委托")
+            else:
+                log.info("当前没有持仓")
+            #到收盘时间停止
+            thisnow=(datetime.datetime.utcnow()+datetime.timedelta(hours=8)).time()#获取标准时间，换算成东八区
+            print("当前小时分钟数",thisnow,"如果卡在这里了说明未到开盘时间或者同花顺可能修改时区了")
+            if (thisnow>datetime.time(14,55)):#【收盘一段时间之后才打断任务，避免任务中途重新启动】
+                print("已到收盘时间任务结束",thisnow)
+                break
+
+def after_trading_end(context,data):
+    g.dforderalls=pd.DataFrame({})
+    g.dfordercancelled=pd.DataFrame({})
+    g.dfposition=pd.DataFrame({})
+    print("收盘后资金数据清零避免第二天受到干扰")
+
+# 过滤ST及其他具有退市标签的股票
+def filter_st_stock(context,stock_list):
+    if stock_list:
+        current_date=context.blotter.current_dt.strftime("%Y%m%d")
+        # 最多尝试获取3次
+        MAX_RETRIES=3
+        for i in range(MAX_RETRIES):
+            try:
+                st_status=get_stock_status(stock_list,"ST",current_date)#ST
+                delisting_status=get_stock_status(stock_list,"DELISTING",current_date)#退市
+                sto_names=get_stock_name(stock_list)
+                break
+            except Exception as e:
+                if i==MAX_RETRIES-1:  # 如果是最后一次尝试还是失败，则抛出异常
+                    raise e
+                else:
+                    print("ST、退市状态、股票名称数据获取错误")
+        stock_list=[s for s in stock_list if "退" not in sto_names[s]]
+        stock_list=[s for s in stock_list if "*" not in sto_names[s]]
+        stock_list=[s for s in stock_list if "ST" not in sto_names[s]]
+        stock_list=[s for s in stock_list if st_status[s] not in (True,None)]
+        #stock_list=[s for s in stock_list if delisting_status[s] not in (True,None)]#这里可能报错
+    return stock_list

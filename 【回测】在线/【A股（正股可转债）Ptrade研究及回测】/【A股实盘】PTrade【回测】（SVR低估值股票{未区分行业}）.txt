@@ -1,0 +1,601 @@
+# 联系方式：lianghuajiaoyi123456
+# 导入函数库
+import pandas as pd
+import numpy as np
+import datetime
+import math
+from decimal import Decimal
+from sklearn.svm import SVR
+def reverse_signlog(X):#反标准化
+    # 步骤1: (np.exp(X)-1)将转换后的数据乘以e以消除对数的影响
+    temp_data = np.exp(X) - 1
+    # 步骤2: np.sign(X)恢复原始数据的符号
+    return np.sign(X)*(np.exp(X)-1)
+def signlog(X):#数据标准化
+    #np.sign((X)：返回 X 的符号。如果 X 是正数，返回1；如果 X 是负数，返回-1；如果 X 是0，返回0。
+    #np.log(1.0 + abs(X))：计算 1.0 + abs(X) 的自然对数，其中 np 通常指的是 Python 中的 NumPy 库，np.log 表示自然对数。
+    # factor value因子值
+    return np.sign(X)*np.log(1.0 + abs(X))
+def symbol_convert(x):  # 股票代码加后缀
+    if x.startswith("6"):
+        return str(str(x)+".SS")
+    elif x.startswith("00"):
+        return str(str(x)+".SZ")
+    elif x.startswith("30"):
+        return str(str(x)+".SZ")
+    else:
+        pass
+def filter_kcb_stock(stocks):  # 过滤科创北交股票
+    for stock in stocks[:]:
+        # 去掉科创北交的股票
+        if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+            stocks.remove(stock)
+        # # 只要科创北交的股票
+        # if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+        #     pass
+        # else:
+        #     stocks.remove(stock)
+    return stocks
+# 初始化
+def initialize(context):
+    g.numbuystock=15#持有股票数量
+    g.bidrate=0.008#超价比例
+    g.limit_days=13#N日内有涨停不买入
+    set_benchmark("000985.XBHS")#设置比较基准参数
+    run_daily(context,getday,time='9:33')
+    run_daily(context,selltrade,time="9:36")#不涨停标的卖出
+    run_daily(context,buytrade,time="9:49")#调仓后买入
+    run_daily(context,selltrade,time="14:41")#不涨停标的卖出
+    run_daily(context,buytrade,time="14:50")#调仓后买入
+
+    if is_trade():#判断执行场景
+        log.info("当前运行场景：交易",is_trade())
+    else:
+        log.info("当前运行场景：回测",is_trade())
+        set_commission(commission_ratio=0.00015,min_commission=5.0,type="stock")#设置佣金费率  
+        set_limit_mode("UNLIMITED")
+    # g.tradeprint=True#确认是否打印交易记录
+    g.tradeprint=False#确认是否打印交易记录
+    
+# 盘中处理
+def handle_data(context,data):# 【在每一根BAR之后传数据】分钟回测时获取盘中数据
+    # print("盘中数据",data)
+    context.__data=data
+    # print("data",data["000001.SS"].close)
+    # pre_date=context.previous_date#前一天
+    # weekday=context.blotter.current_dt.isoweekday()#周几
+    # year=context.blotter.current_dt.year
+    # month=context.blotter.current_dt.month
+    # day=context.blotter.current_dt.day
+    # hour=context.blotter.current_dt.hour
+    # minute=context.blotter.current_dt.minute
+    # second=context.blotter.current_dt.second
+    # #得到标准格式（datetime对象【北京时间】）前一分钟
+    # thistime=(context.blotter.current_dt-datetime.timedelta(seconds=120))
+    # thistime=thistime.strftime("%Y-%m-%d %H:%M")
+    # log.info(thistime)
+    
+def getday(context):# 盘前数据处理
+    # if g.tradeprint:
+        # g.alltodaydf.to_csv("/home/fly/notebook/"+str(g.numbuystock)+"_______alltodaydf.csv")
+        # g.dfposition.to_csv("/home/fly/notebook/"+str(g.numbuystock)+"_______allpositionsdf.csv")
+
+    thismonth=context.blotter.current_dt.strftime("%m")#获取当前月份
+    if False:
+    # if thismonth=="01":
+    # if thismonth=="02":
+    # if (thismonth=="04")or(thismonth=="01"):
+        g.exchage=False#不持仓
+        print(thismonth,"不持仓")
+    else:
+        g.exchage=True#持仓
+        print(thismonth,"持仓")
+        #获取基本面数据【重复执行五次】
+        g.getbasenum=1
+        while g.getbasenum<=5:
+            try:
+                now=get_trading_day(0)#获取当前交易日（0日前交易日）
+                start_date=now.strftime("%Y-%m-%d")#测试当天的数据
+                print("******","start_date",start_date)
+                last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+                today=get_trade_days(end_date=start_date,count=2)[1]
+                g.today=today.replace("-","")
+                yesterday=get_trade_days(end_date=start_date,count=2)[0]
+                g.yesterday=yesterday.replace("-","")
+                print("******","g.today",g.today,type(g.today),"g.yesterday",g.yesterday)
+                g.getbasedata=False
+                g.lastposition=[]#前一天持仓股票
+            
+                # stocks=get_index_stocks(index_code="399101.SZ",date=g.today) # 中小板指
+                # stocks=get_index_stocks(index_code="399101.XBHS",date=g.today) # 中小板指
+                # stocks=get_index_stocks(index_code="000985.SS",date=g.today) # 中证全指
+                stocks=get_index_stocks(index_code="000985.XBHS",date=g.today) # 中证全指
+                # stocks=get_Ashares(date=g.today)#全市场
+                print("原始数据",len(stocks))
+                stocks==filter_kcb_stock(stocks) # 去除科创北交
+                print("过滤科创之后",len(stocks))
+                
+                #获取股票的状态（ST、停牌、退市）
+                st_status=get_stock_status(stocks,"ST")
+                halt_status=get_stock_status(stocks,"HALT")
+                delisting_status=get_stock_status(stocks,"DELISTING")
+                #将（ST、停牌、退市）股票剔除当日股票池
+                for stock in stocks.copy():
+                    if st_status[stock] or halt_status[stock] or delisting_status[stock]:
+                        stocks.remove(stock)
+                thistime=(context.blotter.current_dt-datetime.timedelta(days=365))
+                log.info("日期说明"+str(thistime)+str(thistime.month)+str(thistime.day)+str(type(thistime.day)))
+                if ((thistime.month>=5)and(thistime.month<9)):
+                    basenum=4
+                if ((thistime.month>=9)and(thistime.month<11)):
+                    basenum=2
+                if ((thistime.month>=11)or(thistime.month<5)):
+                    basenum=3
+                
+                #生成新df
+                olddf=pd.DataFrame({"代码":stocks})#stocks本身就是一个list
+                
+                #利润表-净利润、归母净利润、营收
+                basedf=get_fundamentals(stocks,"income_statement",fields=[
+                                        "net_profit",#净利润
+                                        "np_parent_company_owners",#归母净利润
+                                        "operating_revenue",#营业收入
+                                        ],
+                                        date=g.yesterday,
+                                        report_types=str(basenum),
+                                        ).reset_index()
+                basedf=basedf.rename(columns={
+                        "secu_code":"代码",
+                        "net_profit":"净利润",
+                        "np_parent_company_owners":"归母净利润",
+                        "operating_revenue":"营业收入",
+                        })
+                basedf=basedf[["代码","营业收入","净利润","归母净利润"]]
+                # basedf=basedf[basedf["营业收入"]>10000000]
+                basedf=basedf[basedf["净利润"]>0]
+                basedf=basedf[basedf["归母净利润"]>0]
+                basedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留净利润、归母净利润大于0的",len(basedf))
+                #利润表-净利润、归母净利润、营收[最新]
+                # 3月19日更新000001.SZ在3月15出来的最新的财报，中间间隔了2个交易日，
+                # 也就是只能拿到截止到在3月18日周一的g.yesterday之前的数据，哪怕用g.today也会滞后一天，
+                # 不过数据确实是最新一期的财报，即当年年报
+                newbasedf=get_fundamentals(stocks,"income_statement",fields=[
+                                        "net_profit",#净利润
+                                        "np_parent_company_owners",#归母净利润
+                                        "operating_revenue",#营业收入
+                                        ],
+                                        date=g.yesterday,
+                                        # report_types=str(basenum),
+                                        ).reset_index()
+                newbasedf=newbasedf.rename(columns={
+                        "secu_code":"代码",
+                        "net_profit":"净利润",
+                        "np_parent_company_owners":"归母净利润",
+                        "operating_revenue":"营业收入",
+                        })
+                newbasedf=newbasedf[["代码","营业收入","净利润","归母净利润"]]#很多公司尚未更新最近一期财报所以含有空值
+                newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                # newbasedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新newbasedf.csv")
+                print("变更数据",len(newbasedf))
+                # #打印被更新掉的旧数据
+                # dropdf=basedf[(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                # dropdf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新dropdf.csv")
+                # print("len(dropdf)",len(dropdf))
+                # #打印被填充进来的新数据
+                # newdropdf=newbasedf[newbasedf["代码"].isin(dropdf["代码"].tolist())]
+                # newdropdf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新newdropdf.csv")
+                # print("len(newdropdf)",len(newdropdf))
+                #数据拼接【把因为数据更新而移除的数据填充上新的】
+                basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                print("最新一期财报删减数据",basedf[(basedf["净利润"]<=0)|(basedf["归母净利润"]<=0)]["代码"].tolist())
+                # basedf=basedf[basedf["营业收入"]>10000000]
+                basedf=basedf[basedf["净利润"]>0]
+                basedf=basedf[basedf["归母净利润"]>0]
+                basedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收最新.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留净利润、归母净利润大于0的【最新】",len(basedf))
+                
+                olddf=olddf.merge(basedf,on="代码",how='inner')#根据代码拼接，只保留两者都有的行
+                
+                #盈利能力-扣非净利润
+                basedf=get_fundamentals(stocks,"profit_ability",fields=[
+                                    "net_profit_cut",#扣非净利润
+                                    ],
+                                    date=g.yesterday,
+                                    report_types=str(basenum)
+                                    ).reset_index()
+                basedf=basedf.rename(columns={
+                        "secu_code":"代码",
+                        "net_profit_cut":"扣非净利润",
+                        })
+                basedf=basedf[["代码","扣非净利润"]]
+                basedf=basedf[basedf["扣非净利润"]>0]
+                basedf.to_csv("/home/fly/notebook/扣非净利润.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留扣非净利润大于0的",len(basedf))
+                #盈利能力-扣非净利润[最新]
+                newbasedf=get_fundamentals(stocks,"profit_ability",fields=[
+                                    "net_profit_cut",#扣非净利润
+                                    ],
+                                    date=g.yesterday,
+                                    # report_types=str(basenum)
+                                    ).reset_index()
+                newbasedf=newbasedf.rename(columns={
+                        "secu_code":"代码",
+                        "net_profit_cut":"扣非净利润",
+                        })
+                newbasedf=newbasedf[["代码","扣非净利润"]]#很多公司尚未更新最近一期财报所以含有空值
+                newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                print("变更数据",len(newbasedf))
+                #数据拼接【把因为数据更新而移除的数据填充上新的】
+                basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                print("最新一期财报删减数据",basedf[basedf["扣非净利润"]<=0]["代码"].tolist())
+                basedf=basedf[basedf["扣非净利润"]>0]
+                basedf.to_csv("/home/fly/notebook/扣非净利润最新.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留扣非净利润大于0的",len(basedf))
+                
+                olddf=olddf.merge(basedf,on="代码",how='inner')#根据代码拼接，只保留两者都有的行
+                
+                #资产负债表-未分配利润，为正时能够排除历史遗留问题股票
+                basedf=get_fundamentals(stocks,"balance_statement",fields=[
+                                    "retained_profit",#未分配利润
+                                    ],
+                                    date=g.yesterday,
+                                    report_types=str(basenum)
+                                    ).reset_index()
+                basedf=basedf.rename(columns={
+                        "secu_code":"代码",
+                        "retained_profit":"未分配利润",
+                        })
+                basedf=basedf[["代码","未分配利润"]]
+                basedf=basedf[basedf["未分配利润"]>0]
+                basedf.to_csv("/home/fly/notebook/未分配利润.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留未分配利润大于0的",len(basedf))
+                #资产负债表-未分配利润，为正时能够排除历史遗留问题股票[最新]
+                newbasedf=get_fundamentals(stocks,"balance_statement",fields=[
+                                    "retained_profit",#未分配利润
+                                    ],
+                                    date=g.yesterday,
+                                    # report_types=str(basenum)
+                                    ).reset_index()
+                newbasedf=newbasedf.rename(columns={
+                        "secu_code":"代码",
+                        "retained_profit":"未分配利润",
+                        })
+                newbasedf=newbasedf[["代码","未分配利润"]]
+                newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                print("变更数据",len(newbasedf))
+                #数据拼接【把因为数据更新而移除的数据填充上新的】
+                basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                print("最新一期财报删减数据",basedf[basedf["未分配利润"]<=0]["代码"].tolist())
+                basedf=basedf[basedf["未分配利润"]>0]
+                basedf.to_csv("/home/fly/notebook/未分配利润最新.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留未分配利润大于0的",len(basedf))
+                
+                olddf=olddf.merge(basedf,on="代码",how='inner')#根据代码拼接，只保留两者都有的行
+                
+                #偿债能力-资产负债比
+                basedf=get_fundamentals(stocks,"debt_paying_ability",fields=[
+                                    "sewmi_to_total_liability",#归属母公司股东的权益与负债合计的百分比
+                                    ],
+                                    date=g.yesterday,
+                                    report_types=str(basenum)
+                                    ).reset_index()
+                basedf=basedf.rename(columns={
+                        "secu_code":"代码",
+                        "sewmi_to_total_liability":"归属母公司股东的权益与负债合计的百分比",
+                        })
+                basedf=basedf[["代码","归属母公司股东的权益与负债合计的百分比"]]
+                basedf["归属母公司股东的权益与负债合计的百分比"]=basedf["归属母公司股东的权益与负债合计的百分比"]/100
+                basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>0]#大部分时候都是正的（也就是净资产大于0）
+                # basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>float(0.1)]#去掉净资产不足总负债的百分之10的情况
+                basedf.to_csv("/home/fly/notebook/归属母公司股东的权益与负债合计的百分比.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留归属母公司股东的权益与负债合计的百分比大于0的",len(basedf))
+                #偿债能力-资产负债比[最新]
+                newbasedf=get_fundamentals(stocks,"debt_paying_ability",fields=[
+                                    "sewmi_to_total_liability",#归属母公司股东的权益与负债合计的百分比
+                                    ],
+                                    date=g.yesterday,
+                                    report_types=str(basenum)
+                                    ).reset_index()
+                newbasedf=newbasedf.rename(columns={
+                        "secu_code":"代码",
+                        "sewmi_to_total_liability":"归属母公司股东的权益与负债合计的百分比",
+                        })
+                newbasedf=newbasedf[["代码","归属母公司股东的权益与负债合计的百分比"]]
+                newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                print("变更数据",len(newbasedf))
+                #数据拼接【把因为数据更新而移除的数据填充上新的】
+                basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                basedf["归属母公司股东的权益与负债合计的百分比"]=basedf["归属母公司股东的权益与负债合计的百分比"]/100
+                print("最新一期财报删减数据",basedf[basedf["归属母公司股东的权益与负债合计的百分比"]<=0]["代码"].tolist())
+                basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>0]#大部分时候都是正的（也就是净资产大于0）
+                # basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>float(0.1)]#去掉净资产不足总负债的百分之10的情况
+                basedf.to_csv("/home/fly/notebook/归属母公司股东的权益与负债合计的百分比最新.csv")
+                stocks=basedf["代码"].tolist()
+                print("保留归属母公司股东的权益与负债合计的百分比大于0的",len(basedf))
+                
+                olddf=olddf.merge(basedf,on="代码",how='inner')#根据代码拼接，只保留两者都有的行
+                
+                # # 【成分股处理】【暂时不支持申万行业】
+                # # industry factor行业因子（申万宏源一级行业）【带着行业因子可以选到大市值标的】
+                # industrydf=get_industry_relate(types="s_industryid1",date=yesterday)
+                # print("申万一级行业",industrydf)
+                # for sector in industrydf.index.tolist():#遍历所有行业
+                    # tarsector=industrydf[industrydf.index==sector]["industry_symbol"].values[0]
+                    # istocks=get_industry_stocks(tarsector,yesterday)#获取成分股【跟ptrade函数名一样】
+                    # # print("成分股",istocks,tarsector)
+                    # df.loc[df["代码"].isin(istocks),sector]=1#使该行业的成分股在该行业名列的值为1
+                    # df.loc[~(df["代码"].isin(istocks)),sector]=0
+                # print("添加行业数据",df)
+            
+                #基本面数据合成
+                olddf.to_csv("/home/fly/notebook/olddf.csv")
+                basedf=olddf
+                
+                # # 计算去年同期的财报日期【对比的去年同期财报】【暂时没用到】
+                # if thistime.month == 2 and thistime.day == 29:
+                    # thisday = 28
+                    # g.lastyear_yesterday = datetime.date(thistime.year-1,thistime.month,thisday)
+                # else:
+                    # g.lastyear_yesterday = datetime.date(thistime.year-1,thistime.month,thistime.day)
+                # g.lastyear_yesterday=g.lastyear_yesterday+datetime.timedelta(days=60)#滞后两个月处理
+                # g.lastyear_yesterday=g.lastyear_yesterday.strftime("%Y-%m-%d")
+                # g.lastyear_yesterday=get_trade_days(end_date=g.lastyear_yesterday,count=2)[1]#提取临近的交易日
+                # g.lastyear_yesterday=g.lastyear_yesterday.replace("-","")
+                # print(g.yesterday,g.lastyear_yesterday)
+        
+                # 删除包含 NaN 值的行【避免空数据的干扰】
+                basedf = basedf.dropna()
+                
+                if not(len(basedf)>0):
+                    log.info("本次获取财务数据不成功，请检查数据")
+                    g.getbasedata=False#获取财务数据失败
+                else:
+                    stocks=basedf["代码"].tolist()
+                    df=get_price(
+                        security=stocks,
+                        start_date=None,
+                        end_date=g.today,
+                        frequency="1d",
+                        fields=["open","preclose"],# 获取全部数据列，其中昨日收盘价是用来计算总股本的
+                        # fq="pre",
+                        fq=None,# 这里需要用不复权的数据才是准确的
+                        count=1).to_frame()
+                    df=df.reset_index()
+                    df=df[df["open"]>4]
+                    df=df.rename(columns={"minor": "代码"})
+                    df=df[["代码","open"]]
+                    stocks=df["代码"].tolist()
+                    print(len(stocks))
+                    # 获取基本面数据
+                    olddf=get_fundamentals(stocks,"valuation",fields=[
+                                            "a_shares",#A股总股本
+                                            "b_shares",#B股总股本
+                                            "h_shares",#H股总股本
+                                            "total_shares",#全部总股本
+                                            "naps",#每股净资产
+                                            ],date=g.yesterday).reset_index()
+                    olddf=olddf.rename(columns={
+                            "secu_code":"代码",
+                            })
+                    olddf["总股本"]=olddf["a_shares"]#A股总股本
+                    # olddf["总股本"]=olddf["a_shares"]+olddf["b_shares"]+olddf["h_shares"]#ABH全体总股本
+                    olddf=olddf.merge(df,on="代码",how="inner")
+                    olddf["总市值"]=olddf["总股本"]*olddf["open"]
+                    olddf["净资产"]=olddf["总股本"]*olddf["naps"]#计算净资产
+                    olddf=olddf[["代码","总市值","总股本","净资产"]]
+                    olddf=olddf.merge(basedf,on="代码",how="inner")
+                    
+                    olddf.to_csv("/home/fly/notebook/olddf处理后.csv")
+                    baselist=[column for column in olddf.columns if column!="代码"]#列名赋值，用前一天的基本面数据同时进行训练和输出
+                    print("需处理因子",baselist)
+                    for thisfactor in baselist:#直接处理因子避免空值
+                        print("当前因子为",thisfactor)
+                        olddf[thisfactor]=signlog(olddf[thisfactor])
+                    olddf=olddf.reset_index(drop=True)#重置索引
+                    
+                    # SVR model
+                    svr=SVR(kernel="rbf")
+                    # training model #预测的目标是市值【这是一个估值模型】
+                    olddf.set_index('代码',inplace=True)#重新设置索引，避免后面处理有问题
+                    Y=olddf["总市值"]
+                    X=olddf.drop(["总市值","总股本"],axis=1)
+                    X.to_csv("/home/fly/notebook/X.csv")
+                    model=svr.fit(X,Y)#根据前一天的基本面和市值情况预测
+                    # stocks并选股
+                    r=Y-pd.Series(svr.predict(X),Y.index,name='估值')#计算的低估程度【负数为低估】
+                    r=r.reset_index(drop=False)
+                    r=pd.DataFrame(r)
+                    # 估值数据和基本面数据拼接
+                    olddf=olddf.reset_index(drop=False)
+                    r=r.merge(olddf[["总市值","总股本","代码"]],on="代码")
+                    r=r.rename(columns={0:'估值'},inplace=False)
+                    r["总市值（反标准化）"]=reverse_signlog(r["总市值"])#对标准化的市值进行反标准化
+                    r["总股本（反标准化）"]=reverse_signlog(r["总股本"])#对标准化的市值进行反标准化
+                    r.to_csv("/home/fly/notebook/r.csv")
+                    r=r[r["估值"]<0]#只选择低估的标的
+                    olddf=r
+                    
+                    #基本面计算
+                    g.selldf=olddf.nsmallest(math.ceil(g.numbuystock*3),"估值")
+                    if len(g.selldf)>=g.numbuystock*3:
+                        g.getbasedata=True#获取财务数据失败
+                        # print("删除次新股之前:",len(g.selldf))
+                        # olddate=str(get_trading_day(-233)).replace("-","")
+                        # oldstocks=get_Ashares(date=olddate)#全市场
+                        # g.selldf=g.selldf[g.selldf["代码"].isin(oldstocks)]
+                        # print("删除次新股之后:",len(g.selldf))
+                        break
+                    else:
+                        g.getbasenum+=1
+                        
+                    # if g.tradeprint:#输出当日的因子数据
+                        # g.alltodaydf=pd.concat([g.alltodaydf,olddf])
+            except Exception as e:
+                print(e)
+def buytrade(context):
+    if g.exchage==False:
+        print("不执行买入计划")
+        return
+    if not g.getbasedata:
+        return
+    #持有股票数量
+    g.lastposition=[position.sid for position in context.portfolio.positions.values() if position.amount !=0]
+    position_count=len(g.lastposition)
+    print("当前持仓数量",len(g.lastposition))
+    g.buystocks=get_trade_stocks(context,context.__data)
+    
+    #过滤当天涨停股【下面的方法仅限于回测当中】
+    up_limit_stock=get_limit_stock(context,g.buystocks)['up_limit']#当前应买入标的当中的涨停股
+    g.buystocks=list(set(g.buystocks)-set(up_limit_stock))
+    log.info('去掉涨停股之后：%s'%g.buystocks)
+    hold_up_limit_stock=get_limit_stock(context,g.lastposition)['up_limit']#当前持仓标的当中的涨停股
+    log.info('持仓当中涨停股：%s'%hold_up_limit_stock)
+    g.buystocks=g.buystocks[:g.numbuystock-len(hold_up_limit_stock)]#市值排名只要g.numbuystock-len(hold_up_limit_stock)的标的
+    g.buystocks=hold_up_limit_stock+g.buystocks#持仓当中的涨停股加上市值排名前g.numbuystock-len(hold_up_limit_stock)
+    log.info('保留持仓当中涨停股之后的买入计划：%s'%g.buystocks)
+
+    value=context.portfolio.cash/(g.numbuystock-position_count) #context.portfolio.cash当前可用资金（不包含冻结资金）       
+    for stock in g.buystocks:
+        try:
+            if position_count>=g.numbuystock:
+                continue
+            if stock not in context.portfolio.positions:
+                #这个里面不仅仅包括历史收盘涨停，貌似还包括当前的实时涨停
+                history=get_history(g.limit_days,"1d",["close","volume","high_limit"],stock,fq="dypre",include=True)
+                print("history看看close、highlimit等数据是不是盘中实时的",history)
+                history["涨停"]=history["close"]==history["high_limit"]
+                print("涨停",sum(list(history["涨停"].values)),list(history["涨停"].values))
+                if sum(list(history["涨停"].values)[:-1])>=1:
+                    print(stock,"近期出现涨停")
+                    continue
+                orderprice=round(history["close"].values[-1] * (1+g.bidrate),2)#当前收盘价下单
+                if orderprice>history["high_limit"].values[-1]:
+                    orderprice=history["high_limit"].values[-1]
+                    print("委托价格大于涨停价,以涨停价委托",orderprice)
+                thisorder=order_value(stock,value,orderprice)
+                position_count+=1
+                print("买入",stock,thisorder,position_count)
+        except Exception as e:
+            print(e)
+            
+def selltrade(context):
+    if g.exchage==False:
+        print("清理掉未涨停标的")
+        for stock in context.portfolio.positions:
+            stock_flag=check_limit(stock)#回测不支持该函数，主要是实盘检查
+            if stock_flag==1:
+                continue#如果stock_flag==1也就是涨停了，就跳过当前股票进行下一个股票的处理
+            thisorder=order_target_value(stock,0)
+            log.info("卖出",stock,thisorder)
+    else:
+        print("卖出","获得基本面数据:",g.getbasedata)
+        if not g.getbasedata:
+           return
+           
+        # g.dfposition=pd.DataFrame({})
+        # for position in context.portfolio.positions.values():
+            # thisposition=pd.DataFrame({"代码":[position.sid],
+            # "余额":[position.amount],
+            # "可用余额":[position.enable_amount],
+            # "当前价":[position.last_sale_price],
+            # "成本价":[position.cost_basis],
+            # })
+            # thisposition["日期"]=g.today
+            # thisposition["持仓市值"]=thisposition["余额"]*thisposition["当前价"]
+            # thisposition["总市值"]=thisposition["持仓市值"].sum()
+            # thisposition["可用资金"]=context.portfolio.cash
+            # thisposition["总资产"]=context.portfolio.portfolio_value
+            # g.dfposition=pd.concat([g.dfposition,thisposition])
+        # print("当前持仓状态",g.dfposition)
+        
+        # 生成昨日持仓股票列表
+        g.lastposition=[position.sid for position in context.portfolio.positions.values() if position.amount !=0]
+        position_count=len(g.lastposition)
+        print("当前持仓数量",len(g.lastposition))
+        # 生成不卖出股票列表
+        g.sellstocks=get_trade_stocks(context,context.__data)
+        for stock in context.portfolio.positions:
+            if stock not in g.sellstocks:
+                stock_flag=check_limit(stock)#回测不支持该函数，主要是实盘检查
+                if stock_flag==1:
+                    continue#如果stock_flag==1也就是涨停了，就跳过当前股票进行下一个股票的处理
+                thisorder=order_target(stock,0)
+                log.info("卖出",stock,thisorder)
+# 获取买入股票池（涨停股不参与调仓）
+def get_trade_stocks(context,thisdata):
+    thisselldf=g.selldf
+    thisselldf['curr_total_value']=0
+    stocks=thisselldf["代码"].tolist()
+    for stock in stocks:
+        try:
+            df=thisselldf[thisselldf["代码"]==stock]
+            if not df.empty:
+                thisselldf.loc[thisselldf["代码"]==stock,'curr_total_value']=df["总股本"].values[0]*thisdata[stock].close
+            else:
+                thisselldf.loc[thisselldf["代码"]==stock,'curr_total_value']=0
+        except Exception as e:
+            print(e)
+    thisselldf=thisselldf[thisselldf['curr_total_value']!=0]
+    #提前过滤掉市值过大的标的，提高运行速度
+    thisselldf=thisselldf.nsmallest(math.ceil(g.numbuystock*3),"估值")
+    stocks=thisselldf["代码"].tolist()
+    return stocks
+# 日级别回测获取涨停和跌停状态的股票
+def get_limit_stock(context,stocks):
+    st_status=get_stock_status(stocks,"ST")
+    limit_info={"up_limit":[],"down_limit":[]}
+    history=get_history(5,"1d",["close","volume","high_limit","low_limit"],stocks,fq="dypre",include=True)#include包含当前数据
+    print("history",type(history))#类型是<class 'pandas.core.panel.Panel'>
+    
+    # # 使用api方式获取涨跌停标的
+    # historydf=history.to_frame()#这里拿到的收盘价直接是当天的收盘价有未来函数，涨跌停价格是对的
+    # historydf=historydf.reset_index(drop=False)
+    # historydf=historydf.rename(columns={"major":"日期","major":"代码"})
+    # print("historydf",historydf)
+    
+    # 获取五天的数据，计算涨跌停价格去涨跌停
+    history=history.swapaxes("minor_axis","items")#用来交换轴的，可以换掉
+    for stock in stocks:
+        df=history[stock]
+        df=df[df["volume"]>0]
+        if len(df.index)<2:
+            continue
+        last_close=df["close"].values[:][-2]
+        curr_price=df["close"].values[:][-1]
+        ST_flag=st_status[stock]
+        #区分不同股票的涨停比例【这块改成直接获取涨跌停价格】
+        rate=0.1
+        #科创板为20%
+        if stock[:2]=="68":
+            rate=0.2
+        #创业板2020年8月24日之前为10%，之后为20%
+        elif stock[0]=="3" and context.blotter.current_dt.strftime("%Y%m%d")>="20200824":#当前年月日的处理
+            rate=0.2
+        #非科创和非创业板的股票在st状态下为5%
+        elif stock[0] !="3" and stock[:2] !="68" and ST_flag:
+            rate=0.05
+        up_limit_price=last_close*(1+rate)
+        down_limit_price=last_close*(1-rate)
+        # 保留小数点两位
+        up_limit_price=float(str(round(Decimal(up_limit_price),2)))
+        down_limit_price=float(str(round(Decimal(down_limit_price),2)))
+        # 涨停标的处理
+        if curr_price>=up_limit_price:
+            limit_info["up_limit"].append(stock)
+        if curr_price <=down_limit_price:
+            limit_info["down_limit"].append(stock)
+        # print(stock,last_close,up_limit_price,down_limit_price)
+    print(limit_info)
+    return limit_info

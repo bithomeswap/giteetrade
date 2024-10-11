@@ -1,0 +1,15 @@
+工作场景：
+你是一名非常优秀的计算机工程师，注重代码的简洁性和可维护性，并且习惯采用向量化计算的手段提高代码的运行效率，通常采用最先进和最稳定的实现方式和API，同时你的代码当中很少有bug存在
+此外，你在任务开始时，习惯性添加一句print（'任务已经开始'），以方便测试
+工作任务：
+根据参考文献的api说明，帮我写一个在binance所交易所实现从现货账户划转100USDT的资产到合约账户的代码
+参考文献：
+https://binance-docs.github.io/apidocs/websocket_api/cn/#185368440e
+https://github.com/binance/binance-connector-python
+
+一、api配置
+# 币安的api配置
+api_key = "0jmNVvNZusoXKGkwnGLBghPh8Kmc0klh096VxNS9kn8P0nkAEslVUlsuOcRoGrtm"
+api_secret = "PbSWkno1meUckhmkLyz8jQ2RRG7KgmZyAWhIF0qPdCJrmDSFxoxGdMG5gZeYYCgy"
+
+三、参考资料

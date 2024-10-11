@@ -1,0 +1,241 @@
+# coding:utf-8
+#!/usr/bin/env python
+#需要注意使用tick级别进行回测，tick的数值才能作为参数使用，否则容易传回空值【tick是0.5秒下单一笔】
+from PoboAPI import *
+import datetime
+import statsmodels.formula.api as sm
+from statsmodels.tsa import stattools
+import numpy as np
+import pandas as pd
+from copy import *
+import math
+
+#开始时间，用于初始化一些参数        
+def OnStart(context):
+    g.targetmath=1#近月合约（主力合约的下个交割周期的合约）
+#     g.targetmath=2#近季合约
+#     g.targetmath=3#远月合约
+
+#     g.exchanges='CFFEX'#交易所
+#     g.stock='IF'#交易标的
+    g.exchanges='SHFE'#交易所
+    g.stock='rb'#交易标的
+    
+    g.pricerate=0.005#开仓价差
+#     g.pricerate=0.02#开仓价差
+    
+    #登录交易账号
+    if '回测期货' in context.accounts:
+        print('登录交易账号回测期货')
+        if context.accounts['回测期货'].Login():#账户名称一定严格区分
+#             context.accounts['回测期货'] = context.accounts['回测期货']
+            print(str(context.accounts['回测期货'])+str('登录成功'))
+    #登录交易账号
+    if '回测期权' in context.accounts:
+        print('登录交易账号回测期权')
+        if context.accounts['回测期权'].Login():#账户名称一定严格区分
+#             context.accounts['回测期权'] = context.accounts['回测期权']
+            print(str(context.accounts['回测期权'])+str('登录成功'))
+def OnMarketQuotationInitialEx(context,exchange,daynight):
+#     if daynight !='night':#这个是只交易夜盘部分
+    if exchange != g.exchanges:
+        return
+    vac=sorted(GetFuturesContracts(g.exchanges,g.stock))
+#     print('所有合约'+str(vac))
+    MainContract=GetMainContract(g.exchanges,g.stock,20)
+    print('主力合约'+str(MainContract))
+    for i in range(len(vac)):
+        if vac[i]==MainContract:
+            s=i+g.targetmath
+            break
+    g.code=[MainContract,vac[s]]
+    SubscribeQuote(g.code[0])
+
+#实时行情事件，当有新行情出现时调用该事件                        
+def OnQuote(context,code) :
+    cutime = GetCurrentTime()
+#     print(cutime.hour,cutime.minute,cutime.second)
+#     if cutime.second==int(30):
+    if cutime.minute==int(10) and cutime.second==int(30):
+#     if cutime.hour==int(10):
+#     if cutime.minute==int(10):
+        print("时"+str(cutime.hour)+"分"+str(cutime.minute)+"秒"+str(cutime.second))
+        #查询账号余额
+        balance = context.accounts['回测期货'].AccountBalance.AvailableCashBalance#获取余额
+        print('当前余额'+str(balance))
+        allbalance = context.accounts['回测期货'].AccountBalance.AssetsBalance#获取余额
+        print('总资产'+str(allbalance))
+        positions = GetPositionsAsDF(context.accounts['回测期货'])#获取DataFrame格式的持仓信息—GetPositionsAsDF
+        print('持仓信息'+str(positions))
+        
+        #更新可交易合约列表
+        vac=sorted(GetFuturesContracts(g.exchanges,g.stock))
+        print('所有合约')
+        print(vac)
+        #获取当前主力合约
+        MainContract=GetMainContract(g.exchanges,g.stock,20)
+        print('主力合约')
+        print(MainContract)
+        #获取当前主力合约下一月合约
+        for i in range(len(vac)):
+            if vac[i]==MainContract:
+                s=i+g.targetmath
+                break
+        #当主力合约变换时，平仓
+        if g.code[0]!=MainContract:
+            #进行平仓
+            for c in g.code:
+                option = PBObj()
+                option.contract = c
+                #获取持仓情况
+                pos = context.accounts['回测期货'].GetPositions(option)
+                for p in pos:
+                    if p.bstype.BuySellFlag=='0':
+                        QuickInsertOrder(context.accounts['回测期货'],c,'sell','close',price_type,p.volume)
+                    if p.bstype.BuySellFlag=='1':
+                        QuickInsertOrder(context.accounts['回测期货'],c,'buy','close',price_type,p.volume)
+            #取消订阅原主力合约
+            UnsubscribeQuote(g.code[0])
+            g.code_old=g.code
+            #更新交易合约组合
+            g.code=[MainContract,vac[s]]
+            print('当前主力合约由'+str(g.code_old[0])+'更换为'+str(g.code[1]))
+            print('平仓掉原主力合约')
+            #订阅当前主力合约信息
+            SubscribeQuote(g.code[0])
+        print('当前套利组合为'+str(g.code))
+        #获取当前交易日
+        current_date=GetCurrentTradingDate(g.exchanges)
+
+#         #获取两个品种的收盘价
+#         askprice0=GetQuote(g.code[0]).askprice(0)#卖一
+#         bidprice0=GetQuote(g.code[0]).bidprice(0)#买一
+#         highlimit0=GetQuote(g.code[0]).highlimit#涨停价
+#         lowlimit0=GetQuote(g.code[0]).lowlimit#跌停价
+        
+        
+        
+        #获取两个品种的收盘价
+        askprice0=GetQuote(g.code[0]).askprice(0)#卖一
+        bidprice0=GetQuote(g.code[0]).bidprice(0)#买一
+        highlimit0=GetQuote(g.code[0]).highlimit#涨停价
+        lowlimit0=GetQuote(g.code[0]).lowlimit#跌停价
+        print(str(askprice0)+str(bidprice0))
+        askprice1=GetQuote(g.code[1]).askprice(0)#卖一
+        bidprice1=GetQuote(g.code[1]).bidprice(0)#买一
+        highlimit1=GetQuote(g.code[1]).highlimit#涨停价
+        lowlimit1=GetQuote(g.code[1]).lowlimit#跌停价
+    #     print(str(askprice1)+str(bidprice1))
+    
+        #单股仓位占总资产的比重
+        rate=GetContractInfo(g.code[0])["合约乘数"]
+        print("合约乘数",rate)
+        value = allbalance/rate*0.2#股指期货合约乘数需要单独计算
+        print('单股下单金额'+str(value)+str(type(value)))
+        
+        if askprice0!=0 and bidprice0!=0 and askprice1!=0 and bidprice1!=0:#过滤两者盘口价格为0的收盘时间
+            print('正向价差'+str(askprice0/bidprice1)+'反向价差'+str(askprice1/bidprice0))
+            if ((askprice0/bidprice1)<(1-g.pricerate)):#0卖一（买价）低于1买一（卖价），2%，多0空1
+                print('多0空1'+g.code[0]+g.code[1]+'下单数量'+str(int(math.floor(value/askprice0))))
+                if balance>(askprice1+askprice0)*rate:
+                    #下单买开0,16表示对手价
+                    openorder0=QuickInsertOrder(
+                        context.accounts['回测期货'],#account
+                        g.code[0],#code
+                        'buy',#买卖方向
+                        'open',#开平方向
+                        PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                        int(math.floor(value/askprice0)),#下单数量
+                    )
+                    print(openorder0)
+                    #下单卖开1,16表示对手价
+                    openorder1=QuickInsertOrder(
+                        context.accounts['回测期货'],#account
+                        g.code[1],#code
+                        'sell',#买卖方向
+                        'open',#开平方向
+                        PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                        int(math.floor(value/askprice1)),#下单数量
+                    )
+                    print(openorder1)
+#             if ((askprice1/bidprice0)>(1-g.pricerate/4))and((askprice0/bidprice1)<=1.1):
+            if (askprice1/bidprice0)<(1-g.pricerate):#0卖一（买价）低于1买一（卖价），2%，多1空0
+                print("执行平仓")
+                for index,pos in positions.iterrows():
+                    print(pos)
+                    if pos.contract==g.code[0] and pos.buysell=='buy':
+                        print('不在应买入列表中',pos.contract)
+                        #下单买平,16表示对手价
+                        closeorder=QuickInsertOrder(
+                            context.accounts['回测期货'],#account
+                            pos.contract,#code
+                            'sell',#买卖方向
+                            'close',#开平方向
+                            PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                            pos.volume,#下单数量
+                        )
+                        print(closeorder)
+                    if pos.contract==g.code[1] and pos.buysell=='sell':
+                        print('不在应买入列表中',pos.contract)
+                        #下单买平,16表示对手价
+                        closeorder=QuickInsertOrder(
+                            context.accounts['回测期货'],#account
+                            pos.contract,#code
+                            'buy',#买卖方向
+                            'close',#开平方向
+                            PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                            pos.volume,#下单数量
+                        )
+                        print(closeorder)
+            if (askprice1/bidprice0)<(1-g.pricerate):#0卖一（买价）低于1买一（卖价），2%，多1空0
+                print('多1空0'+g.code[0]+g.code[1]+'下单数量'+str(int(math.floor(value/askprice1))))
+                if balance>(askprice1+askprice0)*rate:
+                    #下单买开1,16表示对手价
+                    openorder1=QuickInsertOrder(
+                        context.accounts['回测期货'],#account
+                        g.code[1],#code
+                        'buy',#买卖方向
+                        'open',#开平方向
+                        PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                        int(math.floor(value/askprice1)),#下单数量
+                    )
+                    print(openorder1)
+                    #下单卖开0,16表示对手价
+                    openorder0=QuickInsertOrder(
+                        context.accounts['回测期货'],#account
+                        g.code[0],#code
+                        'sell',#买卖方向
+                        'open',#开平方向
+                        PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                        int(math.floor(value/askprice0)),#下单数量
+                    )
+                    print(openorder0)
+#             if ((askprice0/bidprice1)>(1-g.pricerate/4))and((askprice1/bidprice0)<=1.1):
+            if ((askprice0/bidprice1)<(1-g.pricerate)):#0卖一（买价）低于1买一（卖价），2%，多0空1
+                print("执行平仓")
+                for index,pos in positions.iterrows():
+                    print(pos)
+                    if pos.contract==g.code[1] and pos.buysell=='buy':
+                        print('不在应买入列表中',pos.contract)
+                        #下单买平,16表示对手价
+                        closeorder=QuickInsertOrder(
+                            context.accounts['回测期货'],#account
+                            pos.contract,#code
+                            'sell',#买卖方向
+                            'close',#开平方向
+                            PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                            pos.volume,#下单数量
+                        )
+                        print(closeorder)
+                    if pos.contract==g.code[0] and pos.buysell=='sell':
+                        print('不在应买入列表中',pos.contract)
+                        #下单买平,16表示对手价
+                        closeorder=QuickInsertOrder(
+                            context.accounts['回测期货'],#account
+                            pos.contract,#code
+                            'buy',#买卖方向
+                            'close',#开平方向
+                            PriceType(PbPriceType.Limit,limit_price_type=16),#下单价格
+                            pos.volume,#下单数量
+                        )
+                        print(closeorder)

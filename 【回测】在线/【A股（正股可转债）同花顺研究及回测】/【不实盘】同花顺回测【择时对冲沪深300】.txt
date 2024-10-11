@@ -1,0 +1,439 @@
+import numpy as np
+import pandas as pd
+import datetime
+import math
+
+# 股票策略模板
+# 初始化函数，全局只运行一次
+def init(context):
+    # 设置基准收益：沪深300指数
+    set_benchmark('000300.SH')
+    # 打印日志
+    log.info('策略开始运行,初始化函数全局只运行一次')
+    # 回测区间、初始资金、运行频率请在右上方设置，注意初始资金必须和总账户资金和一致.
+    #设立期货子账户和现货账户金额（比例为1:1）
+    money=context.portfolio.starting_value
+    print("money",money)
+    set_subportfolios([{"cash":0.5*money,"type":'stock'},{"cash":0.5*money,"type":"future"}])
+    # 设置股票每笔交易的手续费为万分之二(手续费在买卖成交后扣除,不包括税费,税费在卖出成交后扣除)
+    set_commission(PerShare(type='stock',cost=0.0002))
+    # 设置期货每笔交易的手续费为十万分之四十五(按成交额计算并扣除,期货交易不需要缴纳税费)
+    set_commission(PerShare(type='future',cost=0.000045))
+    # 设置股票交易滑点0.5%,表示买入价为实际价格乘1.005,卖出价为实际价格乘0.995
+    set_slippage(PriceSlippage(0.005),'stock')
+    # 设置期货交易滑点0.5%,表示买入价为实际价格乘1.005,卖出价为实际价格乘0.995
+    set_slippage(PriceSlippage(0.00025),'future')#滑点高了
+    # 设置期货保证金,IF为期货合约,第一个参数做多保证金8%，第二个参数做空保证金9%
+    set_margin_rate('IF',0.08,0.09)
+    # set_margin_rate('IM',0.08,0.09)
+    
+    # 设置日级最大成交比例 25%,分钟级最大成交比例 50%
+    # 日频运行时，下单数量超过当天真实成交量 25%,则全部不成交
+    # 分钟频运行时，下单数量超过当前分钟真实成交量 50%,则全部不成交
+    # set_volume_limit(0.25,0.5)
+    # 记录持仓天数
+    g.holding_days=0
+    context.ART=0#储存ATR的值，每个交易日更新一次
+    context.unit=0#买卖单位的储存变量
+    context.steam=False#交易系统
+    context.price=0 #记录系统的买入价，以便加仓和离市
+    context.security='000300.SH'
+    g.yb=40#数据长度
+
+    run_daily(func=before_open,time_rule='after_open',hours=0,minutes=5)
+    run_daily(func=trade,time_rule='after_open',hours=0,minutes=35)
+    
+    g.yield_data=pd.read_csv('中国三年期国债收益率历史数据.csv',encoding='GBK')
+# def before_trading(context):#开盘前半小时执行
+def before_open(context,bar_dict):#开盘前半小时执行
+    g.now=get_datetime()
+    print(g.now)
+    thisnow=g.now.strftime('%m-%d')
+    g.start_date=g.now.strftime("%Y-%m-%d")
+    g.last_date=(g.now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+    print(g.start_date,g.last_date)
+    
+    g.today=get_trade_days(end_date=g.start_date, count=2).values[1]
+    g.today=np.datetime_as_string(g.today, unit="D").replace("-", "")
+    g.yesterday=get_trade_days(end_date=g.start_date, count=2).values[0]
+    g.yesterday=np.datetime_as_string(g.yesterday, unit="D")
+    g.yesterday=g.yesterday.replace("-", "")
+    print(g.today,g.yesterday)
+    
+    
+# 开盘时运行函数
+def trade(context,bar_dict):
+    # # 开盘运行
+    # if str(context.portfolio.datetime.time())=='09:31:00':
+        g.holding_days+=1
+        
+        trade_date=g.today
+        print("trade_date",trade_date)
+        # 择时信号
+        signal=Market_Timing('000300.SH').get_signal()
+        # 清仓
+        if signal=='short':
+            positions=context.portfolio.stock_account.positions.copy()
+            for stock in positions:
+                if positions[stock].available_amount==0:
+                    continue
+                order_target_value(stock,0)
+                g.holding_days=0  # 这里可能需要一个变量来记录持仓天数
+                
+                
+                
+            # 持仓期货部分不是主力合约则全部平仓
+            positions=context.portfolio.future_account.positions.copy()#期货持仓当中没有可用余额，可以理解成都可用
+            for stock in positions:
+                print("持仓详情",stock,positions[stock])
+                # IM2312 FuturePosition({'long_today_amount': 0, 'datetime': datetime.datetime(2023, 12, 5, 9, 36), 'transaction_cost': 0.0, 'profit_rate': 5.657796587064174, 'short_amount': 10, 'long_margin': 0.0, 'last_price': 6026.8, 'short_margin': 971040.0, 'draw_down': 0.012436217896936608, 'short_transaction_cost': 0.0, 'margin': 971040.0, 'short_today_amount': 0, 'long_amount': 0, 'long_transaction_cost': 0.0, 'market_value': -12053600.0, 'markup': -0.006953369583127339, 'symbol': 'IM2312', 'long_cost_basis': 0.0, 'pnl': 350911.00000000006, 'short_cost_basis': 6202.2555, 'daily_pnl': 84399.99999999964, 'position_days': 14})
+                num=abs(positions[stock].short_amount)#当前持仓数量【空单数量】
+                #平空
+                order_future(stock,num,"close","short",limit_price=None)
+                
+                
+        
+        # 买入
+        elif signal=='long':
+            if g.holding_days==0 or g.holding_days>=60:
+                # 获取股票池
+                all_stock_pool=get_stock_A(trade_date)
+                # 对股票池分割
+                stock_num=len(all_stock_pool)
+                each_num=500
+                part_num=stock_num//each_num
+                yushu=stock_num % each_num
+                if yushu>0:
+                    part_num+=1
+                #迭代股票池部分并获取数据
+                selected_stocks=[]
+                for i in range(part_num):
+                    stock_pool=all_stock_pool[math.floor(i/part_num*stock_num):math.floor((i+1)/part_num*stock_num)]
+                    # 获取股票基本面和估值数据。
+                    fundamental_df,valuation_df=query_data(stock_pool)
+                    #获取股票的最新收盘价数据，并选择最后一条记录作为当前价格数据
+                    price_df=history(stock_pool,fields=['close'],bar_count=1,fre_step='1d',is_panel=1)['close'].iloc[-1,:]
+                    # 对获取的数据重新编排，index 为日期，表头为股票代码，值为 eps 的值
+                    eps_pivot=pd.pivot_table(fundamental_df,index='income_stat_date',columns='income_symbol',values='income_basic_eps')
+                    # 取出最后一行，也就是各个股票最新的 eps
+                    E=eps_pivot.iloc[-1,]
+                    # index 为股票代码，值为每股收益增长率即计算每只股票的每股收益增长率的平均值。
+                    R=eps_pivot.pct_change().mean()  
+                    yield_data=g.yield_data.copy()
+                    yield_data['日期']=pd.to_datetime(yield_data['日期'],format='%Y年%m月%d日')
+                    yield_data.set_index('日期',inplace=True)
+                    yield_data.sort_index(inplace=True)
+                    start_date,end_date="2006-06-02",trade_date
+                    yield_bt=yield_data.reindex(pd.to_datetime(get_period_date('M',start_date,end_date))).fillna(method="ffill")
+                    IF=yield_bt.loc[:trade_date,'收盘'].mean()/yield_bt.loc[trade_date,'收盘']#历史国债收益率均值与当前国债收益率的比
+                    SF=0.4
+                    pe_mean=valuation_df['asharevalue_pe_ttm'].mean()
+                    VALUE=E*(pe_mean+2*R)*SF*IF#这里好像计算的国债
+                    df=pd.concat([VALUE,price_df],axis=1)
+                    df=df.replace([np.inf,-np.inf],np.nan)
+                    df.columns=['value','price']
+                    #df.eval('factor=value/price',inplace=True)
+                    df['factor']=df['value']/df['price']#
+                    query_res=df.query('factor>=1 & factor<=1.2')
+                    selected_stocks.append(query_res)
+                selected_df=selected_stocks[0]
+                for i in range(1,len(selected_stocks)):
+                    selected_df=selected_df.append(selected_stocks[i])
+                securities_names=[get_security_info(security).display_name for security in selected_df.index]
+                selected_df["name"]=securities_names
+                print(selected_df)
+                selected_df=selected_df.loc[:,['name','value','price','factor']]
+                selected_df=selected_df.sort_values(by=['factor'],ascending=False)
+
+                print("[+] selected_df:",selected_df)
+                # 排名最前的股票往往由于基本面问题下跌，反转效应不强，
+                # 因此选取中间的股票
+                selected_df=selected_df.iloc[1:6] # 修正索引范围，去掉+1
+                target_codes=list(selected_df.index.astype(str))
+                print(target_codes)
+                if len(target_codes)>0:
+                    # 对冲
+                    g.beta=compute_hedge_ratio(context,target_codes)
+                    print(g.beta)
+                # 调仓
+                for stock in context.portfolio.positions:
+                    if stock not in target_codes:
+                        order_target_value(stock,0) # 卖出不在目标持仓的股票
+                value=context.portfolio.stock_account.total_value
+                
+                prevalue=value/5#设置单股仓位，超了之后没余额下单了就
+                
+                for stock in target_codes:
+                    if stock not in context.portfolio.positions:
+                        # 买入目标股票
+                        order_target_value(stock,prevalue)
+                g.holding_days=0  # 重置持仓天数
+                
+                
+                
+            duichong(context)#执行对冲
+                
+def duichong(context):
+    #获取2023年2月1日处于上市状态的所有股指期货的基本信息
+    df=get_all_securities('futures',g.yesterday)
+    # #获取当前处于上市状态的所有商品期货的基本信息
+    # df=get_all_securities('commodity_futures',g.yesterday)
+    df=df.reset_index()
+    df=df.rename(columns={"symbol":"代码","contract_multiplier":"合约乘数",})
+    futures=df["代码"].tolist()
+    # print(df)
+    # df.to_csv("期货细则.csv")
+    
+    #【0.9的多头0.1的空头】还有一种可能是多头账户满仓状态没用余额了，需要根据余额确定是否调仓
+    stockvalue = context.portfolio.stock_account.total_value#当前股票多头账户总金额
+    futurevalue = context.portfolio.future_account.total_value#当前期货对冲账户总金额
+    allvalue=stockvalue+futurevalue#账户多空总仓位
+    transfervalue=futurevalue-0.1*allvalue#对冲那边始终保持0.1的总仓位【误差超过0.01才调整】
+    print("当前股票多头账户总金额",stockvalue,"当前期货对冲账户总金额",futurevalue,"账户多空总金额",allvalue,"应从期货账户转移到股票账户的金额",transfervalue,"金额调整临界值",allvalue*0.01)
+    future_available_cash = context.portfolio.future_account.available_cash#当前期货对冲账户可用余额
+    stock_available_cash = context.portfolio.stock_account.available_cash#当前股票多头账户可用余额
+    print("当前期货对冲账户可用余额",future_available_cash,"当前股票多头账户可用余额",stock_available_cash)
+    if (transfervalue>0)and(abs(transfervalue)>allvalue*0.001):
+        if future_available_cash<abs(transfervalue):
+            print("期货账户余额不足划转额度。取期货账户可用余额作为划转金额")
+            transfervalue=future_available_cash
+        #转移资金
+        # res=transfer_cash(from_pindex=0, to_pindex=1, cash=50000)#聚宽回测转移资金
+        res=account_transfer('future','stock',abs(transfervalue))#同花顺回测转移资金
+        print(transfervalue,allvalue*0.01,"空头转移到多头",res)
+    elif (transfervalue<0)and(abs(transfervalue)>allvalue*0.001):
+        if stock_available_cash<abs(transfervalue):
+            print("股票账户余额不足划转额度，取股票账户可用余额作为划转金额")
+            transfervalue=stock_available_cash
+        #转移资金
+        # res=transfer_cash(from_pindex=0, to_pindex=1, cash=50000)#聚宽回测转移资金
+        res=account_transfer('stock','future',abs(transfervalue))#同花顺回测转移资金
+        print(transfervalue,allvalue*0.01,"多头转移到空头",res)
+    else:
+        print("差额不多无需划转")
+        
+    try:
+        code=get_futures_dominate('IF')
+        rate=df[df["代码"]==code]["合约乘数"].values[0]
+        print("当前主力合约",code,"合约乘数",rate)
+        future_market_value = abs(context.portfolio.future_account.market_value)
+        print("当前期货对冲账户持仓市值",future_market_value)
+        now=get_datetime()
+        print(now)
+        # 获取一分钟k数据
+        timestame=(now-datetime.timedelta(minutes=2)).strftime("%Y%m%d %H:%M")
+        valuedf=get_price_future(
+            symbol_list = [code],
+    	    start_date = None,
+    	    end_date= timestame,
+    	    fre_step='1m',
+    	    fields=['open',"turnover"],
+    	    bar_count=1,
+    	    is_panel=1
+    	).to_frame()
+        print("主力合约实时价格",valuedf)
+        valuedf=valuedf.reset_index()
+        thisprice=valuedf['open'].values[0]
+        print("主力合约实时价格",thisprice)
+        # 持仓期货部分不是主力合约则全部平仓
+        positions=context.portfolio.future_account.positions.copy()#期货持仓当中没有可用余额，可以理解成都可用
+        for stock in positions:
+            print("持仓详情",stock,positions[stock])
+            # IM2312 FuturePosition({'long_today_amount': 0, 'datetime': datetime.datetime(2023, 12, 5, 9, 36), 'transaction_cost': 0.0, 'profit_rate': 5.657796587064174, 'short_amount': 10, 'long_margin': 0.0, 'last_price': 6026.8, 'short_margin': 971040.0, 'draw_down': 0.012436217896936608, 'short_transaction_cost': 0.0, 'margin': 971040.0, 'short_today_amount': 0, 'long_amount': 0, 'long_transaction_cost': 0.0, 'market_value': -12053600.0, 'markup': -0.006953369583127339, 'symbol': 'IM2312', 'long_cost_basis': 0.0, 'pnl': 350911.00000000006, 'short_cost_basis': 6202.2555, 'daily_pnl': 84399.99999999964, 'position_days': 14})
+            if stock in futures:#属于合约才执行平仓
+                if stock!=code:#非主力合约
+                    num=abs(positions[stock].short_amount)#当前持仓数量【空单数量】
+                    #平空
+                    order_future(stock,num,"close","short",limit_price=None)
+        #订阅IF品种
+        subscribe(code)
+        # 判断股票多头市值未完全对冲，且期货账户资金大于0，进行开空对冲（默认多头g.beta为1.5），期货账户的余额需要高于一手的金额（100w）
+        diffvalue=abs(stockvalue*g.beta-future_market_value)
+        tradevalue=rate*thisprice
+        if diffvalue>tradevalue:
+            print("差额超过一手需要补仓或者平仓")
+            if stockvalue*g.beta>(future_market_value*1.05) and (future_available_cash>0):#增加空头仓位
+                #计算需开空数量（默认每张空头合约能对冲100万股票多头市值）
+                num = math.floor(abs(stockvalue-future_market_value)/(rate*thisprice))
+                if num >= 1:
+                    #开空
+                    thisorder=order_future(code,num,"open","short",limit_price=None)
+                    print("空头开仓",thisorder)
+            elif stockvalue*g.beta<(future_market_value*0.95):#平仓空头仓位
+                #计算需开空数量（默认每张空头合约能对冲100万股票多头市值）
+                num = math.floor(abs(future_market_value-stockvalue)/(rate*thisprice))
+                if num >= 1:
+                    #平空
+                    thisorder=order_future(code,num,"close","short",limit_price=None)
+                    print("空头平仓",thisorder)
+    except Exception as e:
+        print("报错，应该是此时该主力合约数据缺失",e)
+        
+# 获取股票某个时间的价格
+def get_curr_price(context,security):
+    curr_price=history(security,fields=['close'],bar_count=1,fre_step='1m',is_panel=1)['close'][0]#最新的收盘价
+    return curr_price
+
+#===格雷厄姆成长股内在价值===
+# 获取指定周期的日期列表 'W、M、Q'
+def get_period_date(peroid,start_date,end_date):
+    # 设定转换周期 period_type 转换为周是'W',月'M',季度线'Q',五分钟'5min',12 天'12D'
+    stock_data=get_price('000001.SH',start_date=start_date,end_date=end_date,fre_step='1d',fields=['close'],is_panel=1)
+    stock_data['date']=stock_data.index
+    # 进行转换，周期的每个变量都等于那一周中最后一个交易日的变量值
+    period_stock_data=stock_data.resample(peroid).last()
+    date=period_stock_data['date']
+    pydate_array=date.dt.to_pydatetime()
+    date_only_array=np.vectorize(lambda s:s.strftime('%Y-%m-%d'))(pydate_array)
+    date_only_series=pd.Series(date_only_array)
+    start_date=datetime.datetime.strptime(start_date,"%Y-%m-%d")
+    start_date=start_date - datetime.timedelta(days=1)
+    start_date=start_date.strftime("%Y-%m-%d")
+    date_list=date_only_series.values.tolist()
+    date_list.insert(0,start_date)
+    return date_list
+
+# 计算对冲比例和 g.beta
+def compute_hedge_ratio(context, target_codes):
+    # 取股票在样本时间内的价格#
+    prices = history(target_codes, ['close'],g.yb, '1d',is_panel = 1)['close']
+    # 取指数在样本时间内的价格#
+    index_prices = history(['000300.SH'], ['close'],g.yb, '1d',is_panel = 1)['close']
+    # 计算股票在样本时间内的日收益率#
+    rets = [(prices.iloc[i+1,:]-prices.iloc[i,:])/prices.iloc[i,:] for i in range(g.yb-1)]
+    # 计算日收益率平均#
+    mean_rets = [np.mean(x) for x in rets]
+    # 计算指数的日收益率#
+    #print(index_prices)
+    index_rets = [(index_prices.iloc[i+1,:]-index_prices.iloc[i,:])/index_prices.iloc[i,:] for i in range(g.yb-1)]
+    index_rets = [np.mean(x) for x in index_rets]
+    #print(index_rets)
+    # 计算组合和指数的协方差矩阵#
+    cov_mat = np.cov(mean_rets, index_rets)
+    # 计算组合的系统性风险#
+    beta = cov_mat[0,1]/cov_mat[1,1]
+    print("beta",beta)#0.69
+    return beta
+    
+def delete_stop(stocks,beginDate,n=30*3):
+    #从给定的股票列表中删除那些上市时间不足特定天数的股票
+    stock_list=[]
+    #用于存储需要删除的股票。
+    beginDate=datetime.datetime.strptime(beginDate,"%Y-%m-%d")
+    for stock in stocks:
+        start_date=get_security_info(stock).start_date
+        if start_date<(beginDate - datetime.timedelta(days=n)).date():
+            stock_list.append(stock)
+    return stock_list
+
+def filter_st_stock(stock_list):
+     #过滤掉那些标记为 ST/*/退 或其他具有退市标签的股票
+    return [
+    stock for stock in stock_list 
+    if 'ST' not in get_security_info(stock).display_name 
+    and '*' not in get_security_info(stock).display_name 
+    and ' 退 ' not in get_security_info(stock).display_name
+    ]
+
+def get_stock_A(begin_date):
+    """ 获取股票列表
+    """
+    begin_date=str(begin_date)
+    stock_list=get_index_stocks('000002.SH',begin_date)+get_index_stocks('399107.SZ',begin_date)
+    # 剔除 ST 股
+    # 剔除停牌、新股及退市股票
+    stock_list=filter_st_stock(stock_list)
+    return stock_list
+
+def query_data(stock_pool):
+    # 查询财务信息，查询给定股票池中的股票的财务信息和估值信息，并返回这些数据的DataFrame
+    # 过去 12 个季度数据
+    fundamental_df=pd.DataFrame()
+    #列：股票代码、财务报告日期和基本每股收益
+    q=query(income.symbol,income.stat_date,income.basic_eps).filter(income.symbol.in_(stock_pool))  # 代表过去12个季度。
+    for i in range(0,12):
+        #是当前交易日，过去12个季度中的每个季度开始前的日期。
+        date=g.now - datetime.timedelta(days=i*90)
+        df=get_fundamentals(q,date)
+        df.set_index('income_symbol',inplace=True)
+        fundamental_df=pd.concat([fundamental_df,df],axis=0)
+    valuation_df=pd.DataFrame()
+    #列：股票代码、财务报告日期和市盈率
+    q=query(asharevalue.symbol,asharevalue.stat_date,asharevalue.pe_ttm).filter(asharevalue.symbol.in_(stock_pool))
+    for i in range(0,12):
+        date=g.now - datetime.timedelta(days=i)
+        df=get_fundamentals(q,date)
+        df.set_index('asharevalue_symbol',inplace=True)
+        valuation_df=pd.concat([valuation_df,df],axis=0)
+    return fundamental_df,valuation_df
+
+# 唐奇安通道择时
+class Market_Timing:
+    def __init__(self,code):
+        self.code=code
+    # 唐奇安通道上轨
+    def tqatds(self):
+        price=history(self.code,fields=['high','low','close'],bar_count=20,fre_step='1d',is_panel=1)
+        high=max(price['high'])
+        return high
+    # 唐奇安通道下轨
+    def tqatdx(self):
+        price=history(self.code,fields=['high','low','close'],bar_count=10,fre_step='1d',is_panel=1)
+        low=min(price['low'])
+        return low
+    # 获取择时信号
+    def get_signal(self):
+        # 当前价格突破唐奇安通道上轨
+        current_price=history(self.code,fields=['close'],bar_count=1,fre_step='1m',is_panel=1)['close'][0]
+        high=self.tqatds()
+        low=self.tqatdx()
+        if current_price>high:
+            signal='long'
+        elif current_price<low:
+            signal='short'
+        else:
+            signal=None
+        return signal
+
+def get_ATR(stock):
+    #由于用到前20个交易日的n值，ATR计为过去20日的TR均值
+    price=history(stock,['close','high','low'],21,'1d',False,'pre',is_panel=1)
+    h=price['high'].iloc[1:] #最高价，获取21个需弃掉第一个
+    l=price['low'].iloc[1:]#最低价，获取21个需弃掉第一个
+    rc=price['close'].shift().iloc[1:]#昨日收盘价，获取21个需弃掉第一个
+    #shift()操作专门是用于获取前收盘价数据的
+    tr_list=[]
+    for i in range(0,20,1):
+        h=price['high'].iloc[i]
+        l=price['low'].iloc[i]
+        rc=price['close'].iloc[i]
+        TR=max(h-l,h-rc,rc-l)
+        tr_list.append(TR)
+    ATR=np.mean(tr_list)
+    return ATR
+
+def calculate_rsi(close_prices,n=14):
+    """计算RSI指标"""
+    delta=close_prices.diff()
+    gain=delta.where(delta>0,0)
+    loss=-delta.where(delta<0,0)
+    avg_gain=gain.rolling(n).mean()
+    avg_loss=loss.rolling(n).mean()
+    rs=avg_gain/avg_loss
+    rsi=100 - (100/(1+rs))
+    return rsi
+
+def calculate_momentum_acceleration(rsi_series,n=14):
+    """计算动量加速指标，不使用apply函数"""
+    # 计算当前周期的RSI
+    rsi_current=rsi_series.rolling(n).mean()
+    # 计算前一周期的RSI
+    # 首先向前移动n个周期，然后计算滚动RSI，使用.iloc[-1]获取每个窗口的最后一个值
+    rsi_previous=(rsi_series.shift(n).rolling(n)
+                    .apply(lambda x:x.mean())  # 这里使用mean作为聚合函数
+                    .shift(-n+1))  # 移位以对齐当前周期的索引
+    # 计算动量加速指标，即当前RSI与前一周期RSI的比值
+    # 使用np.where来避免除以0的情况
+    momentum_acceleration=np.where(rsi_previous !=0,rsi_current/rsi_previous,0)
+    return momentum_acceleration
+    

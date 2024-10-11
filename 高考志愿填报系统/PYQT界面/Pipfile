@@ -1,0 +1,17 @@
+[[source]]
+url = "http://mirrors.cloud.tencent.com/pypi/simple"
+verify_ssl = false
+name = "pip_conf_index_global"
+
+[packages]
+mutagen = "==1.47.0"
+requests = "*"
+pypinyin = "==0.49.0"
+pykakasi = "==2.2.1"
+pyside6 = "==6.5.3"
+future = "==0.18.3"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"

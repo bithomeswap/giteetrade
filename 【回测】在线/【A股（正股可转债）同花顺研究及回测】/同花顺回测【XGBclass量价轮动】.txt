@@ -1,0 +1,478 @@
+# 克隆自聚宽文章：https://www.joinquant.com/post/47974
+# 标题：机器学习滚动训练框架
+# 作者：MarioC
+
+import math
+import pandas as pd
+import numpy as np
+import datetime
+from sklearn.svm import SVR
+
+from xgboost import XGBClassifier ,XGBRegressor
+
+# yesterday ln
+def signlog(X):
+    #np.sign((X)：返回 X 的符号。如果 X 是正数，返回1；如果 X 是负数，返回-1；如果 X 是0，返回0。
+    #np.log(1.0 + abs(X))：计算 1.0 + abs(X) 的自然对数，其中 np 通常指的是 Python 中的 NumPy 库，np.log 表示自然对数。
+    # factor value因子值
+    return np.sign(X)*np.log(1.0 + abs(X))
+
+def init(context):
+    set_benchmark("000001.SH") # 设置基准收益为上证指数
+    log.info("策略开始运行,初始化函数全局只运行一次") # 打印日志
+    # 印花税千分之一不用单独设置【A股、ETF、可转债都是默认千一的印花税】
+    set_commission(PerShare(type="stock",cost=0.0003,min_trade_cost=5.0)) # 手续费0.03%
+    set_slippage(PriceSlippage(0.00246)) # 设置股票交易滑点0.00246,上下0.00123
+    
+    # 初始化全局变量
+    g.numbuystock=20
+    # 因子列表
+    factorlist=[
+        "mfi",#资金流向指标
+        # "arbr",#人气意愿指标
+        # "vroc",#量变动速率
+        "vrsi",#量相对强弱指标
+        # "vr_rate",#成交量比率
+        # "vr",#量比
+        # "vosc",#成交量震荡
+        # "vma",#量简单移动平均
+        # "vmacd",#量指数平滑异同平均
+        # "vstd",#成交量标准差
+        # "bias",#乖离率【去掉乖离率因子之后收益有提高，原因是乖离率因子比较容易选到弱势的股票】
+        # "std",#标准差
+        # "atr",#波动率
+        ]
+    g.factors=["factor_"+factor for factor in factorlist]
+    
+    # 设置交易运行时间#涨停处理
+    # run_daily(func=check_limit_up, time_rule="after_open", hours=2, minutes=10)#1月份容易导致仓位过低
+    
+    #交易执行
+    # 日换仓
+    run_daily(func=trade, time_rule="after_open", hours=0, minutes=10)
+    # g.N=5#原则上学习的时间太短容易学成打板策略[容易打板如果不打收益变低]
+    g.N=20#原则上学习的时间太短容易学成打板策略
+    g.trade=False
+    
+    # g.way="分类法"
+    g.way="收益率"
+    
+def trade(context,bar_dict):
+    now=get_datetime()
+    print(now,now.weekday(),type(now.weekday()),now.day,type(now.day))
+    trade=False
+    # #持仓股票被卖出超过百分之十的话也进行交易
+    # if len(context.portfolio.stock_account.positions.copy())<len(context.portfolio.stock_account.positions.copy())*0.9:
+    #     trade=True
+    #只在每周的周一执行
+    if now.weekday()==int(1):
+        if g.N==5:#5周期的训练用这个数据
+            trade=True
+    #只在每个月的10号执行
+    if now.day==int(11):
+        if g.N==20:
+            trade=True
+    # 每日交易
+    if g.trade==True:
+        trade=True
+    if trade==True:
+        print("时间达标执行任务")
+        thisnow=now.strftime("%m-%d")
+        start_date=now.strftime("%Y-%m-%d")
+        pre_start_date=(now-datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+        print(start_date,last_date)
+        
+        today=get_trade_days(end_date=start_date, count=2).values[1]
+        today=np.datetime_as_string(today, unit="D").replace("-", "")
+        yesterday=get_trade_days(end_date=start_date, count=2).values[0]
+        yesterday=np.datetime_as_string(yesterday, unit="D").replace("-", "")
+        print("today",today,"yesterday",yesterday)
+    
+        #训练模型、预测结果并选股【可以在盘前进行】
+        # stocks=get_index_stocks("399317.XSHE",yesterday)
+        # oldstocks=get_index_stocks("000985.CSI",last_date)#中证全指【过滤次新股】
+        # stocks=get_index_stocks("000985.CSI",yesterday)#中证全指
+        oldstocks=get_index_stocks("399101.SZ",last_date)#中小综指
+        stocks=get_index_stocks("399101.SZ",yesterday)#中小综指
+        # oldstocks=get_index_stocks("000300.SH",last_date)#沪深三百
+        # stocks=get_index_stocks("000300.SH",yesterday)#沪深三百
+        stocks=[stock for stock in oldstocks]#【过滤次新股】
+        stocks=filter_kcb_stock(stocks)#去除科创北交
+        g.stocks=stocks
+        #过滤ST停牌
+        df=get_price(
+            securities=stocks,
+            start_date=None,
+            end_date=today,
+            fre_step="1d",
+            fields=["open","is_paused","is_st","prev_close","high_limit","low_limit"], # 获取全部数据列，其中昨日收盘价是用来计算总股本的
+            # fq="pre",
+            fq=None, # 这里动态复权或者不复权都是可以的
+            bar_count=1,
+            is_panel=1).to_frame()
+        df=df.reset_index()
+        df=df[(df["is_paused"]==0)&(df["is_st"]==0)]
+        # df=df[df["open"]>4]
+        df=df.rename(columns={"minor": "代码","high_limit":"涨停价","low_limit":"跌停价"})
+        df=df[["代码","涨停价","跌停价"]]
+        stocks=df["代码"].tolist()
+        # 获取一分钟k数据
+        timestame=(now-datetime.timedelta(minutes=2)).strftime("%Y%m%d %H:%M")
+        timestame_price=get_price(
+            securities=stocks,
+            start_date=None,
+            
+            # # 分钟级别数据
+            end_date=timestame,
+            fre_step="1m",
+            fields=["open"],
+            
+            # # 日级别数据
+            # end_date=today,
+            # fre_step="1d",
+            # fields=["open"],
+            
+            skip_paused=True,
+            # fq="pre",
+            fq=None, # 这里动态复权或者不复权都是可以的
+            bar_count=1,
+            is_panel=1).to_frame()
+        timestame_price=timestame_price.reset_index()
+        timestame_price=timestame_price.rename(columns={"minor":"代码"})
+        timestame_price=timestame_price[["代码","open"]]
+        df=df.merge(timestame_price, on="代码", how="inner")
+        dfup=df[df["open"]==df["涨停价"]]
+        g.todayup=dfup["代码"].tolist()#存放涨停标的
+        dfdown=df[df["open"]==df["跌停价"]]
+        g.todaydown=dfdown["代码"].tolist()#存放跌停标的
+        print("当日涨停",len(g.todayup),g.todayup)
+        print("当日跌停",len(g.todaydown),g.todaydown)
+    
+    
+        tradedays=get_trade_days(end_date=pre_start_date,count=200)#用前一天的数据
+        # tradedays=get_trade_days(end_date=pre_start_date,count=21)#测试专用
+        # tradedays=get_trade_days(end_date=pre_start_date,count=6)#测试专用[学习不精准严重影响收益]
+        tradedays=tradedays[::-1]
+        # print("日期倒序",tradedays)
+        tradedays=tradedays[::g.N]
+        # print("截取后",tradedays)
+        dateList=tradedays[::-1].tolist()
+        dateList=[np.datetime_as_string(np.datetime64(date),unit="D") for date in dateList]#转字符串
+        # dateList=[date.replace("-","") for date in dateList]#去掉-方便后面使用日期因素
+        print("日期顺序",dateList)
+        train_data=pd.DataFrame()
+        for date in dateList[:-1]:#使用最近20天的数据进行学习【最后一天也就是yesterday那天不参与计算】
+            print("dateList[:-1]",dateList[:-1])#训练的是未来g.N日的收益率
+            factor_origl_data=get_factor_data(stocks,date)#获取因子数据
+            data_close=get_price(
+                securities=stocks,
+                start_date=date,
+                end_date=dateList[dateList.index(date)+1],
+                fre_step="1d",
+                fields=["close","high_limit"],
+                # skip_paused=True,
+                skip_paused=False,
+                fq="pre",
+                # fq=None, # 这里动态复权或者不复权都是可以的
+                # bar_count=1,
+                is_panel=1).to_frame()
+            data_close=data_close.reset_index()
+            data_close=data_close.rename(columns={"major":"日期","minor":"代码"})
+            data_close=data_close.groupby("代码",group_keys=False).apply(lambda x: x.assign(
+                **{"canbuy": np.where(x["close"].iloc[0]==(x["high_limit"].iloc[0]),-1,1)}))#-1是开盘即涨停
+            # data_close.to_csv("data_close.csv")#确实选到了想要的东西
+            data_close=data_close.groupby("代码",group_keys=False).apply(lambda x: x.assign(
+                    **{"pchg": (x["close"].iloc[-1]/(x["close"].iloc[0])-1)}))
+            data_close= data_close.groupby("代码").apply(lambda x: x.loc[x["日期"].idxmax()]).reset_index(drop=True)#可能差了一行看看原因
+            factor_origl_data=factor_origl_data.merge(data_close[["代码","canbuy","pchg"]],on="代码")
+            print("训练日期",yesterday,"因子日期",date,"因子数据",factor_origl_data)
+            factor_origl_data=factor_origl_data.sort_values(by=["pchg"],ascending=False)
+            if g.way=="分类法":
+                #【数据分类与标记】
+                factor_origl_data["label"]=list(factor_origl_data["pchg"].apply(lambda x:1 if x>np.mean(list(factor_origl_data["pchg"])) else 0))#实际收益大于0
+                # 【特征提取】
+                factor_origl_data=factor_origl_data.iloc[:int(len(factor_origl_data["pchg"])/10*1),:].append(factor_origl_data.iloc[int(len(factor_origl_data["pchg"])/10*9):,:])#只截取前10%和后10%参与训练【特征提取】
+            elif g.way=="收益率":
+                #【预测排名与标记】
+                factor_origl_data["rank"]=factor_origl_data.sort_values(by='pchg')["pchg"].rank(method='max')#越大收益率越高
+                factor_origl_data["label"]=factor_origl_data["rank"]/len(factor_origl_data)
+                ##预测实际收益
+                # factor_origl_data["label"]=factor_origl_data["pchg"]#实际收益率
+                ##预测超额收益
+                # factor_origl_data["mean_pchg"]=factor_origl_data["pchg"]-factor_origl_data["pchg"].mean()#计算超额收益
+                # factor_origl_data["label"]=factor_origl_data["mean_pchg"]#超额收益
+                # 【特征提取】
+                factor_origl_data=factor_origl_data.iloc[:int(len(factor_origl_data["pchg"])/10*1),:].append(factor_origl_data.iloc[int(len(factor_origl_data["pchg"])/10*9):,:])#只截取前10%和后10%参与训练【特征提取】
+            train_data=train_data.append(factor_origl_data)
+            
+        g.allfactors=[factor for factor in g.factors]
+        # g.allfactors.append("市值")#是否添加市值因子
+        # g.allfactors.append("估值")#是否添加估值因子
+        print("添加市值之后的因子","g.allfactors",g.allfactors,"g.factors",g.factors)
+        target=g.allfactors#带市值和估值因子[无市值和估值因子在短周期上容易犯错]
+        
+        if g.way=="分类法":
+            #分类法【最优的方式是用分类法对实际收益进行运算】
+            X_train=train_data[target]
+            y_train=train_data["label"]
+            classification_model = XGBClassifier(learning_rate=0.01, max_depth=10, min_child_weight=17, n_estimators=100, nthread=1, subsample=0.2)#最佳参数
+            classification_model.fit(X_train,y_train)#这有空值【原因是没去掉次新股】
+            print("模型训练完毕")
+            df=get_factor_data(stocks,dateList[-1])
+            print(df)
+            X_test=df[target]
+            y_pred=classification_model.predict_proba(X_test)[:,1]
+        elif g.way=="收益率":
+            #收益率法
+            X_train=train_data[target]
+            y_train=train_data["label"]
+            classification_model=SVR(kernel="rbf")#区分的涨跌
+            classification_model.fit(X_train,y_train)#这有空值【原因是没去掉次新股】
+            print("模型训练完毕")
+            df=get_factor_data(stocks,dateList[-1])
+            print(df)
+            X_test=df[target]
+            y_pred=classification_model.predict(X_test)
+        
+        #打印预测信息
+        print("y_pred",y_pred,type(y_pred))
+        df["total_score"]=list(y_pred)
+        # df.to_csv("预测信息.csv")#分类法当中统计的是上涨的概率
+        # df=df[df["total_score"]>0]#在分类法当中0是非上涨的,1是上涨的标的
+        df=df.sort_values(by=["total_score"],ascending=False)#概率或者收益率从大到小排序
+        df=df[df["估值"]<0]#只要估值低的部分【也许有效】
+        
+        # df=df.sort_values(by=["估值"],ascending=True)#估值应该是从小到大
+        # df=df.sort_values(by=["市值"],ascending=True)#市值应该是从小到大
+        target_list=df["代码"].tolist()
+        target_list=target_list[:g.numbuystock]#奇怪分类法做的排名
+        print("模型预测完毕",target_list)
+        g.buylistone=target_list
+        buylisttwo=target_list
+    
+        #卖出持仓当中的标的
+        positions=context.portfolio.stock_account.positions.copy()
+        if len(positions)>0:
+            print(positions,type(positions))
+            print("开始卖出")
+            for stock in positions:
+                if stock not in g.todayup:#持仓标的不在涨停列表才执行卖出
+                    print("当前持仓的内部结构",stock,positions[stock])
+                    if stock not in buylisttwo:
+                        print("不在应保留列表中",stock)
+                        close_position(stock)
+        
+        print("开始买入") # 根据股票数量分仓
+        #计算当前的最新持仓【仓位的话把这里乘以0.8，平时就全仓就行】
+        position_count=len(context.portfolio.positions)
+        buycount=g.numbuystock-position_count#计算需要补仓的数量
+        
+        targetcash=context.portfolio.available_cash# 余额处理
+        # targetcash=context.portfolio.total_value# 总额处理
+        value=targetcash/buycount if buycount!=0 else 0
+        
+        # value=800000/buycount if buycount!=0 else 0#固定80w的仓位
+        
+        for stock in context.portfolio.stock_account.positions:
+            thispostion=context.portfolio.stock_account.positions[stock]
+            print(thispostion)
+            thispostionmoney=thispostion.last_price*thispostion.amount
+            if thispostionmoney<value*0.8:#金额不足，补仓
+                open_position(stock,value)#这个是买够多少钱的仓位
+        if g.numbuystock>position_count:
+            if value>0:
+                for stock in g.buylistone:
+                    if (stock not in g.todayup)and(stock not in g.todaydown):#涨停或者跌停的不买入
+                        print(stock)
+                        print(context.portfolio.stock_account.positions[stock].market_value)
+                        if context.portfolio.stock_account.positions[stock].market_value==0:
+                            if open_position(stock, value):
+                                if len(context.portfolio.stock_account.positions)==g.numbuystock:
+                                    break
+        print("现在持有股票数量",len(context.portfolio.stock_account.positions))
+    
+def get_factor_data(securities_list,date):
+    stocks=g.stocks#将g.stocks赋值为thisstocks
+    factordf=run_query(query(factor).filter(factor.date==date))#时间上确实是目标间隔列表中最早的一天
+    factordf=factordf.set_index("factor_symbol",inplace=False)
+    factordf=factordf[g.factors]
+    factordf=factordf.reset_index(drop=False)
+    factordf=factordf.rename(columns={"factor_symbol":"代码"})
+    factordf=factordf[factordf["代码"].isin(stocks)]#使用局部变量stock
+    for thisfactor in g.factors:#直接处理因子避免空值
+        print("当前因子为",thisfactor)
+        factordf[thisfactor]=signlog(factordf[thisfactor])
+    factordf=factordf.dropna(subset=[g.factors])#去因子当中的空值行
+    # factordf.to_csv("factordf.csv")
+    print("量价因子处理完毕")
+
+
+    # 基本面数据【按说应该加上净资产收益率及其增长率】
+    df=get_fundamentals(query(
+        asharevalue.symbol,#代码
+        # asharevalue.total_shares,#总股本
+        # # asharevalue.float_shares,#流通股本
+        asharevalue.total_mv,#总市值
+        # income.net_profit,#净利润
+        income.np_atsopc,#归母净利润
+        income.overall_income,#营业总收入
+        (balance.total_liab_and_holders_equity-balance.total_liabilities),#净资产
+        (balance.total_liab_and_holders_equity/balance.total_liabilities),#资产负债率
+        balance.rd_cost,#开发支出
+        # asharevalue.pe_mrq,#市盈率【影响模型效果】
+        # asharevalue.pb_mrq,#市净率MRQ
+        # asharevalue.ps_ttm,#市销率
+        growth.overall_income_growth_ratio,#营业收入同比增长率
+        growth.net_asset_growth_ratio,#净资产(同比增长率)growth是年度
+        growth.np_atsopc_yoy,#归母净利润(同比增长率)growth
+        # growth_sq.np_atsopc_yoy,#归母净利润(同比增长率)growth_sq是季度
+    ).filter(
+        asharevalue.symbol.in_(stocks),
+        (balance.total_liab_and_holders_equity-balance.total_liabilities)>0,#非资不抵债
+        income.np_atsopc > 0,#净利润大于0
+    ),date=date).fillna(0).set_index("asharevalue_symbol")#代码设置成索引
+    df.columns=["市值",
+                "归母净利润",
+                "营业总收入",
+                "净资产",
+                "资产负债率", 
+                "开发支出",
+                "营收增速",
+                "净资产增速",
+                "净利润增速",
+                ]#用前一天的基本面数据同时进行训练和输出
+    df["市值"]=signlog(df["市值"])
+    df["归母净利润"]=signlog(df["归母净利润"])
+    df["营业总收入"]=signlog(df["营业总收入"])
+    df["净资产"]=signlog(df["净资产"])
+    df["资产负债率"]=signlog(df["资产负债率"])
+    df["开发支出"]=signlog(df["开发支出"])
+    df["营收增速"]=signlog(df["营收增速"])
+    df["净资产增速"]=signlog(df["净资产增速"])
+    df["净利润增速"]=signlog(df["净利润增速"])
+    # industry factor行业因子（申万宏源一级行业）
+    industry_list=get_industry_relate(types="s_industryid1", date=date).index.tolist()#获取所有申万一级行业
+    print("申万一级行业",industry_list)
+    for sector in industry_list:#遍历所有行业
+        istocks=get_industry_stocks(sector,date)#获取成分股
+        s=pd.Series(0,index=df.index)#生成一个所有数据都是0的列
+        s[set(istocks) & set(df.index)]=1#只对序列当中复合要求的标的赋值为1
+        df[sector]=s #每个行业是一个单独的特征列
+    print("添加行业数据",df)
+    # SVR model估值法
+    svr=SVR(kernel="rbf")
+    # training model #预测的目标是市值【这是一个估值模型】
+    Y=df["市值"]
+    X=df.drop("市值", axis=1)
+    model=svr.fit(X, Y)#根据前一天的基本面和市值情况预测
+    print("估值成功")
+    r=Y-pd.Series(svr.predict(X),Y.index,name='估值')#计算的低估程度【负数为低估】
+    r=r.reset_index(drop=False)
+    r=r.rename(columns={"asharevalue_symbol":"代码"})
+    r=pd.DataFrame(r)
+    print(type(r))#DataFrame格式
+    # 估值数据和量价数据拼接
+    df=df.reset_index(drop=False)
+    df=df.rename(columns={"asharevalue_symbol":"代码"})
+    r=r.merge(df[["市值","代码"]],on="代码")
+    r=r.rename(columns={0:'估值'},inplace=False)
+    factordf=factordf.merge(r,on="代码")
+    
+    # factordf.to_csv("factordf.csv")
+    return factordf
+    
+def check_limit_up(context,bar_dict):
+    now=get_datetime()
+    start_date=now.strftime("%Y-%m-%d")
+    today=get_trade_days(end_date=start_date, count=2).values[1]
+    today=np.datetime_as_string(today, unit="D").replace("-", "")
+    yesterday=get_trade_days(end_date=start_date, count=2).values[0]
+    yesterday=np.datetime_as_string(yesterday, unit="D")
+    yesterday=yesterday.replace("-", "")
+    print("today",today,"yesterday",yesterday)
+    
+    # 获取已持有列表
+    print("context.portfolio.stock_account.positions",context.portfolio.stock_account.positions)
+    allpositions=[]
+    for stock in context.portfolio.stock_account.positions:
+        allpositions.append(stock)
+    # 获取昨日涨停列表
+    if allpositions!=[]:
+        df=get_price(
+            securities=allpositions,
+            start_date=None,
+            end_date=yesterday,
+            fre_step="1d",
+            fields=["close","is_paused","is_st","prev_close","high_limit","low_limit"], # 获取全部数据列，其中昨日收盘价是用来计算总股本的
+            # fq="pre",
+            fq=None, # 这里动态复权或者不复权都是可以的
+            bar_count=1,
+            is_panel=1).to_frame()
+        df=df[df["close"]==df["high_limit"]]
+        if len(df)>0:#只在昨天有涨停的情况下运行
+            print(df)
+            df=df.reset_index()
+            df=df.rename(columns={"minor":"代码","high_limit":"涨停价","low_limit":"跌停价"})
+            stocks=df["代码"].tolist()#筛选昨日涨停的股票
+            
+            #计算下一刻的涨跌停情况
+            timestame=(now-datetime.timedelta(minutes=2)).strftime("%Y%m%d %H:%M")
+            timestamedf=get_price(
+                securities=stocks,
+                start_date=None,
+                
+                # # 分钟级别数据
+                end_date=timestame,
+                fre_step="1m",
+                fields=["close"],#这里研究量价相关性用的是成交量，主要目的是研究的筹码结构【后面再加上日振幅过滤等因子】
+                
+                # # 日级别数据
+                # end_date=today,
+                # fre_step="1d",
+                # fields=["open"],
+                
+                skip_paused=True,
+                # fq="pre",
+                fq=None, # 这里动态复权或者不复权都是可以的
+                bar_count=1,
+                is_panel=1).to_frame()
+            timestamedf=timestamedf.reset_index()
+            timestamedf=timestamedf.rename(columns={"major":"日期","minor":"代码","close":"timestameclose"})
+            df=df.merge(timestamedf,on="代码")
+            df=df[df["close"]!=df["timestameclose"]]
+            print("当日未涨停标的",df)
+            for stock in df["代码"].tolist():
+                log.info("[%s]涨停打开，卖出" % (stock))
+                close_position(stock)
+
+def filter_kcb_stock(stocks): # 过滤科创北交股票
+    for stock in stocks[:]:
+        if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+            stocks.remove(stock)
+        # if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68" or stock[:2]=="30":
+        #     stocks.remove(stock)
+    return stocks
+
+def order_target_value_(security,value): #交易模块-自定义下单
+    if value==0:
+        print("Selling out %s" % (security))
+    else:
+        print("Order %s to value %f" % (security, value))
+    return order_target_value(security, value)
+def open_position(security,value): #交易模块-开仓
+    order=order_target_value_(security, value)
+    order=get_order(order)
+    print(order)
+    if (order !=None) and (order.status==ORDER_STATUS.FILLED):
+        print("买入成功",security)
+        return True
+    return False
+def close_position(position): #交易模块-平仓
+    order=order_target_value_(position,0)  # 可能会因停牌失败
+    order=get_order(order)
+    # print(order)
+    if (order !=None) and (order.status==ORDER_STATUS.FILLED) and (order.filled_amount==order.amount):
+        print("卖出成功",position)
+        return True
+    return False

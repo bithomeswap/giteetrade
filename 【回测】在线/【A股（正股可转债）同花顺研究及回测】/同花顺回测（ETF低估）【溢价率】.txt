@@ -1,0 +1,211 @@
+# 初始化函数,全局只运行一次
+import numpy as np
+import pandas as pd
+import datetime
+import math
+def init(context):
+    set_benchmark("000001.SH") # 设置基准收益为上证指数
+    log.info("策略开始运行,初始化函数全局只运行一次") # 打印日志
+    # 印花税千分之一不用单独设置【A股、ETF、可转债都是默认千一的印花税】
+    set_commission(PerShare(type="stock",cost=0.0000,min_trade_cost=0.0)) # 手续费0.03%
+    set_slippage(PriceSlippage(0.001)) # 设置股票交易滑点0.00246,上下0.00123
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=10)
+    
+    run_daily(func=trade, time_rule="after_open", hours=0, minutes=10)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=40)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=70)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=100)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=130)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=160)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=190)
+
+def symbol_convert(stock):#股票代码加后缀
+    #北交所的股票8字开头，包括82、83、87、88，其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
+    if (stock.startswith("60"))or(#上交所主板
+        stock.startswith("68"))or(#上交所科创板
+        stock.startswith("11"))or(#上交所可转债
+        (stock.startswith("51"))or(stock.startswith("56"))or(stock.startswith("58"))):#上交所ETF
+        return str(str(stock)+".SH")
+        # return str(str(stock)+".SS")
+    elif (stock.startswith("00"))or(#深交所主板
+        stock.startswith("30"))or(#深交所创业板
+        stock.startswith("12"))or(#深交所可转债
+        (stock.startswith("15"))):#深交所ETF
+        return str(str(stock)+".SZ")
+    else:
+        print("不在后缀转换名录",str(stock))
+        return str(str(stock))
+        
+def filter_kcb_stock(stocks):  # 过滤科创北交股票
+    for stock in stocks[:]:
+        if stock[0] == "4" or stock[0] == "8" or stock[:2] == "68":
+            stocks.remove(stock)
+        # if stock[0] == "3": # 顺道去掉创业板看一看
+        #     stocks.remove(stock)
+    return stocks
+
+def trade(context,bar_dict):
+# def handle_bar(context,bar_dict):
+    now=get_datetime()
+    print(now)
+    g.trade=True
+    #只在每周的周一执行
+    if (now.weekday()!=int(1))and(now.weekday()!=int(4)):
+        g.trade=False
+        g.numbuystock=0
+    # #只在每个月的10号执行
+    # if now.day!=int(11):
+    #     g.trade=False
+    #     g.numbuystock=0
+    if g.trade==True:
+            
+        now=get_datetime()
+        start_date=now.strftime("%Y-%m-%d")
+        last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+        print(start_date,last_date)
+        today=get_trade_days(end_date=start_date, count=2).values[1]
+        today=np.datetime_as_string(today, unit="D").replace("-", "")
+        yesterday=get_trade_days(end_date=start_date, count=2).values[0]
+        preyesterday=np.datetime_as_string(yesterday, unit="D")
+        yesterday=preyesterday.replace("-", "")
+        print(today, yesterday)
+        
+        
+        olddf=get_all_securities("etf",last_date).reset_index(drop=False)
+        olddf=olddf.rename(columns={"symbol":"代码"})
+        oldetfs=olddf["代码"].tolist()
+        
+        df=get_all_securities("etf",today).reset_index(drop=False)
+        df=df.rename(columns={"symbol":"代码"})
+        # df.to_csv("ETF.csv")
+        etfs=df["代码"].tolist()
+        
+        etfs=[etf for etf in etfs if etf in oldetfs]#过滤掉次新ETF
+        
+        thisdf=get_price(
+                securities=etfs,
+                start_date=None,
+                
+                # 日K级别数据
+                end_date=today,
+                fre_step="1d",
+                fields=["turnover"],
+                
+                skip_paused=True,
+                fq="pre",
+                # fq=None, # 这里动态复权或者不复权都是可以的
+                bar_count=250,
+                is_panel=1,
+                ).to_frame()
+        thisdf=thisdf.reset_index()
+        thisdf=thisdf.rename(columns={"major":"日期","minor":"代码"})
+        #日期升序排列
+        thisdf=thisdf.sort_values(by='日期',ascending=True)#ascending=True从小到大排序
+        thisdf["平均turnover"]=thisdf.groupby("代码",group_keys=False)['turnover'].transform('mean')
+        thisdf=thisdf.groupby("代码").apply(lambda x: x.loc[x["日期"].idxmax()]).reset_index(drop=True)
+        thisdf=thisdf[thisdf["平均turnover"]>10000000]#平均成交额大于1000w
+        etfs=thisdf["代码"].tolist()
+        
+        
+        etfprice=get_price(
+            etfs,
+            start_date=None,
+            end_date=yesterday,
+            fre_step="1d",
+            fields=["close",
+                    "is_paused",
+                    "turnover",
+                    "turnover_rate",
+                    "prev_close",
+                    "high_limit",
+                    "low_limit",
+                    ],
+            skip_paused=False,
+            fq="pre",
+            bar_count=1,
+            is_panel=1,
+            ).to_frame()
+        etfprice=etfprice.reset_index()
+        etfprice=etfprice[(etfprice["is_paused"]==0)]
+        # etfprice=etfprice[etfprice["open"]>0.5]
+        etfprice=etfprice.rename(columns={"minor": "代码","high_limit":"涨停价","low_limit":"跌停价","turnover_rate":"换手率"})
+        etfprice=etfprice[etfprice["turnover"]>10000000]#
+        # etfprice.to_csv("etfprice.csv")
+        etfvalue=get_extras(
+            etfs,
+            start_date=None,
+            end_date=yesterday,
+            fields=["unit_net_value",#单位净值
+                    "acc_net_value",#累计净值
+                    "pre_net_value",#复权净值
+                    ],
+            count=1,
+            is_panel=1,
+            ).to_frame()
+        etfvalue=etfvalue.reset_index()
+        etfvalue=etfvalue.rename(columns={"minor":"代码",
+                    "unit_net_value":"单位净值",
+                    "acc_net_value":"累计净值",
+                    "pre_net_value":"复权净值",})
+        # etfvalue.to_csv("etfvalue.csv")
+        etfdf=etfprice.merge(etfvalue[["代码","单位净值","累计净值","复权净值"]],on="代码")
+        etfdf["溢价率"]=etfdf["单位净值"]/etfdf["close"]
+        # etfdf.to_csv("etfdf.csv")
+        
+        numbuystock=2
+        dftwo=etfdf.nlargest(math.ceil(1.5*numbuystock),"溢价率")
+        dfone=etfdf.nlargest(math.ceil(1*numbuystock),"溢价率")
+        # dftwo.to_csv(str(start_date)+choosename+"卖出.csv")
+        # dfone.to_csv(str(start_date)+choosename+"买入.csv")
+        # dftwo["代码"]=dftwo["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
+        # dfone["代码"]=dfone["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
+        buylisttwo=dftwo["代码"].values
+        buylistone=dfone["代码"].values
+        print("******",buylistone,buylisttwo)
+    
+        numbuystock=len(buylistone)
+        positionsed=context.portfolio.stock_account.positions
+        positions=positionsed.copy()
+        print("positions",positions,type(positions))
+        print("开始卖出")
+        for stock in positions:
+            if stock not in buylisttwo:
+                print(stock,type(stock))
+                print("不在应买入列表中",stock)
+                close_position(stock)
+        print("开始买入") # 根据股票数量分仓
+        position_count = len(context.portfolio.stock_account.positions)
+        if numbuystock > position_count:
+            targetcash=context.portfolio.stock_account.available_cash # 复投
+            value = targetcash / (numbuystock - position_count) # 固定比例
+            # value = 1000000 / numbuystock # 固定金额
+            if value>0:
+                for stock in buylistone:
+                    if context.portfolio.stock_account.positions[stock].market_value == 0:
+                        if open_position(stock, value):
+                            if len(context.portfolio.stock_account.positions) == numbuystock:
+                                break
+        print("现在持有股票数量",len(context.portfolio.stock_account.positions))
+
+def order_target_value_(security, value): #交易模块-自定义下单
+ if value == 0:
+  print("Selling out %s" % (security))
+ else:
+  print("Order %s to value %f" % (security, value))
+ return order_target_value(security, value)
+def open_position(security, value): #交易模块-开仓
+    order = order_target_value_(security, value)
+    order=get_order(order)
+    print(order)
+    if (order != None) and (order.status == ORDER_STATUS.FILLED):
+        print("买入成功")
+        return True
+    return False
+def close_position(position): #交易模块-平仓
+ order = order_target_value_(position,0)  # 可能会因停牌失败
+ order=get_order(order)
+ print(order)
+ if (order != None) and (order.status == ORDER_STATUS.FILLED) and (order.filled_amount == order.amount):
+     print("卖出成功")
+     return True
+ return False

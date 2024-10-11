@@ -1,0 +1,73 @@
+# 联系方式：lianghuajiaoyi123456
+# 通过调整下面两个参数确定策略类型是可转债、中小板、微盘股g.Strategy、g.stocknum
+import time
+import datetime
+import math
+
+#金额设置单股最大金额，持仓数根据当前金额调整，但是不低于多少
+def initialize(context):
+    set_benchmark("000905.SS")#设置基准收益【实盘应该是没用的】
+    
+    now=get_trading_day(0)#获取当前交易日（0日前交易日）
+    start_date=now.strftime("%Y-%m-%d")#测试当天的数据
+    print("******","start_date",start_date)
+    last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+    today=get_trade_days(end_date=start_date,count=2)[1]
+    g.today=today.replace("-","")
+    yesterday=get_trade_days(end_date=start_date,count=2)[0]
+    g.yesterday=yesterday.replace("-","")
+    print("******","g.today",g.today,type(g.today),"g.yesterday",g.yesterday)
+    
+    #连续执行三次避免未执行
+    run_daily(context, autotrade, time='14:35')#尽量在14点30分之前，越早利率越高，尾盘临近集合竞价期间完全无法执行
+    run_daily(context, autotrade, time='14:36')
+    run_daily(context, autotrade, time='14:37')
+        
+def autotrade(context):
+    current_dt=context.blotter.current_dt
+    log.info(str(current_dt)+"时分秒数据"+str(current_dt.time())+"小时"+str(current_dt.time().hour)+"分钟"+str(current_dt.time().minute))
+    
+    print("执行国债逆回购任务")
+    szgz="131810.SZ"#深证国债一日逆回购
+    szgztick=get_snapshot(szgz)
+    szgztickbidprice1=szgztick[szgz]["bid_grp"][1][0]
+    print(szgztickbidprice1,szgztick)
+    shgz="204001.SS"#上证国债一日逆回购
+    shgztick=get_snapshot(shgz)
+    shgztickbidprice1=shgztick[shgz]["bid_grp"][1][0]
+    print(shgztickbidprice1,shgztick)
+    if szgztickbidprice1 >= shgztickbidprice1:
+        option=szgz
+        print("借出深市，价格:%f"%szgztickbidprice1)
+    else:
+        option=shgz
+        print("借出沪市，价格:%f"%shgztickbidprice1)
+    cash=context.portfolio.cash
+    print("可用资金:",cash)
+    amount=math.floor(cash/1000)#国债逆回购的下单数量为10张一手，1张100元，也就是需要至少1000元一组起投【】
+    if amount>0:#可逆回购数量大于0才执行逆回购
+        mes=order(option,-10*amount)#每一手100元，*10是每次下单10手起投
+        print("逆回购成功返回信息",mes)
+    else:
+        print("剩余金额不足1000不进行国债逆回购")
+
+    print("执行新股认购任务（注意事项：湘财证券支持认购金锁定机制和认购金不足时在认购当日电话提醒的机制，A股打新的时候最低能够认购1股，购买成功之后可以零散的委托卖出不需要必须满100股才能委托，但是每次最低五元的手续费还是有，因而如果没能实现免五的话，打新很容易亏损。）")
+    try:
+        # 上证普通代码
+        re=ipo_stocks_order(market_type=0)
+        log.info("申购上证普通代码：",re)
+        # # 上证科创板代码
+        # re=ipo_stocks_order(market_type=1)
+        # log.info("申购上证科创板代码：",re)
+        # 深证普通代码
+        re=ipo_stocks_order(market_type=2)
+        log.info("申购深证普通代码：",re)
+        # 深证创业板代码
+        re=ipo_stocks_order(market_type=3)
+        log.info("申购深证创业板代码：",re)
+        # 可转债代码
+        re=ipo_stocks_order(market_type=4)
+        log.info("申购可转债代码：",re)
+    except Exception as e:
+        print("认购新股报错",e)
+    print("认购新股任务完成")

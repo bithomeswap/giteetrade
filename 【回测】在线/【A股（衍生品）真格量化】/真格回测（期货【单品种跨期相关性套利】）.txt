@@ -1,0 +1,153 @@
+# coding:utf-8
+#!/usr/bin/env python
+from PoboAPI import *
+import datetime
+import statsmodels.formula.api as sm
+from statsmodels.tsa import stattools
+import numpy as np
+import pandas as pd
+from copy import *
+import math
+
+#开始时间，用于初始化一些参数        
+def OnStart(context) :
+    print("I\'m starting...")
+    #获取ag当前可交易合约，并按月份进行排序
+    vac=sorted(GetFuturesContracts('SHFE','rb'))
+    #获取当前主力合约
+    MainContract=GetMainContract('SHFE', 'rb',20)
+    #获取当前主力合约下一月合约在vac中的位置
+    for i in range(len(vac)):
+        if vac[i]==MainContract:
+            s=i+1
+            break
+    #设置交易合约组合为当前主力合约与主力合约下一月合约
+    g.code=[MainContract,vac[s]]
+    #订阅g.code[0]，用于触发OnQuote事件
+    SubscribeQuote(g.code[0])
+    #登录交易账号
+    if "回测期货" in context.accounts :
+        print("登录交易账号 回测期货")
+        if context.accounts["回测期货"].Login() :
+            context.myacc = context.accounts["回测期货"]
+            
+def OnMarketQuotationInitialEx(context,exchange,daynight):
+    if exchange != 'SHFE' or daynight !='night':
+        return 
+    vac=sorted(GetFuturesContracts('SHFE','rb'))
+    MainContract=GetMainContract('SHFE', 'rb',20)
+    for i in range(len(vac)):
+        if vac[i]==MainContract:
+            s=i+1
+            break
+    g.code=[MainContract,vac[s]]
+    SubscribeQuote(g.code[0])
+
+#实时行情事件，当有新行情出现时调用该事件                        
+def OnQuote(context,code) :
+    #更新可交易合约列表
+    vac=sorted(GetFuturesContracts('SHFE','rb'))
+    #获取当前主力合约
+    MainContract=GetMainContract('SHFE', 'rb',20)
+    #获取当前主力合约下一月合约
+    for i in range(len(vac)):
+        if vac[i]==MainContract:
+            s=i+1
+            break
+    #设置下单类型，使用限价FOK并设置两个点位滑点
+    price_type=PriceType(PbPriceType.LimitFOK,limit_price_type=2)
+    #当主力合约变换时，平仓
+    if g.code[0]!=MainContract:
+        #进行平仓
+        for c in g.code:
+            option = PBObj()
+            option.contract = c
+            #获取持仓情况
+            pos = context.myacc.GetPositions(option)
+            for p in pos:
+                if p.bstype.BuySellFlag=="0":
+                    QuickInsertOrder(context.myacc,c,'sell','close',price_type,p.volume)
+                if p.bstype.BuySellFlag=="1":
+                    QuickInsertOrder(context.myacc,c,'buy','close',price_type,p.volume)
+        #取消订阅原主力合约
+        UnsubscribeQuote(g.code[0])
+        g.code_old=g.code
+        #更新交易合约组合
+        g.code=[MainContract,vac[s]]
+        print("当前主力合约由"+str(g.code_old[0])+"更换为"+str(g.code[1]))
+        print("平仓掉原主力合约")
+        #订阅当前主力合约信息
+        SubscribeQuote(g.code[0])
+    print("当前套利组合为"+str(g.code))
+    #获取当前交易日
+    current_date=GetCurrentTradingDate('SHFE')
+    #获取两个品种的近60个交易日的每日收盘价构造收盘价序列
+    close_01= GetHisDataByFieldAsDF(g.code[0],'close', BarType.Day, start_date=None, end_date=current_date, count=60,weight_type=0)
+    close_02= GetHisDataByFieldAsDF(g.code[1],'close', BarType.Day, start_date=None, end_date=current_date, count=60,weight_type=0)
+    #对两个品种价格序列取对数
+    x=np.log(close_01)
+    y=np.log(close_02)
+    #做回归，取残差序列
+    #将价格序列转换成series形式，便于拟合
+    x=pd.Series(x) 
+    y=pd.Series(y)
+    #将两个序列拼接在一个dataframe中
+    df = pd.concat([x,y],axis = 1) 
+    #给每列命名，用于拟合
+    df.columns = ['x','y'] 
+    #用statsmodel将两列数据拟合
+    model = sm.ols(formula = 'y~x',data = df).fit() 
+    #获取模型残差
+    resid=model.resid 
+    #对残差进行单位根检验，求p值
+    p=stattools.adfuller(resid)[1]
+    #设定残差序列的2倍标准差为开仓阈值
+    open_ththreshold_positive = 2*resid.std()
+    #设定残差序列的0.05倍标准差为平仓阈值
+    close_ththreshold_positive = 0.05*resid.std()
+    close_ththreshold_negative = -0.05*resid.std()
+    #储存残差序列
+    resid=np.array(resid)
+    #获取合约组合的实时行情
+    dyndata1 = GetQuote(g.code[0])
+    dyndata2 = GetQuote(g.code[1])
+    #获取合约组合的当前涨停价
+    riselimit1=dyndata1.riselimit
+    riselimit2=dyndata2.riselimit
+    #设置账户风险度
+    value = 0.8
+    context.myacc.SetRiskDegreeMaxThreshold(value)
+    #检查风险度是否超过阈值，触发信号时若超过风险度则不开仓
+    isOver=context.myacc.IsRiskDegreeOverMax()
+    if isOver==False:
+        #若通过协整检验是否存在线性关系
+        if p<0.05:
+            value = PBObj()
+            #当最新残差超过开仓阈值时，下单
+            if resid[-1]>= open_ththreshold_positive:
+                #获取账户可开数量
+                v1=context.myacc.GetValidVolume(g.code[0],BSType.BuyOpen,riselimit1)
+                v2=context.myacc.GetValidVolume(g.code[1],BSType.SellOpen,riselimit2)
+                v=int(math.ceil(min(v1,v2)*0.5))
+                #最多主力合约
+                     
+                QuickInsertOrder(context.myacc,g.code[0],'buy','open',price_type,v)
+                #做空主力合约下一月合约
+                QuickInsertOrder(context.myacc,g.code[1],'sell','open',price_type,v)
+                print("买入"+str(g.code[0])+","+"卖出"+str(g.code[1]))
+            #当最新残差超过平仓阈值时，平仓
+            if resid[-1]<close_ththreshold_positive:
+                #分别对交易合约组合平仓
+                for c in g.code:
+                    #获取持仓情况
+                    option = PBObj()
+                    option.contract = c
+                    pos = context.myacc.GetPositions(option)
+                    for p in pos:
+                        if p.bstype.BuySellFlag=="0":
+                            QuickInsertOrder(context.myacc,c,'sell','close',price_type,p.volume)
+                        print("卖平"+str(c))
+                        if p.bstype.BuySellFlag=="1":
+                            QuickInsertOrder(context.myacc,c,'buy','close',price_type,p.volume)
+                        print("买平"+str(c))
+

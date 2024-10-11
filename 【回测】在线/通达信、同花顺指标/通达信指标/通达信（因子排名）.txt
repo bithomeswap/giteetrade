@@ -1,0 +1,4 @@
+{市值过滤}
+总市值:=TOTALCAPITAL*REF(CLOSE,1)*100;{TOTALCAPITAL是总股本，单位是手}
+排名:INSORT('沪深Ａ股','总市值',3,0);
+{技术排名:INSORT('沪深Ａ股','KDJ',3,0);}{仅技术指标可以排名}

@@ -1,0 +1,207 @@
+# 初始化函数,全局只运行一次
+import numpy as np
+import pandas as pd
+import datetime
+import math
+def init(context):
+    set_benchmark("000001.SH") # 设置基准收益为上证指数
+    log.info("策略开始运行,初始化函数全局只运行一次") # 打印日志
+    # 印花税千分之一不用单独设置【A股、ETF、可转债都是默认千一的印花税】
+    set_commission(PerShare(type="stock",cost=0.0000,min_trade_cost=0.0)) # 手续费0.03%
+    set_slippage(PriceSlippage(0.001)) # 设置股票交易滑点0.00246,上下0.00123
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=10)
+    
+    run_daily(func=trade, time_rule="after_open", hours=0, minutes=10)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=40)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=70)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=100)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=130)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=160)
+    # run_daily(func=trade, time_rule="after_open", hours=0, minutes=190)
+
+def symbol_convert(stock):#股票代码加后缀
+    #北交所的股票8字开头，包括82、83、87、88，其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
+    if (stock.startswith("60"))or(#上交所主板
+        stock.startswith("68"))or(#上交所科创板
+        stock.startswith("11"))or(#上交所可转债
+        (stock.startswith("51"))or(stock.startswith("56"))or(stock.startswith("58"))):#上交所ETF
+        return str(str(stock)+".SH")
+        # return str(str(stock)+".SS")
+    elif (stock.startswith("00"))or(#深交所主板
+        stock.startswith("30"))or(#深交所创业板
+        stock.startswith("12"))or(#深交所可转债
+        (stock.startswith("15"))):#深交所ETF
+        return str(str(stock)+".SZ")
+    else:
+        print("不在后缀转换名录",str(stock))
+        return str(str(stock))
+        
+def filter_kcb_stock(stocks):  # 过滤科创北交股票
+    for stock in stocks[:]:
+        if stock[0] == "4" or stock[0] == "8" or stock[:2] == "68":
+            stocks.remove(stock)
+        # if stock[0] == "3": # 顺道去掉创业板看一看
+        #     stocks.remove(stock)
+    return stocks
+
+def trade(context,bar_dict):
+# def handle_bar(context,bar_dict):
+    now=get_datetime()
+    start_date=now.strftime("%Y-%m-%d")
+    last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+    print(start_date,last_date)
+    today=get_trade_days(end_date=start_date, count=2).values[1]
+    today=np.datetime_as_string(today, unit="D").replace("-", "")
+    yesterday=get_trade_days(end_date=start_date, count=2).values[0]
+    preyesterday=np.datetime_as_string(yesterday, unit="D")
+    yesterday=preyesterday.replace("-", "")
+    print(today, yesterday)
+
+    etflist=[
+        "511880.SH", #银华日利
+        "518880.SH", #黄金ETF（大宗商品）备选方案"159934.SZ"
+        "513100.SH", #纳指100（海外资产）备选方案"513100.SH"
+        "510300.SH", #沪深300
+        # "510500.SH", #中证500
+        # "510500.SH", #上证50
+        "159949.SZ", #创业板50
+        # "510880.SH", #红利
+        #"513030.SH",#德国
+        #"513520.SH",#日本
+                ]
+    print(etflist)
+    scoredf=pd.DataFrame({})
+    
+    # 获取一分钟k数据
+    timestame=(now-datetime.timedelta(minutes=2)).strftime("%Y%m%d %H:%M")
+        # stocks=df["代码"].tolist()
+        # timestame_price = get_price(
+        #     securities=stocks,
+        #     start_date=None,
+            
+        #     # # 分钟级别数据
+        #     end_date=timestame,
+        #     fre_step='1m',
+        #     fields=["close"],
+            
+        #     # # 日级别数据
+        #     # end_date=today,
+        #     # fre_step='1d',
+        #     # fields=["open"],
+            
+        #     skip_paused=True,
+        #     fq='pre',
+        #     # fq=None, # 这里动态复权或者不复权都是可以的
+        #     bar_count=1,
+        #     is_panel=1,).to_frame()
+        # timestame_price=timestame_price.reset_index()
+    for thisetf in etflist:
+        df=get_price(
+                    securities=thisetf,
+                    start_date=None,
+                    
+                    # # 分钟级别数据
+                    # end_date=timestame,
+                    # # fre_step='1m',
+                    # fre_step='5m',
+                    # fields=["open"],
+                    
+                    # 日K级别数据
+                    end_date=today,
+                    fre_step="1d",
+                    fields=["open"],
+                    
+                    skip_paused=True,
+                    fq="pre",
+                    # fq=None, # 这里动态复权或者不复权都是可以的
+                    bar_count=25,
+                    is_panel=1,
+                )
+        
+        # #趋势强度
+        df["隔日涨幅"]=df["open"]/df["open"].shift(1)
+        # df["隔日涨幅ABS"]=abs(df["隔日涨幅"]-1)
+        # df["累积隔日涨幅"]=df["open"].shift(10)/df["open"]-1
+        # df["累积隔日涨幅ABS"]=df["隔日涨幅ABS"].rolling(10).sum()
+        # df["趋势强度"]=df["累积隔日涨幅"]/df["累积隔日涨幅ABS"]
+        # score=df["趋势强度"].values[-1]
+        df = df.dropna(subset=["隔日涨幅"])#去掉这一列为空值的行
+        
+        #收益除以方差
+        # y=df["log"]=np.log(df.open)#单标的可以这样进行对数化，多标的不能简单的这样取，可能是索引问题也可能是缺乏索引或者有异常值
+        # y=df["log"]=np.log(df["隔日涨幅"].values)
+        y=df["log"]=df["隔日涨幅"].values#倒数第1个
+        x=df["num"]=np.arange(df.log.size)
+        #线性加权
+        n=len(y)
+        weights=np.linspace(1, 2, n)#线性增加权重
+        print("权重信息",weights)#越后面权重越大
+        slope, intercept=np.polyfit(x, y, 1, w=weights)#越靠后权重越大
+        #不加权
+        # slope, intercept=np.polyfit(x,y,1)
+        annualized_returns=math.pow(math.exp(slope),250)-1
+        r_squared=1-(sum((y-(slope*x+intercept))**2)/((len(y)-1)*np.var(y,ddof=1)))
+        score=annualized_returns*r_squared
+
+        thisdf=pd.DataFrame({"代码":[thisetf],"score":[score]})
+        scoredf=pd.concat([scoredf,thisdf])
+    numbuystock=3
+    print(scoredf)
+    scoredf["排名"]=scoredf["score"].rank(method="max", ascending=False,na_option='bottom')
+    # scoredf["代码"]=scoredf["代码"].str.replace("\D","").astype(str)
+    dftwo=scoredf.nlargest(math.ceil(1*numbuystock),"score")
+    dfone=scoredf.nlargest(math.ceil(1*numbuystock),"score")
+    # dftwo.to_csv(str(start_date)+choosename+"卖出.csv")
+    # dfone.to_csv(str(start_date)+choosename+"买入.csv")
+    # dftwo["代码"]=dftwo["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
+    # dfone["代码"]=dfone["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
+    buylisttwo=dftwo["代码"].values
+    buylistone=dfone["代码"].values
+    print("******",buylistone,buylisttwo)
+
+    numbuystock=len(buylistone)
+    positionsed=context.portfolio.stock_account.positions
+    positions=positionsed.copy()
+    print("positions",positions,type(positions))
+    print("开始卖出")
+    for stock in positions:
+        if stock not in buylisttwo:
+            print(stock,type(stock))
+            print("不在应买入列表中",stock)
+            close_position(stock)
+    print("开始买入") # 根据股票数量分仓
+    position_count = len(context.portfolio.stock_account.positions)
+    if numbuystock > position_count:
+        targetcash=context.portfolio.stock_account.available_cash # 复投
+        value = targetcash / (numbuystock - position_count) # 固定比例
+        # value = 1000000 / numbuystock # 固定金额
+        if value>0:
+            for stock in buylistone:
+                if context.portfolio.stock_account.positions[stock].market_value == 0:
+                    if open_position(stock, value):
+                        if len(context.portfolio.stock_account.positions) == numbuystock:
+                            break
+    print("现在持有股票数量",len(context.portfolio.stock_account.positions))
+
+def order_target_value_(security, value): #交易模块-自定义下单
+ if value == 0:
+  print("Selling out %s" % (security))
+ else:
+  print("Order %s to value %f" % (security, value))
+ return order_target_value(security, value)
+def open_position(security, value): #交易模块-开仓
+    order = order_target_value_(security, value)
+    order=get_order(order)
+    print(order)
+    if (order != None) and (order.status == ORDER_STATUS.FILLED):
+        print("买入成功")
+        return True
+    return False
+def close_position(position): #交易模块-平仓
+ order = order_target_value_(position,0)  # 可能会因停牌失败
+ order=get_order(order)
+ print(order)
+ if (order != None) and (order.status == ORDER_STATUS.FILLED) and (order.filled_amount == order.amount):
+     print("卖出成功")
+     return True
+ return False

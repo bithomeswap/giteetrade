@@ -1,0 +1,5 @@
+pip install pandas
+pip install wechat-ocr
+pip install wxauto
+pip install uiautomation Pillow pywin32 psutil pyperclip
+pip install openai

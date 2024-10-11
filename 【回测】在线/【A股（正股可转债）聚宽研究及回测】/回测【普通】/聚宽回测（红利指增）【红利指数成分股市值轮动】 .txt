@@ -1,0 +1,165 @@
+# 克隆自聚宽文章：https://www.joinquant.com/post/48527
+# 标题：红利指数增强
+# 作者：MatrRobin
+
+# 导入函数库
+from jqdata import *
+from sklearn.preprocessing import MinMaxScaler
+
+# 初始化函数，设定基准等等
+def initialize(context):
+    # 设定沪深300作为基准
+    set_benchmark('000015.XSHG')
+    # 开启动态复权模式(真实价格)
+    set_option('use_real_price', True)
+    # 输出内容到日志 log.info()
+    log.info('初始函数开始运行且全局只运行一次')
+    # 过滤掉order系列API产生的比error级别低的log
+    # log.set_level('order', 'error')
+    g.index_list=['000015.XSHG','000149.XSHG','000150.XSHG','399411.XSHE','399649.XSHE','399672.XSHE']
+    g.stock_pool=[] #基础股票池
+    g.hold_list = [] #当前持仓的全部股票    
+    g.yesterday_HL_list = [] #记录持仓中昨日涨停的股票
+    g.target_list = []
+    g.other_sale=[]
+    g.limitup_stocks = [] 
+    g.trade_list=[]
+    ### 股票相关设定 ###
+    # 股票类每笔交易时的手续费是：买入时佣金万分之三，卖出时佣金万分之三加千分之一印花税, 每笔交易佣金最低扣5块钱
+    set_order_cost(OrderCost(close_tax=0.001, open_commission=0.0003, close_commission=0.0003, min_commission=5), type='stock')
+    run_monthly(get_stock_pool,1,'09:00')
+    run_daily(prepare_stock_list,'09:00')
+    run_weekly(update_stock_pool,1,'09:10')
+    run_monthly(get_trade_list,1,'09:25')
+    run_daily(daily_check,'09:30')
+    run_monthly(monthly_trade, 1, '09:30')
+    run_daily(check_limit_up,'14:50')
+
+def get_stock_pool(context):
+    index_list = g.index_list
+    #获取红利指数成分股作为基础股票池
+    instituents=[]
+    for idx in index_list:
+        try:
+            instituents.extend(get_index_stocks(idx,date=context.current_dt))#追加红利ETF成分股
+        except:
+            log.debug("获取{}成分股失败".format(indexFrm.index[i]))
+    instituents=list(set(instituents))
+    stock_pool = filter_stocks(context,instituents)
+    g.stock_pool = stock_pool
+    
+def update_stock_pool(context):
+    #每周更新基础股票池
+    stock_pool=g.stock_pool
+    stock_pool = filter_stocks(context,stock_pool)
+    g.stock_pool = stock_pool
+    
+def prepare_stock_list(context):
+    #获取已持有列表
+    g.limitup_stocks = []
+    g.hold_list = list(context.portfolio.positions)
+    #获取昨日涨停列表
+    if g.hold_list:
+        df = get_price(g.hold_list, end_date=context.previous_date, frequency='daily', fields=['close','high_limit','low_limit'], count=1, panel=False, fill_paused=False)
+        df = df[df['close'] == df['high_limit']]
+        g.yesterday_HL_list = df['code'].tolist()
+    else:
+        g.yesterday_HL_list = []
+        
+def check_limit_up(context):
+    #检查持仓涨停股
+    now_time = context.current_dt
+    if g.yesterday_HL_list != []:
+        #对昨日涨停股票观察到尾盘如不涨停则提前卖出，如果涨停即使不在应买入列表仍暂时持有
+        for stock in g.yesterday_HL_list:
+            current_data = get_price(stock, end_date=now_time, frequency='1m', fields=['close','high_limit'], skip_paused=False, fq='pre', count=1, panel=False, fill_paused=True)
+            if current_data.iloc[0,0] < current_data.iloc[0,1]:
+                log.info("[%s]涨停打开，卖出" % (stock))
+                order_target_value(stock,0)
+                g.other_sale.append(stock)
+                g.limitup_stocks.append(stock)
+            else:
+                log.info("[%s]涨停，继续持有" % (stock))
+
+def daily_check(context):
+    for stock in g.hold_list:
+        if stock not in g.stock_pool:
+            order_target_value(stock,0)
+
+def get_trade_list(context):
+    trade_list=[]
+    stock_pool=g.stock_pool
+    q = query(
+        valuation.code,
+        valuation.circulating_market_cap,#流通市值
+        income.basic_eps
+    ).filter(
+        valuation.code.in_(stock_pool),
+        income.np_parent_company_owners>0,
+        income.net_profit>0,
+        income.operating_revenue>1e8
+    )
+    df = get_fundamentals(q, date=context.previous_date)
+    trade_list = df['code'].tolist()
+    factFrm=pd.DataFrame(np.zeros((len(trade_list),4)),index=trade_list,columns='bonus1yr,bonusratio1yr,cirCap,eps'.split(','))
+    for code in trade_list:
+        close = attribute_history(code, count=1, unit='1d',
+            fields=['close'],
+            skip_paused=True, df=True, fq='pre')['close'][0]
+        bonusFrm=finance.run_query(query(finance.STK_XR_XD).filter(finance.STK_XR_XD.code==code,finance.STK_XR_XD.board_plan_pub_date<context.current_dt).order_by(finance.STK_XR_XD.board_plan_pub_date.desc()).limit(4))
+        #bonus如果不分红，那就是nan，后期要fillna
+        factors=[]
+        factors.append(bonusFrm.iloc[:2,:].bonus_ratio_rmb.mean())
+        factors.append(bonusFrm.iloc[:2,:].bonus_ratio_rmb.mean()/close)
+        factors.append(float(df[df.code==code].circulating_market_cap))
+        factors.append(float(df[df.code==code].basic_eps))
+        factFrm.loc[code,:]=factors
+    factFrm.fillna(0,inplace=True)
+    factFrm = factFrm.sort_values(by='bonusratio1yr',ascending=False)[:200]
+    factFrm = factFrm.sort_values(by='bonus1yr',ascending=False)[:100]
+    factFrm = factFrm.sort_values(by='eps',ascending=False)[:50]
+    factFrm = factFrm.sort_values(by='cirCap',ascending=True)[:20]#流通市值小的
+    g.trade_list=factFrm.index.tolist()
+
+def monthly_trade(context):
+    buy_list = g.trade_list
+    if g.hold_list!=[]:
+        for stock in list(context.portfolio.positions):
+            if stock in g.yesterday_HL_list:
+                continue
+            elif stock in buy_list:
+                buy_list.remove(stock)
+            else:
+                order_target_value(stock, 0)
+                
+    cash = context.portfolio.available_cash/len(buy_list)
+    for stock in buy_list:
+        order_target_value(stock, cash)
+        
+    
+    
+def filter_stocks(context, stock_list):
+    current_data = get_current_data()
+        # 涨跌停和最近价格的判断
+    last_prices = history(1, unit='1m', field='close', security_list=stock_list)
+        # 过滤标准
+    filtered_stocks = []
+    for stock in stock_list:
+        if current_data[stock].paused:  # 停牌
+            continue
+        if current_data[stock].is_st:  # ST
+            continue
+        if '退' in current_data[stock].name:  # 退市
+            continue
+        if stock.startswith('30') or stock.startswith('68') or stock.startswith('8') or stock.startswith('4'):  # 市场类型
+            continue
+        if not (stock in context.portfolio.positions or last_prices[stock][-1] < current_data[stock].high_limit):  # 涨停
+            continue
+        if not (stock in context.portfolio.positions or last_prices[stock][-1] > current_data[stock].low_limit):  # 跌停
+            continue
+        # 次新股过滤
+        start_date = get_security_info(stock).start_date
+        if context.previous_date - start_date < timedelta(days=375):
+            continue
+        filtered_stocks.append(stock)
+    return filtered_stocks

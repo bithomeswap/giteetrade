@@ -1,0 +1,140 @@
+# 克隆自聚宽文章：https://www.joinquant.com/post/40857
+# 标题：一个有意思的指标——户均持股数量，近四年年化超70%
+# 作者：天南散修
+
+from jqdata import *
+import math
+import pandas as pd
+from jqfactor import get_factor_values
+import random 
+import datetime
+
+def initialize(context):
+    # 设定基准
+    set_benchmark("000300.XSHG")
+    # 用真实价格交易
+    set_option("use_real_price", True)
+    # 打开防未来函数
+    set_option("avoid_future_data", True)
+    # 设置滑点为理想情况，不同滑点影响可以在归因分析中查看
+    set_slippage(PriceRelatedSlippage(0.000))
+    # 设置交易成本
+    set_order_cost(OrderCost(open_tax=0, close_tax=0.001, open_commission=0.0003, close_commission=0.0003, close_today_commission=0, min_commission=5),type="fund")
+    # 除非需要精简信息，否则不要过滤日志，方便debug
+    log.set_level("system", "error")
+    
+    #初始化全局变量【就股东数量策略来讲，日调仓不如月调仓，月调仓不如周调仓】
+    g.stock_num = 10
+    # run_monthly(trade, 1, time="9:35", reference_security="000300.XSHG")
+    run_weekly(trade,2,"9:35")
+    # run_daily(trade,"9:35")
+    
+    log.set_level("order", "error") # 过滤掉order系列API产生的比error级别低的log
+
+#1-2 选股模块
+def trade(context):
+    yesterday = context.previous_date
+    # stocks = get_index_stocks("399905.XSHE",yesterday)#中证500
+    stocks = get_index_stocks("399300.XSHE",yesterday)#沪深300
+    stocks = filter_st_stock(stocks)
+    stocks = filter_paused_stock(stocks)
+    time_delta = datetime.timedelta(days = 500)#设置股东户数的最近时间周期
+    # finance.STK_HOLDER_NUM：代表上市公司股东户数表，收录了上市公司全部股东户数，A股股东、B股股东、H股股东的持股户数情况，表结构和字段信息如下：
+    # 字段名称	中文名称	字段类型	备注/示例
+    # code	股票代码	varchar(12)
+    # pub_date	公告日期	date
+    # end_date	截止日期	date
+    # share_holders	股东总户数	int
+    # a_share_holders	A股股东总户数	int
+    # b_share_holders	B股股东总户数	int
+    # h_share_holders	H股股东总户数	int
+    df_holders = finance.run_query(query(finance.STK_HOLDER_NUM).filter(
+        finance.STK_HOLDER_NUM.code.in_(stocks),
+        finance.STK_HOLDER_NUM.pub_date>=(context.current_dt.date()-time_delta),#保留90内公布的数据
+        finance.STK_HOLDER_NUM.pub_date<=(context.current_dt.date()),#保留当天之前公布的数据【避免实盘拿不到】
+        ).limit(4000)#限制4000条数据
+        )
+    #筛选每个股票的最新日期
+    df_holders["max"] = df_holders.groupby("code")["pub_date"].transform("max")
+    #取最新日期当天的股东户数
+    df_filter_holders = df_holders[df_holders["pub_date"]==df_holders["max"]]
+
+    df_cap = get_fundamentals(query(valuation.code,
+                            valuation.market_cap,#总市值
+                            valuation.circulating_cap,#流通股本
+                            ).filter(valuation.code.in_(stocks)),yesterday)
+    df = df_filter_holders.merge(df_cap,on="code")
+    
+    # #纯小市值【效果不好】
+    # df.sort_values(by = "market_cap",ascending = True ,inplace = True)
+    # #户均市值【越少越好】股东多市值少
+    df["cap_holders"] = df["market_cap"] / df["a_share_holders"]
+    # df.sort_values(by = "cap_holders",ascending = True ,inplace = True)#户均市值越小越好
+    df.sort_values(by = "cap_holders",ascending = False ,inplace = True)#户均市值越大越好
+    # #户均持股数量因子【越少越好】股东多股数少，回测最好但是感觉缺乏逻辑
+    # df["cap_holders"] = df["circulating_cap"] / df["a_share_holders"]
+    # df.sort_values(by = "cap_holders",ascending = True ,inplace = True)
+    #股东数量【越多越好】股东多，市值较大
+    # df.sort_values(by = "a_share_holders",ascending = True ,inplace = True)#由小到大
+    # df.sort_values(by = "a_share_holders",ascending = False ,inplace = True)#由大到小
+    
+    stockslist = df["code"][:g.stock_num].tolist()#只保留前g.stock_num个标的
+    
+    g.hold_list= []
+    for position in list(context.portfolio.positions.values()):
+        stock = position.security
+        g.hold_list.append(stock)
+        
+    for stock in g.hold_list :
+        if (stock not in stockslist): 
+            log.info("卖出[%s]" % (stock))
+            position = context.portfolio.positions[stock]
+            close_position(position)
+        else:
+            log.info("已持有[%s]" % (stock))
+    #调仓买入
+    position_count = len(context.portfolio.positions)
+    target_num = len(stockslist)
+    if target_num > position_count:
+        value = context.portfolio.cash / (target_num - position_count)
+        for stock in stockslist:
+            if context.portfolio.positions[stock].total_amount == 0:
+                if open_position(stock, value):
+                    if len(context.portfolio.positions) == target_num:
+                        break
+
+#2-1 过滤停牌股票
+def filter_paused_stock(stock_list):
+	current_data = get_current_data()
+	return [stock for stock in stock_list if not current_data[stock].paused]
+
+#2-2 过滤ST及其他具有退市标签的股票
+def filter_st_stock(stock_list):
+	current_data = get_current_data()
+	return [stock for stock in stock_list
+			if  not current_data[stock].is_st
+			or "ST" not in current_data[stock].name]
+
+#3-1 交易模块-自定义下单
+def order_target_value_(security, value):
+	if value == 0:
+		log.debug("Selling out %s" % (security))
+	else:
+		log.debug("Order %s to value %f" % (security, value))
+	return order_target_value(security, value)
+
+#3-2 交易模块-开仓
+def open_position(security, value):
+	order = order_target_value_(security, value)
+	if order != None and order.filled > 0:
+		return True
+	return False
+
+#3-3 交易模块-平仓
+def close_position(position):
+	security = position.security
+	order = order_target_value_(security, 0)  # 可能会因停牌失败
+	if order != None:
+		if order.status == OrderStatus.held and order.filled == order.amount:
+			return True
+	return False

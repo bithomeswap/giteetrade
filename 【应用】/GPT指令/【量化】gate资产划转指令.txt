@@ -1,0 +1,39 @@
+工作场景：
+你是一名非常优秀的计算机工程师，注重代码的简洁性和可维护性，并且习惯采用向量化计算的手段提高代码的运行效率，通常采用最先进和最稳定的实现方式和API，同时你的代码当中很少有bug存在
+此外，你在任务开始时，习惯性添加一句print（'任务已经开始'），以方便测试
+工作任务：
+根据参考文献的api说明，帮我写一个在gate交易所实现从现货账户划转100USDT的资产到合约账户的代码
+参考文献：
+https://www.gate.io/docs/developers/apiv4/zh_CN/#gate-api-v4-v4-37-0
+https://github.com/gateio/gateapi-python
+
+一、api配置
+# 币安的api配置
+api_key = "0jmNVvNZusoXKGkwnGLBghPh8Kmc0klh096VxNS9kn8P0nkAEslVUlsuOcRoGrtm"
+api_secret = "PbSWkno1meUckhmkLyz8jQ2RRG7KgmZyAWhIF0qPdCJrmDSFxoxGdMG5gZeYYCgy"
+
+三、参考资料
+
+######获取比特儿数据
+#Defining the host is optional and defaults to https://api.gateio.ws/api/v4
+#See configuration.py for a list of all supported configuration parameters.  
+import gate_api
+configuration=gate_api.Configuration(
+#实盘
+host="https://api.gateio.ws/api/v4", 
+key="94df526c2e81d2030138c99caac1e106",
+secret="4372cac9f4424605e959661d4871a7a9cb394207eadf7a1e969d9943d55709d2",
+# #模拟
+# host="https://fx-api-testnet.gateio.ws/api/v4", 
+# key="6dde70328d93c6c4918605b39ff86e36", 
+# secret="5ffd37cfd686037d97fafc5699fd9716a3ef6699300e311838b67eb167022c23", 
+#username=None, 
+#password=None, 
+#discard_unknown_keys=False, 
+)
+#创建gate合约客户端
+gateclient=gate_api.ApiClient(configuration)
+#查询账户信息
+gate_accountclient=gate_api.AccountApi(gateclient)#启动账户API服务器
+gate_account=gate_accountclient.get_account_detail()
+print("account账户信息",gate_account)

@@ -1,0 +1,366 @@
+# coding:utf-8
+from PoboAPI import *
+import pandas as pd
+import datetime
+import math
+#开始事件，用于初始化一些参数
+def OnStart(context) :
+    log.info('策略启动...')
+    cutime = GetCurrentTime()+datetime.timedelta(days=1)#当前时间取当前的日期通过日期判断是否需要更新数据
+    print("策略开始日期",cutime)
+    
+##不同交易所及代码对照表
+#     SHFE	上海期货交易所	上期所
+#     DCE	大连商品交易所	大商所
+#     CZCE	郑州商品交易所	郑商所
+#     CFFEX	中国金融期货交易所	中金所
+#     INE	上海国际能源交易中心	能源中心
+#     GFEX	广州期货交易所	广期所
+#     SHSE	上海证券交易所	上交所
+#     SZSE	深圳证券交易所	深交所
+    g.exchangedf=pd.DataFrame({
+        "代码":["SHFE","DCE",
+              "CZCE","CFFEX",
+              "INE","GFEX",
+              "SHSE","SZSE"],
+        "名称":["上海期货交易所","大连商品交易所",
+              "郑州商品交易所","中国金融期货交易所",
+              "上海国际能源交易中心","广州期货交易所",
+              "上海证券交易所","深圳证券交易所"],
+        "简称":["上期所","大商所",
+              "郑商所","中金所",
+              "能源中心","广期所",
+              "上海证券交易所","深圳证券交易所"],
+                            })
+    print(g.exchangedf)
+##不同标的对照表【这个不完整没法直接用】
+#     Oal	铝期权	上期所
+#     Oau	金期权	上期所
+#     Ocu	铜期权	上期所
+#     Oru	橡胶期权	上期所
+#     Ozn	锌期权	上期所
+#     Oc	玉米期权	大商所
+#     Oi	铁矿石期权	大商所
+#     Ol	塑料期权	大商所
+#     Om	豆粕期权	大商所
+#     Opg	液化气期权	大商所
+#     Opp	聚丙烯期权	大商所
+#     Ov	pvc期权	大商所
+#     OCF	棉花期权	郑商所
+#     OMA	甲醇期权	郑商所
+#     OPTA	PTA期权	郑商所
+#     OSR	白糖期权	郑商所
+#     OZC	动力煤期权	郑商所
+#     OIO	沪深300期权	中金所
+#     OMO	中证1000期权	中金所
+#     O510050	上证50ETF期权	上交所
+#     O510300	上证300ETF期权	上交所
+#     O510500	上证500ETF期权	上交所
+#     O588000	科创50ETF期权	上交所
+#     O588080	科创板ETF期权	上交所
+#     O159901	深证100ETF期权	深交所
+#     O159915	创业板ETF期权	深交所
+#     O159919	深证300ETF期权	深交所
+#     O159922	深证500ETF期权	深交所
+
+    #登录交易账号，需在主页用户管理中设置账号，并把「回测期权」替换成您的账户名称
+#     context.accounts['回测期货'].Login()
+    context.accounts['回测期权'].Login()
+#     context.accounts['回测证券'].Login()
+    print(context.accounts)    
+    g.pinzhongdf=pd.DataFrame({})
+#行情初始化	OnMarketQuotationInitialEx	监听交易所行情初始化
+def OnMarketQuotationInitialEx(context,exchange,daynight):
+    #订阅日线级别K线数据，用于驱动OnBar事件
+    SubscribeBar("510050.SHSE",BarType.Day)
+#     SubscribeBar("510050.SHSE",BarType.Min120)
+#自定义函数，用于计算合约截至到期剩余天数
+def stime(op):
+    #获取合约信息  
+    info1 = GetContractInfo(op)
+    #获取该合约的行权到期日
+    kill = info1['行权到期日']
+    #获取当前时间
+    cutime = GetCurrentTime()
+    #获取当前时间的日期
+    c = cutime.date()
+    #计算当前日期与行权到期日相差天数
+    n = (kill - c).days
+    print("到期日相差天数"+str(n))
+    #返回合约截至到期剩余天数
+    return n
+
+def OnBar(context,code,bartype):
+    cutime = GetCurrentTime()#当前时间  
+    #获取当月期权到期时间
+    #若当前时间处于当月15号之后，则到期月份向后推一个月
+    if cutime.day >15 and cutime.month<12:
+        tim = cutime.month+1
+        month_time = datetime.datetime(month=tim,year=cutime.year,day = 20)
+    #若当前时间处于12.15之后，则取下一年的1.20为到期时间
+    elif cutime.day >15 and cutime.month==12:
+        tim = 1
+        yea = cutime.year+1
+        month_time = datetime.datetime(month=tim,year=yea,day = 20)
+    #若当前时间处于上半月，则取当前时间
+    else:
+        month_time = cutime
+    print("当前时间"+str(cutime)+"到期时间"+str(month_time))
+#     exchangelist=["SHSE","SZSE","CFFEX"]
+    exchangelist=["SHFE","DCE","CZCE","INE","GFEX",]
+#     exchangelist=["SHFE","DCE","CZCE","CFFEX","INE","GFEX","SHSE","SZSE"]
+    g.df=pd.DataFrame({})
+    for exchange in exchangelist:
+        g.currentTradingDate = GetCurrentTradingDate(exchange) # 获取当天交易日日期
+        g.previousTradingDate = GetPreviousTradingDate(exchange,g.currentTradingDate) # 获取昨天交易日日期
+        allpinzhong=GetOptionObjects(exchange) # 获取期权合约列表:这个列表系统默认是当前交易日的
+        if len(allpinzhong)>0:
+            for pinzhong in allpinzhong:
+                try:
+    #                 mp = GetOptionMP(pinzhong,1)
+    #                 print("行权最痛点位",pinzhong,alloption)#“最痛点位”（Max Pain）是指当期权到期交割时，使得买方盈利最小亏损最大，或是卖方亏损最小盈利最大的价位
+    #                 stp = GetOptionsStrikePrices(pinzhong,GetOptionsLastDates(pinzhong)[0],'M')
+    #                 print("期权行权价列表",pinzhong,alloption)
+                    #获取期权标的最新价格【不复权也就是当时的真实价格】
+    #                 pinzhongclose = GetHisData2(str(pinzhong),BarType.Day,end_date=cutime,count=2)[-2].close
+    #                 pinzhongdatetime=GetHisData2(str(pinzhong),bar_type=BarType.Day,end_date=cutime,count=2)[-2].datetime
+                    pinzhongclose = GetHisData2(str(pinzhong),BarType.Min,end_date=cutime,count=2)[-2].close
+                    pinzhongdatetime=GetHisData2(str(pinzhong),bar_type=BarType.Min,end_date=cutime,count=2)[-2].datetime
+    #                 watchdays=10#最小是3
+    #                 grow=GetHisData2(str(pinzhong),BarType.Day,end_date=cutime,count=2,weight_type=0)[-2].close/GetHisData2(str(pinzhong),BarType.Day,end_date=cutime,count=watchdays,weight_type=0)[-watchdays].close
+                    uppinzhongclose=pinzhongclose
+                    downpinzhongclose=pinzhongclose
+                    #获取当月平价认购期权
+                    upoption = GetAtmOptionContract(str(pinzhong),month_time,float(pinzhongclose),int(0))#平价认购期权
+                    downoption = GetAtmOptionContract(str(pinzhong),month_time,float(pinzhongclose),int(1))#平价认沽期权
+    #                 ObjectStockCode#【str】ObjectStockCode期权标的代码
+    #                 ExcuteDate#【int或者datetime】ExcuteDate,0-当月1-下月2-下季3-隔季
+    #                 ObjectStockPrice#【float】标的价格
+    #                 Type#【int】期权类型，0-认购期权，1-认沽期权
+                    upoptiondatetime=GetHisData2(str(upoption),bar_type=BarType.Min,end_date=cutime,count=1)[-1].datetime
+                    upoptionprice=GetHisData2(str(upoption),bar_type=BarType.Min,end_date=cutime,count=1)[-1].close
+                    downoptiondatetime=GetHisData2(str(downoption),bar_type=BarType.Min,end_date=cutime,count=1)[-1].datetime
+                    downoptionprice=GetHisData2(str(downoption),bar_type=BarType.Min,end_date=cutime,count=1)[-1].close
+    #                 code	string	合约代码，格式为合约.交易所
+    #                 bar_type	枚举值	K线类型枚举值，例如BarType.Day表示日线，BarType.Min表示分钟线
+    #                 start_date	datetime	需要获取的K线的起始时间
+    #                 end_date	datetime	需要获取的K线的结束时间
+    #                 count	int	需要获取的K线的根数
+    #                 weight_type	int	复权选项0-不复权1-前复权2-后复权默认为不复权
+
+                    upoptiondendtime=stime(upoption)
+                    downoptiondendtime=stime(upoption)
+    #                 #计算合约截至目前剩余天数
+    #                 endtime = stime(opcode1)
+    #                 print(endtime)
+    #                 #若距离到期日不足3天，则使用最新价平仓
+    #                 if endtime<3:
+    #                     context.myacc.InsertOrder(opcode1,BSType.BuyClose,dyn1.now,1)
+    #                     context.myacc.InsertOrder(opcode2,BSType.BuyClose,dyn2.now,1)
+    #                 #若最新价大于行权价或者最新价小于行权价的85%， 则用最新价平仓
+    #                 elif now1 >= pr1 or now1 <= (pr1-0.15):
+    #                     context.myacc.InsertOrder(opcode1,BSType.BuyClose,dyn1.now,1)
+    #                     context.myacc.InsertOrder(opcode2,BSType.BuyClose,dyn2.now,1)
+                    thisdf=pd.DataFrame({"品种":[str(pinzhong)],
+                                         "品种当前时间":[str(pinzhongdatetime)],
+                                         "品种当前价格":[float(pinzhongclose)],
+    #                                      "品种涨幅":[grow],
+    #                                      "品种振幅":[abs(grow-1)],
+                                         "平价认购期权":[str(upoption)],
+                                         "平价认购期权当前时间":[str(upoptiondatetime)],
+                                         "平价认购期权当前价格":[float(upoptionprice)],
+                                         "平价认购期权剩余到期时间":[float(upoptiondendtime)],
+                                         "平价认沽期权":[str(downoption)],
+                                         "平价认沽期权当前时间":[str(downoptiondatetime)],
+                                         "平价认沽期权当前价格":[float(downoptionprice)],
+                                         "平价认沽期权剩余到期时间":[float(downoptiondendtime)],
+                                        })
+                    g.df=pd.concat([g.df,thisdf])
+                except Exception as e:
+                    print(e)
+    g.df["期权溢价率"]=(g.df["平价认购期权当前价格"]+g.df["平价认沽期权当前价格"])/g.df["品种当前价格"]
+    print(g.df)
+    numbuystock=len(g.df)
+#     numbuystock=5
+# #     dftwo=g.df.nsmallest(math.ceil(numbuystock*1.5),"期权溢价率")
+# #     dfone=g.df.nsmallest(math.ceil(numbuystock),"期权溢价率")
+#     dftwo=g.df.nlargest(math.ceil(numbuystock*1.5),"期权溢价率")
+#     dfone=g.df.nlargest(math.ceil(numbuystock),"期权溢价率")
+# #     dftwo=g.df.nsmallest(math.ceil(numbuystock*1.5),"品种振幅")
+# #     dfone=g.df.nsmallest(math.ceil(numbuystock),"品种振幅")
+# #     dftwo=g.df.nlargest(math.ceil(numbuystock*1.5),"品种振幅")
+# #     dfone=g.df.nlargest(math.ceil(numbuystock),"品种振幅")
+    dftwo=g.df
+    dfone=g.df
+    buylisttwo=dftwo["平价认购期权"].tolist()+dftwo["平价认沽期权"].tolist()
+#     buylistone=dfone["平价认购期权"].tolist()+dfone["平价认沽期权"].tolist()
+#     print(buylisttwo,buylistone)
+    positionsed = GetPositionsAsDF(context.accounts["回测期权"])#获取DataFrame格式的持仓信息—GetPositionsAsDF
+#     positionsed = GetOrdersAsDF(context.accounts["回测期权"])#获取DataFrame格式的所有委托信息—GetOrdersAsDF
+#     positionsed = GetTradeDetailsAsDF(context.accounts["回测期权"])#获取DataFrame格式的所有成交信息—GetTradeDetailsAsDF
+    positions=positionsed.copy()
+    print("positions"+str(positions)+str(type(positions)))
+    moneyrate=0.5
+    g.type="卖跨"
+#     g.type="买跨"
+    if g.type=="卖跨":
+        opentype="sell"
+        closetype="buy"
+    if g.type=="买跨":
+        opentype="buy"
+        closetype="sell"
+
+    print("开始卖出")
+    if len(positions)>0:
+        for pos in positions.iterrows():
+            pos=pos[1]
+            print(pos.contract)
+            if pos.contract not in buylisttwo:
+                print("不在应买入列表中",pos.contract)
+                #下单买平,16表示对手价
+                closeorder=QuickInsertOrder(
+                    context.accounts['回测期权'],#account
+                    pos.contract,#code
+                    closetype,#买卖方向
+                    'close',#开平方向
+                    PriceType(PbPriceType.Limit,16),#下单价格
+                    pos.volume,#下单数量
+                )
+                print(closeorder)
+    print("开始买入") # 根据股票数量分仓
+    position_count = len(positions)
+    if 2*numbuystock > position_count:
+        #查询账号余额
+        balance = context.accounts["回测期权"].AccountBalance.AvailableCashBalance#获取余额
+        print("当前余额"+str(balance))
+        allbalance = context.accounts["回测期权"].AccountBalance.AssetsBalance#获取余额
+        print("总资产"+str(allbalance))
+        # currency	string	货币类型(CNY-人民币、USD-美元)
+        # CashBalanceYesterday	float	上日资金余额
+        # DynamicNetAssets	float	动态权益，包含浮动盈亏在内
+        # AvailableCashBalance	float	可用资金
+        # AvailableMargin	float	可用保证金，和可用资金相同
+        # FrozenMargin	float	持仓冻结保证金
+        # FrozenCashForOrder	float	委托冻结，即未成交的委托冻结的保证金
+        # FrozenCashForFee	float	手续费冻结，未结算被冻结的手续费，也有柜台并不在盘中冻结
+        # MarketValue	float	持仓市值，义务方为负，权利方为正，仅期权有效，期货为0
+        # AssetsBalance	float	总资产，一般跟动态权益一致
+        # NetAssets	float	净资产，一般跟动态权益一致
+        # FloatingProfit	float	浮动盈亏
+        # CashBalance	float	静态资金余额，即静态可用+冻结
+        # DailyFee	float	当日手续费，部分柜台盘中并不计算出手续费
+        # RiskDegree	float	风险度，=持仓冻结保证金/动态权益
+        # OtherAvailableCash	float	其他可用资金，即初始查得的现金资产- (可用+冻结)
+
+#         value = allbalance/numbuystock*moneyrate # 总资产均摊
+        value = balance/(2*numbuystock-len(positions))*moneyrate # 余额均摊
+        print(value)
+        if value>0:
+            for stock in dfone.iterrows():
+                stock=stock[1]
+#                 print(stock.平价认沽期权)
+                if len(GetPositionsAsDF(context.accounts["回测期权"])) >= 2*numbuystock:
+                    break
+                #没有持仓则卖开
+                if stock.平价认沽期权 not in positions["contract"].tolist():
+                    thisstock=stock.平价认沽期权
+                    print(thisstock)
+                    tradenum=math.floor(value/stock.平价认沽期权当前价格*0.0001)
+                    print(tradenum)
+                    #下单卖开,2表示最新价
+                    openorder=QuickInsertOrder(
+                        context.accounts['回测期权'],#account
+                        thisstock,#code
+                        opentype,#买卖方向
+                        'open',#开平方向
+                        PriceType(PbPriceType.Limit,16),#下单价格
+                        tradenum,#下单数量
+                    )
+                    print(openorder)
+                #没有持仓则卖开
+                if stock.平价认购期权 not in positions["contract"].tolist():
+                    thisstock=stock.平价认购期权
+                    print(thisstock)
+                    tradenum=math.floor(value/stock.平价认购期权当前价格*0.0001)
+                    print(tradenum)
+                    #下单卖开,2表示最新价
+                    openorder=QuickInsertOrder(
+                        context.accounts['回测期权'],#account
+                        thisstock,#code
+                        opentype,#买卖方向
+                        'open',#开平方向
+                        PriceType(PbPriceType.Limit,16),#下单价格
+                        tradenum,#下单数量
+                    )
+                    print(openorder)
+    print("现在持有股票数量",len(GetPositionsAsDF(context.accounts["回测期权"])))
+
+    
+# #计算对rb1910合约的以最高价买1手的保证金需求
+# OpenMargin = CalcOpenMargin(context.accounts["回测期权"],'rb1910.SHFE',volume = 1,direction='buy',price='highlimit')
+# #获取某一具体标的的保证金情况
+# margin_value = context.accounts["回测期货"].GetMargin("rb1905.SHFE",BSType.BuyOpen)
+
+#委托回报事件，当有委托回报时调用
+def OnOrderChange(context,AccountName,order):
+    print("委托编号:"+order.id+"账号名称:"+AccountName)
+    print("Vol:"+str(order.volume)+"Price:"+str(order.price))
+          
+# # #行情初始化	OnMarketQuotationInitialEx	监听交易所行情初始化
+# # def OnMarketQuotationInitialEx(context,exchange,daynight) :
+# # #     print("context",context,"exchange",exchange,"daynight",daynight)
+# # #     #过滤掉非上交所的信号
+# # #     if (exchange =="SHSE")or(exchange =="SZSE"):
+# #     if (exchange =="SHSE")or(exchange =="SZSE")or(exchange =="CFFEX"):
+# #         # =======遍历期货合约列表获得前1天的次主力合约代码=======================
+# #         # 获取当天交易日日期
+# #         g.currentTradingDate = GetCurrentTradingDate(exchange)
+# #         # 获取昨天交易日日期
+# #         g.previousTradingDate = GetPreviousTradingDate(exchange,g.currentTradingDate)
+# #         allpinzhong=GetVarieties(exchange) # 获取期货合约列表:这个列表系统默认是当前交易日的
+# #         print("交易所名称及品种列表",g.exchangedf[g.exchangedf["代码"]==exchange]["名称"],allpinzhong)
+# #         for pinzhong in allpinzhong:
+# # #             allcontract = GetFuturesContracts(exchange,pinzhong)
+# #             allcontract = GetFuturesContracts2(pinzhong,exchange_code='auto')
+# #             if len(allcontract)>0:
+# #                 print("该交易所品种对应的期货合约",pinzhong,allcontract)
+# # #                 for contract in allcontract:
+# # #                     contract_info=GetContractInfo(contract+"."+exchange)
+# # #                     print("合约详情",contract_info)
+# #                 # -----------------------------------------------------------------
+# #                 # 获取昨天的：合约代码、成交量、持仓量
+# # #                 subMainDict={}# 定义期货合约字典，存放：合约代码、成交量+持仓量
+# # #                 for i in allcontract:
+# # #                     KlineData = GetHisDataByField2(i,["volume","amount"],
+# # #                                                    bar_type=BarType.Day,start_date=None,
+# # #                                                     end_date=g.previousTradingDate,count = 1)
+# # #                     subMainDict[i] = KlineData[0,0]+KlineData[1,0]
+# # #                 # 成交量和持仓量之和降序排序
+# # #                 subMainDictList = sorted(subMainDict.items(),key = lambda item:item[1],reverse = True)
+# # #                 temp = [i for i in subMainDictList]
+# # #                 print("不同品种持仓情况",temp)
+# # #                 # 获得昨天的主力、次主力合约代码
+# # #                 g.code1 = subMainDictList[0][0] # 主力
+# # #                 g.code2 = subMainDictList[1][0] # 次主力（日期在主力之前）
+# # #                 g.code3 = subMainDictList[2][0] # 次主力（日期在主力之后）
+# # #                 g.maincode.append(g.code1)
+# # #                 print("主力合约归属情况",g.maincode)
+# # #                 #---------------------------------------------------------------------
+# # #                 # 删除列表中不需要的数据
+# # #                 #if len(g.maincode) >= 4:
+# # #                 #    del g.subMainList[:-4]
+# # #                 #print(g.maincode)
+# # #                 #=====================================================================
+# # #                 # 判断主力合约是否换月
+# # #                 g.chingingMonthFlag = 0 #定义换月标志：0为保持、1为换月
+# # #                 if len(g.maincode) >= 2:
+# # #                     #print(str(g.maincode[-2])[2:6]) # 
+# # #                     #print(str(g.maincode[-1])[2:6]) #
+# # #                     temp1 = datetime.datetime.strptime(str(g.maincode[-1])[2:6],'%Y')
+# # #                     temp2 = datetime.datetime.strptime(str(g.maincode[-2])[2:6],'%Y')
+# # #                     if temp1 <= temp2:# 如果昨天和前天的主力合约相同
+# # #                         g.chingingMonthFlag = 0
+# # #                     else:# 如果昨天和前天的主力合约不相同
+# # #                         g.chingingMonthFlag = 1
+# # #                     if g.chingingMonthFlag == 1:
+# # #                         print("换月标志为： "+str(g.chingingMonthFlag)+" ，换月啦！")

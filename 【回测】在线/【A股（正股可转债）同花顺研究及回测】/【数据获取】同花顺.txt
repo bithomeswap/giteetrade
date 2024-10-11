@@ -1,0 +1,970 @@
+#【这里控制好文件大小（大于50m的文件不能下载）】
+
+def symbol_convert(stock):#股票代码加后缀
+    #北交所的股票8字开头，包括82、83、87、88，其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
+    if (stock.startswith("60"))or(#上交所主板
+        stock.startswith("68"))or(#上交所科创板
+        stock.startswith("11"))or(#上交所可转债
+        (stock.startswith("51"))or(stock.startswith("56"))or(stock.startswith("58"))):#上交所ETF
+        return str(str(stock)+".SH")
+        # return str(str(stock)+".SS")
+    elif (stock.startswith("00"))or(#深交所主板
+        stock.startswith("30"))or(#深交所创业板
+        stock.startswith("12"))or(#深交所可转债
+        (stock.startswith("15"))):#深交所ETF
+        return str(str(stock)+".SZ")
+    else:
+        print("不在后缀转换名录",str(stock))
+        return str(str(stock))
+        
+def filter_kcb_stock(stocks):  # 过滤科创北交股票
+    for stock in stocks[:]:
+        # if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+        if stock[0]=="4" or stock[0]=="8":
+            stocks.remove(stock)
+    return stocks
+    
+import pandas as pd
+import numpy as np
+import datetime
+from scipy.stats import pearsonr
+# # 获取基本面数据
+# basedf=get_fundamentals(query(
+#         asharevalue.symbol,
+#         asharevalue.total_shares,
+#         # asharevalue.float_shares,#流通股本
+#         asharevalue.total_mv,
+#         # income.overall_income,
+#         income.np_atsopc,
+#         asharevalue.pb_mrq,#市净率MRQ
+#         balance.undistributed_profits,#未分配利润
+#         growth_sq.np_atsopc_yoy,#归母净利润(同比增长率)growth_sq是季度
+#         growth.net_asset_growth_ratio,#净资产(同比增长率)growth是年度
+#         income.basic_eps,#基本每股收益（真实的，稀释每股收益是预期的）
+#         asharevalue.dividend_rate_ttm,#股息率
+#     ))
+# basedf.to_csv("basedf.csv")
+
+truetoday=(datetime.datetime.now()-datetime.timedelta(days=1)).strftime("%Y-%m-%d") #测试当天的数据
+print(truetoday)
+# thisnames=["行业","概念","概念K线","可转债","全体A股","分时三十分钟","分时五分钟"]
+# thisnames=["分时五分钟",]#五分钟数据文件过大无法下载
+# thisnames=["分时三十分钟",]
+thisnames=["全体A股",]
+# thisnames=["可转债",]
+
+# 读取数据的时候记得获取三十分钟的资金净流入金额及比例和成交额及平均涨跌幅数据，拼接到两个周期形成快线，六个周期形成慢线，如果净流入向下（快线为负值）并且加速向下（快线低于慢线），那么是否可以认为短期资金面走弱。
+# 在9.30-10.00量价数据不包含集合竞价数据，但是资金流数据包含集合竞价数据。
+# 资金流数据在计算的时候要去掉当天停牌了的那部分再去统计。
+# 计算当日开盘价的时候应该用上一天15点的收盘价为准，然后跟复权因子做调整。
+for thisname in thisnames:
+    print("thisname",thisname)
+    #关于资金流数据的问题，官方的说法是量价数据不能直接截取三十分钟，因而成交额那里有问题，然后就是流入率会涉及百分号，就是给出来的数据要除以100才是真实的流入率
+    if (thisname=="行业"):
+        bkname=thisname
+        allnum=200
+        dt=pd.DataFrame({}) #初始化一个空的dt用来拼接因子数据
+        daysnum=1200
+        start_date=((datetime.datetime.now()-datetime.timedelta(days=daysnum)).strftime("%Y-%m-%d")) #测试当天的数据
+        print(start_date)
+        end_date=((datetime.datetime.now()).strftime("%Y-%m-%d")) #测试当天的数据
+        tradeday=get_trade_days(start_date=start_date,end_date=end_date).values
+        print(len(tradeday))
+        tradeday=[np.datetime_as_string(x,unit="D").replace("-","") for x in tradeday]
+        print("start_date",start_date,"tradeday",tradeday,len(tradeday),type(tradeday),type(tradeday[0]))
+        tradenum=0#用来计算当前总交易天数
+        for today in tradeday:
+            tradenum+=1#用来计算当前总交易天数【目的是确定是否重置仓位】
+            print(today)
+            #距离当前日期一个月时间前【2023年12月20】结束任务
+            if (float(today)-float(20240510))>0:
+                break
+            index=tradeday.index(today)
+            #不取后四天的数据避免越界
+            if (index>0) and (index<len(tradeday)-4):
+                yesterday=tradeday[index-1]
+                ##行业详情
+                #bk_info = get_symbol_industry("300033.SZ",date="20230801")
+                #print(bk_info)
+                #industryid1="T10", industryid2="T1003", industryid3="T100301", s_industryid1="S71", s_industryid2="S7104", s_industryid3="S710401", c_industryid="69", c_industryid2="J", ci_industryid1="CI620000", ci_industryid2="CI625000", ci_industryid3="CI625010", gi_industryid1="45", gi_industryid2="4510", gi_industryid3="451030", gi_industryid4="45103010"
+                #"c_industryid"#新证监会行业分类
+                #"ci_industryid1"#中信一级行业
+                #"industryid1"#同花顺一级行业
+                #"s_industryid1"#申万一级行业
+                bkname="industryid1"
+                stockslist=get_industry_relate(yesterday,types=bkname,fields=["industry_symbol"])
+                stockslist=stockslist.industry_symbol.tolist()
+                bkdf=pd.DataFrame()
+                for stock in stockslist: # 获取行业类成分股
+                    stocks=get_industry_stocks(stock,date=yesterday) # 行业成分股
+                    # stocks=[stock for stock in stocks if stock in allstocks] # 去除次新股
+                    print(stock,len(stocks))
+                    # stocks=filter_kcb_stock(stocks)
+                    df=pd.DataFrame({"代码":stocks})
+                    df["行业"]=stock
+                    bkdf=pd.concat([bkdf,df])
+                df=bkdf
+                df=df.reset_index(drop=True)
+                floattoday=float(today)
+                floatyesterday=float(yesterday)
+                df["floattoday"]=floattoday
+                df["floatyesterday"]=floatyesterday
+                print(floattoday,"当日所有数据列",df.columns)
+                dt=pd.concat([dt,df],axis=0) #拼接每一天的df合并为dt
+                print(dt)
+            #根据目标指数的最大时间集合对数据进行截断
+            if tradenum>=allnum:
+                dt.to_csv("__"+str(thisname)+str(bkname)+str(floattoday)+"_回测环境"+"dt.csv")
+                print(dt)
+                tradenum=0
+                dt=pd.DataFrame({})
+    elif (thisname=="概念K线"):
+        bkname=thisname
+        allnum=700
+        dt=pd.DataFrame({}) #初始化一个空的dt用来拼接因子数据
+        daysnum=1200
+        start_date=((datetime.datetime.now()-datetime.timedelta(days=daysnum)).strftime("%Y-%m-%d")) #测试当天的数据
+        print(start_date)
+        end_date=((datetime.datetime.now()).strftime("%Y-%m-%d")) #测试当天的数据
+        tradeday=get_trade_days(start_date=start_date,end_date=end_date).values
+        print(len(tradeday))
+        tradeday=[np.datetime_as_string(x,unit="D").replace("-","") for x in tradeday]
+        print("start_date",start_date,"tradeday",tradeday,len(tradeday),type(tradeday),type(tradeday[0]))
+        tradenum=0#用来计算当前总交易天数
+        for today in tradeday:
+            tradenum+=1#用来计算当前总交易天数【目的是确定是否重置仓位】
+            print(today)
+            #距离当前日期一个月时间前【2023年12月20】结束任务
+            if (float(today)-float(20240510))>0:
+                break
+            index=tradeday.index(today)
+            #不取后四天的数据避免越界
+            if (index>0) and (index<len(tradeday)-4):
+                yesterday=tradeday[index-1]
+                #概念K线
+                bk=get_concept_relate(yesterday)
+                bk=bk.reset_index(drop=False)
+                bk=bk[bk["concept_levelname"]=="A股_常规概念"]#只要A股常规概念
+                bk=bk.dropna(subset=["concept_thscode"])#有一个空值（年报预增在某个日期拿不到对应的指数，但是在终端里面有这个数据）
+                bklist=bk["concept_thscode"].tolist()
+                bk_price_df=get_price(
+                    securities=bklist,
+                    start_date=None,
+                    end_date=yesterday,
+                    fre_step="1d",
+                    fields=["open","high","low","close",],#获取全部数据列，其中昨日收盘价是用来计算总股本的
+                    fq="pre",
+                    #fq=None,#这里动态复权或者不复权都是可以的
+                    bar_count=1,
+                    is_panel=1).to_frame()
+                print(bk_price_df)
+                bk_price_df=bk_price_df.reset_index()
+                bk_price_df=bk_price_df.rename(columns={"minor":"代码",
+                    "major":"概念量价数据获取日期",
+                    "high":"概念最高",
+                    "low":"概念最低",
+                    "close":"概念收盘",
+                    "open":"概念开盘",})
+                df=bk_price_df
+                floattoday=float(today)
+                floatyesterday=float(yesterday)
+                df["floattoday"]=floattoday
+                df["floatyesterday"]=floatyesterday
+                print(floattoday,"当日所有数据列",df.columns)
+                dt=pd.concat([dt,df],axis=0) #拼接每一天的df合并为dt
+            #根据目标指数的最大时间集合对数据进行截断
+            if tradenum==allnum:
+                dt.to_csv("__"+str(thisname)+str(bkname)+str(floattoday)+"_回测环境"+"dt.csv")
+                print(dt)
+                tradenum=0
+                dt=pd.DataFrame({})
+    elif (thisname=="概念"):
+        bkname=thisname
+        allnum=50
+        dt=pd.DataFrame({}) #初始化一个空的dt用来拼接因子数据
+        daysnum=1200
+        start_date=((datetime.datetime.now()-datetime.timedelta(days=daysnum)).strftime("%Y-%m-%d")) #测试当天的数据
+        print(start_date)
+        end_date=((datetime.datetime.now()).strftime("%Y-%m-%d")) #测试当天的数据
+        tradeday=get_trade_days(start_date=start_date,end_date=end_date).values
+        print(len(tradeday))
+        tradeday=[np.datetime_as_string(x,unit="D").replace("-","") for x in tradeday]
+        print("start_date",start_date,"tradeday",tradeday,len(tradeday),type(tradeday),type(tradeday[0]))
+        tradenum=0#用来计算当前总交易天数
+        for today in tradeday:
+            tradenum+=1#用来计算当前总交易天数【目的是确定是否重置仓位】
+            print(today)
+            #距离当前日期一个月时间前【2023年12月20】结束任务
+            if (float(today)-float(20240510))>0:
+                break
+            index=tradeday.index(today)
+            #不取后四天的数据避免越界
+            if (index>0) and (index<len(tradeday)-4):
+                yesterday=tradeday[index-1]
+                #个股概念对照
+                bk=get_concept_relate(yesterday)
+                bk=bk.reset_index(drop=False)
+                bk=bk[bk["concept_levelname"]=="A股_常规概念"]#只要A股常规概念
+                bknamelist=bk["concept_name"].tolist()
+                bkname_df=run_query(query(concept_classification).filter(concept_classification.date == yesterday))
+                bkname_df=bkname_df.rename(columns={"concept_classification_symbol":"代码","concept_classification_date":"时间","concept_classification_concept":"概念名称"})
+                bkname_df["概念名称"]=bkname_df["概念名称"].apply(lambda x: x.split(","))
+                bkname_df["概念名称"]=bkname_df["概念名称"].apply(lambda x: [item for item in x if item in bknamelist])
+                # print("概念名称",bkname_df["概念名称"][1][1])
+                df=bkname_df
+                floattoday=float(today)
+                floatyesterday=float(yesterday)
+                df["floattoday"]=floattoday
+                df["floatyesterday"]=floatyesterday
+                print(floattoday,"当日所有数据列",df.columns)
+                dt=pd.concat([dt,df],axis=0) #拼接每一天的df合并为dt
+            #根据目标指数的最大时间集合对数据进行截断
+            if tradenum==allnum:
+                dt.to_csv("__"+str(thisname)+str(bkname)+str(floattoday)+"_回测环境"+"dt.csv")
+                print(dt)
+                tradenum=0
+                dt=pd.DataFrame({})
+            # dt.to_csv("__"+str(thisname)+str(bkname)+"_测试"+"dt.csv")
+    elif (thisname=="分时五分钟"):
+        bkname="分时五分钟"
+        allnum=1#allnum天输出一次数据
+        dt=pd.DataFrame({}) #初始化一个空的dt用来拼接因子数据
+        daysnum=500#策略运行初始天数为daysnum
+        start_date=((datetime.datetime.now()-datetime.timedelta(days=daysnum)).strftime("%Y-%m-%d")) #测试当天的数据
+        print(start_date)
+        end_date=((datetime.datetime.now()).strftime("%Y-%m-%d")) #测试当天的数据
+        tradeday=get_trade_days(start_date=start_date,end_date=end_date).values
+        print(len(tradeday))
+        tradeday=[np.datetime_as_string(x,unit="D").replace("-","") for x in tradeday]
+        print("start_date",start_date,"tradeday",tradeday,len(tradeday),type(tradeday),type(tradeday[0]))
+        tradenum=0#用来计算当前总交易天数
+        for today in tradeday:
+            tradenum+=1#用来计算当前总交易天数【目的是确定是否重置仓位】
+            print(today)
+            #距离当前日期一个月时间前【2023年12月20】结束任务
+            if (float(today)-float(20240510))>0:
+                break
+            index=tradeday.index(today)
+            #不取后四天的数据避免越界
+            if (index>1) and (index<len(tradeday)-1):
+                yesterday=tradeday[index-1]
+                preyesterday=tradeday[index-2]
+                timelist=[str("9:30"),str("9:35"),str("9:40"),str("9:45"),str("9:50"),
+                str("9:55"),str("10:00"),str("10:05"),str("10:10"),str("10:15"),str("10:20"),
+                str("10:25"),str("10:30"),str("10:35"),str("10:40"),str("10:45"),str("10:50"),
+                str("10:55"),str("11:00"),str("11:05"),str("11:10"),str("11:15"),str("11:20"),
+                str("11:25"),str("11:30"),str("13:00"),str("13:05"),str("13:10"),str("13:15"),
+                str("13:20"),str("13:25"),str("13:30"),str("13:35"),str("13:40"),str("13:45"),
+                str("13:50"),str("13:55"),str("14:00"),str("14:05"),str("14:10"),str("14:15"),
+                str("14:20"),str("14:25"),str("14:30"),str("14:35"),str("14:40"),str("14:45"),
+                str("14:50"),str("14:55"),str("15:00")]
+                for thistime in timelist:
+                    olddf=get_all_securities("stock",yesterday).reset_index(drop=False)
+                    olddf=olddf.rename(columns={"symbol":"代码","display_name":"股票名称"})
+                    olddf=olddf[["代码","股票名称"]]
+                    floattoday=float(today)
+                    floatyesterday=float(yesterday)
+                    olddf["floattoday"]=floattoday
+                    olddf["floatyesterday"]=floatyesterday
+                    print(floattoday,"当日所有数据列",olddf.columns)
+                    stocks=olddf["代码"].tolist()
+                    #stocks=filter_kcb_stock(stocks) #去除科创北交
+                    #获取量价数据
+                    price_df=get_price(
+                        securities=stocks,
+                        start_date=None,
+                        end_date=yesterday,
+                        fre_step="1d",
+                        fields=["high_limit","low_limit",
+                                "is_st",
+                                "is_paused",
+                                "factor",#上市以来的总复权因子
+                            ],#获取全部数据列，其中昨日收盘价是用来计算总股本的
+                        # fq="pre",
+                        fq=None,#这里动态复权或者不复权都是可以的
+                        bar_count=1,
+                        is_panel=1).to_frame()
+                    price_df=price_df.reset_index()
+                    price_df=price_df.rename(columns={"minor":"代码","major":"日期"})
+                    price_df=price_df[["代码","日期","high_limit","low_limit",
+                                    "factor",
+                                    "is_st",
+                                    "is_paused",
+                                    ]]
+                    olddf=olddf.merge(price_df,on="代码",how="inner")
+                    # print(olddf)
+                    #获取量价数据
+                    price_df=get_price(
+                        securities=stocks,
+                        start_date=None,
+                        end_date=yesterday+" "+thistime,
+                        fre_step="5m",
+                        fields=["high","close","open","low","volume","turnover"],#获取全部数据列，其中昨日收盘价是用来计算总股本的
+                        # fq="pre",
+                        fq=None,#这里动态复权或者不复权都是可以的
+                        bar_count=1,
+                        is_panel=1).to_frame()
+                    price_df=price_df.reset_index()
+                    price_df=price_df.rename(columns={"minor":"代码","major":"价格分时"})
+                    price_df=price_df[["代码","价格分时","high","close","open","low","volume","turnover"]]
+                    price_df["float价格分时"]=price_df["价格分时"].dt.strftime('%Y%m%d%H%M%S')
+                    olddf=olddf.merge(price_df,on="代码",how="inner")
+                    # 获取基本面数据
+                    basedf=get_fundamentals(query(
+                            asharevalue.symbol,
+                            asharevalue.total_shares,
+                            # asharevalue.float_shares,#流通股本
+                            asharevalue.total_mv,
+                            # income.overall_income,
+                            income.np_atsopc,
+                            asharevalue.pb_mrq,#市净率MRQ
+                            balance.undistributed_profits,#未分配利润
+                            growth_sq.np_atsopc_yoy,#归母净利润(同比增长率)growth_sq是季度
+                            growth.net_asset_growth_ratio,#净资产(同比增长率)growth是年度
+                            income.basic_eps,#基本每股收益（真实的，稀释每股收益是预期的）
+                            asharevalue.dividend_rate_ttm,#股息率
+                        ),date=yesterday)
+                    basedf=basedf.rename(columns={
+                            "asharevalue_symbol":"代码",
+                            "asharevalue_total_shares": "总股本",
+                            # "asharevalue_float_shares": "流通股本",
+                            "asharevalue_total_mv":"总市值",
+                            # "income_overall_income":"营业总收入",
+                            "income_np_atsopc":"归母净利润",
+                            "asharevalue_pb_mrq":"市净率",
+                            "balance_undistributed_profits":"未分配利润",
+                            "growth_sq_np_atsopc_yoy":"归母净利润季度增长率",
+                            "growth_net_asset_growth_ratio":"净资产年度增长率",
+                            "income_basic_eps":"基本每股收益",
+                            "asharevalue_dividend_rate_ttm": "股息率",
+                            #定义：股息率是股息与股票价格之间的比率在投资实践中, 股息率是衡量企业是否具有投资价值的重要标尺之一股息率等于股息与股票买入价之比。
+                            #公式：股息率_近12月＝∑近12个月派息总和／指定日股票市值×100％备注：1、股票派息总额=每股派息比例*基准股本；2、证券的总市值为指定交易日的总市值（面向证券）
+                            #12个月内没分红的标的的股息率为空值
+                            })
+                    #basedf=basedf[basedf["营业总收入"]>100000000]
+                    #basedf=basedf[basedf["归母净利润"]>0]
+                    basedf["基本面数据日期"]=float(preyesterday)
+                    olddf=olddf.merge(basedf,on="代码",how="inner")
+                    olddf["总市值"]=olddf["总股本"]*olddf["open"]
+                    # print(olddf)
+                    value_df=get_money_flow_step(
+                        security_list=stocks,
+                        start_date=None,
+                        end_date=yesterday+" "+thistime,
+                        fre_step="5m",
+                        fields=["act_buy_xl",
+                                "pas_buy_xl",
+                                "act_buy_l",
+                                "pas_buy_l",
+                                "act_sell_xl",
+                                "pas_sell_xl",
+                                "act_sell_l",
+                                "pas_sell_l",
+                                "net_flow_rate",#是大单特大单主被动买入减去大单特大单主被动卖出，用这个值除以当前时间段的总成交额
+                                ],
+                        count=1,
+                        is_panel=1).to_frame()
+                    value_df=value_df.reset_index()
+                    value_df=value_df.rename(columns={
+                        "minor": "代码","trade_date":"资金流数据分时",
+                        "act_buy_xl":"主动买入特大单金额",
+                        "pas_buy_xl":"被动买入特大单金额",
+                        "act_buy_l":"主动买入大单金额",
+                        "pas_buy_l":"被动买入大单金额",
+                        "act_sell_xl":"主动卖出特大单金额",
+                        "pas_sell_xl":"被动卖出特大单金额",
+                        "act_sell_l":"主动卖出大单金额",
+                        "pas_sell_l":"被动卖出大单金额",
+                        "net_flow_rate":"金额流入率",})#是大单特大单主被动买入减去大单特大单主被动卖出，用这个值除以当前时间段的总成交额
+                    value_df=value_df[["代码","资金流数据分时",
+                        "主动买入特大单金额",
+                        "被动买入特大单金额",
+                        "主动买入大单金额",
+                        "被动买入大单金额",
+                        "主动卖出特大单金额",
+                        "被动卖出特大单金额",
+                        "主动卖出大单金额",
+                        "被动卖出大单金额",
+                        "金额流入率"]]#这个资金流入率是百分比的
+                    olddf=olddf.merge(value_df,on="代码",how="inner")
+                    dt=pd.concat([dt,olddf],axis=0) #拼接每一天的df合并为dt
+                    dt=dt.reset_index(drop=True)
+                    # dt.to_csv("__"+str(thisname)+str(bkname)+"_测试"+"dt.csv")
+                #根据目标指数的最大时间集合对数据进行截断
+                if tradenum>=allnum:
+                    dt.to_csv("__"+str(thisname)+str(bkname)+str(floattoday)+"_回测环境"+"dt.csv")
+                    print(dt)
+                    tradenum=0
+                    dt=pd.DataFrame({})
+        # print(dt)
+        # dt.to_csv("__"+str(thisname)+str(bkname)+"_测试"+"dt.csv")
+    elif (thisname=="分时三十分钟"):
+        bkname="分时三十分钟"
+        allnum=4#allnum天输出一次数据
+        dt=pd.DataFrame({}) #初始化一个空的dt用来拼接因子数据
+        # daysnum=4000#策略运行初始天数为daysnum
+        daysnum=200#策略运行初始天数为daysnum
+        start_date=((datetime.datetime.now()-datetime.timedelta(days=daysnum)).strftime("%Y-%m-%d")) #测试当天的数据
+        print(start_date)
+        end_date=((datetime.datetime.now()).strftime("%Y-%m-%d")) #测试当天的数据
+        tradeday=get_trade_days(start_date=start_date,end_date=end_date).values
+        print(len(tradeday))
+        tradeday=[np.datetime_as_string(x,unit="D").replace("-","") for x in tradeday]
+        print("start_date",start_date,"tradeday",tradeday,len(tradeday),type(tradeday),type(tradeday[0]))
+        tradenum=0#用来计算当前总交易天数
+        for today in tradeday:
+            tradenum+=1#用来计算当前总交易天数【目的是确定是否重置仓位】
+            print(today)
+            #距离当前日期一个月时间前【2023年12月20】结束任务
+            if (float(today)-float(20240510))>0:
+                break
+            index=tradeday.index(today)
+            #不取后四天的数据避免越界
+            if (index>1) and (index<len(tradeday)-1):
+                yesterday=tradeday[index-1]
+                preyesterday=tradeday[index-2]
+                timelist=[str("10:00")]
+                # timelist=[str("10:00"),str("10:30"),str("11:00"),str("14:00"),str("14:30"),str("15:00")]
+                for thistime in timelist:
+                    olddf=get_all_securities("stock",yesterday).reset_index(drop=False)
+                    olddf=olddf.rename(columns={"symbol":"代码","display_name":"股票名称"})
+                    olddf=olddf[["代码","股票名称"]]
+                    floattoday=float(today)
+                    floatyesterday=float(yesterday)
+                    olddf["floattoday"]=floattoday
+                    olddf["floatyesterday"]=floatyesterday
+                    print(floattoday,"当日所有数据列",olddf.columns)
+                    stocks=olddf["代码"].tolist()
+                    #stocks=filter_kcb_stock(stocks) #去除科创北交
+                    # #获取量价数据
+                    # price_df=get_price(
+                    #     securities=stocks,
+                    #     start_date=None,
+                    #     end_date=yesterday,
+                    #     fre_step="1d",
+                    #     fields=["high_limit","low_limit",
+                    #             "prev_close",
+                    #             "is_st",
+                    #             "is_paused",
+                    #             "factor",#上市以来的总复权因子
+                    #         ],#获取全部数据列，其中昨日收盘价是用来计算总股本的
+                    #     # fq="pre",
+                    #     fq=None,#这里动态复权或者不复权都是可以的
+                    #     bar_count=1,
+                    #     is_panel=1).to_frame()
+                    # price_df=price_df.reset_index()
+                    # price_df=price_df.rename(columns={"minor":"代码","major":"日期"})
+                    # price_df=price_df[["代码","日期","high_limit","low_limit",
+                    #                 "prev_close",
+                    #                 "is_st",
+                    #                 "is_paused",
+                    #                 "factor",
+                    #                 ]]
+                    # olddf=olddf.merge(price_df,on="代码",how="inner")
+                    # print(olddf)
+                    #获取量价数据
+                    price_df=get_price(
+                        securities=stocks,
+                        start_date=None,
+                        end_date=yesterday+" "+thistime,
+                        fre_step="30m",
+                        fields=["high","close","open","low","volume","turnover"],#获取全部数据列，其中昨日收盘价是用来计算总股本的
+                        # fq="pre",
+                        fq=None,#这里动态复权或者不复权都是可以的
+                        bar_count=1,
+                        is_panel=1).to_frame()
+                    price_df=price_df.reset_index()
+                    price_df=price_df.rename(columns={"minor":"代码","major":"价格分时"})
+                    price_df=price_df[["代码","价格分时","high","close","open","low","volume","turnover"]]
+                    price_df["float价格分时"]=price_df["价格分时"].dt.strftime('%Y%m%d%H%M%S')
+                    olddf=olddf.merge(price_df,on="代码",how="inner")
+                    # # 获取基本面数据
+                    # basedf=get_fundamentals(query(
+                    #         asharevalue.symbol,
+                    #         asharevalue.total_shares,
+                    #         # asharevalue.float_shares,#流通股本
+                    #         asharevalue.total_mv,
+                    #         # income.overall_income,
+                    #         income.np_atsopc,
+                    #         asharevalue.pb_mrq,#市净率MRQ
+                    #         balance.undistributed_profits,#未分配利润
+                    #         growth_sq.np_atsopc_yoy,#归母净利润(同比增长率)growth_sq是季度
+                    #         growth.net_asset_growth_ratio,#净资产(同比增长率)growth是年度
+                    #         income.basic_eps,#基本每股收益（真实的，稀释每股收益是预期的）
+                    #         asharevalue.dividend_rate_ttm,#股息率
+                    #     ),date=yesterday)
+                    # basedf=basedf.rename(columns={
+                    #         "asharevalue_symbol":"代码",
+                    #         "asharevalue_total_shares": "总股本",
+                    #         # "asharevalue_float_shares": "流通股本",
+                    #         "asharevalue_total_mv":"总市值",
+                    #         # "income_overall_income":"营业总收入",
+                    #         "income_np_atsopc":"归母净利润",
+                    #         "asharevalue_pb_mrq":"市净率",
+                    #         "balance_undistributed_profits":"未分配利润",
+                    #         "growth_sq_np_atsopc_yoy":"归母净利润季度增长率",
+                    #         "growth_net_asset_growth_ratio":"净资产年度增长率",
+                    #         "income_basic_eps":"基本每股收益",
+                    #         "asharevalue_dividend_rate_ttm": "股息率",
+                    #         #定义：股息率是股息与股票价格之间的比率在投资实践中, 股息率是衡量企业是否具有投资价值的重要标尺之一股息率等于股息与股票买入价之比。
+                    #         #公式：股息率_近12月＝∑近12个月派息总和／指定日股票市值×100％备注：1、股票派息总额=每股派息比例*基准股本；2、证券的总市值为指定交易日的总市值（面向证券）
+                    #         #12个月内没分红的标的的股息率为空值
+                    #         })
+                    #basedf=basedf[basedf["营业总收入"]>100000000]
+                    #basedf=basedf[basedf["归母净利润"]>0]
+                    # basedf["基本面数据日期"]=float(preyesterday)
+                    # olddf=olddf.merge(basedf, on="代码",how="inner")
+                    # olddf["总市值"]=olddf["总股本"]*olddf["open"]
+                    # # print(olddf)
+                    # value_df=get_money_flow_step(
+                    #     security_list=stocks,
+                    #     start_date=None,
+                    #     end_date=yesterday+" "+thistime,
+                    #     fre_step="30m",
+                    #     fields=["act_buy_xl",
+                    #             "pas_buy_xl",
+                    #             "act_buy_l",
+                    #             "pas_buy_l",
+                    #             "act_sell_xl",
+                    #             "pas_sell_xl",
+                    #             "act_sell_l",
+                    #             "pas_sell_l",
+                    #             "net_flow_rate",#是大单特大单主被动买入减去大单特大单主被动卖出，用这个值除以当前时间段的总成交额
+                    #             ],
+                    #     count=1,
+                    #     is_panel=1).to_frame()
+                    # value_df=value_df.reset_index()
+                    # value_df=value_df.rename(columns={
+                    #     "minor": "代码","trade_date":"资金流数据分时",
+                    #     "act_buy_xl":"主动买入特大单金额",
+                    #     "pas_buy_xl":"被动买入特大单金额",
+                    #     "act_buy_l":"主动买入大单金额",
+                    #     "pas_buy_l":"被动买入大单金额",
+                    #     "act_sell_xl":"主动卖出特大单金额",
+                    #     "pas_sell_xl":"被动卖出特大单金额",
+                    #     "act_sell_l":"主动卖出大单金额",
+                    #     "pas_sell_l":"被动卖出大单金额",
+                    #     "net_flow_rate":"金额流入率",})
+                    # value_df=value_df[["代码","资金流数据分时",
+                    #     "主动买入特大单金额",
+                    #     "被动买入特大单金额",
+                    #     "主动买入大单金额",
+                    #     "被动买入大单金额",
+                    #     "主动卖出特大单金额",
+                    #     "被动卖出特大单金额",
+                    #     "主动卖出大单金额",
+                    #     "被动卖出大单金额",
+                    #     "金额流入率"]]#这个资金流入率是百分比的，
+                    # olddf=olddf.merge(value_df,on="代码",how="inner")
+                    print(olddf)
+                    dt=pd.concat([dt,olddf],axis=0) #拼接每一天的df合并为dt
+                    dt=dt.reset_index(drop=True)
+                    # dt.to_csv("__"+str(thisname)+str(bkname)+"_测试"+"dt.csv")
+            #根据目标指数的最大时间集合对数据进行截断
+            if tradenum>=allnum:
+                dt.to_csv("__"+str(thisname)+str(bkname)+str(floattoday)+"_回测环境"+"dt.csv")
+                print(dt)
+                tradenum=0
+                dt=pd.DataFrame({})
+        # print(dt)
+        # dt.to_csv("__"+str(thisname)+str(bkname)+"_测试"+"dt.csv")
+    elif ((thisname=="可转债")or(thisname=="全体A股")):
+        bknames=[thisname]
+        for bkname in bknames:
+            if thisname=="可转债":
+                allnum=100
+                daysnum=1200
+                dt=pd.DataFrame({}) #初始化一个空的dt用来拼接因子数据
+                start_date=((datetime.datetime.now()-datetime.timedelta(days=daysnum)).strftime("%Y-%m-%d")) #测试当天的数据
+                print(start_date)
+                end_date=((datetime.datetime.now()).strftime("%Y-%m-%d")) #测试当天的数据
+                tradeday=get_trade_days(start_date=start_date,end_date=end_date).values
+                print(len(tradeday))
+                tradeday=[np.datetime_as_string(x,unit="D").replace("-","") for x in tradeday]
+                print("start_date",start_date,"tradeday",tradeday,len(tradeday),type(tradeday),type(tradeday[0]))
+                tradenum=0#用来计算当前总交易天数
+            elif thisname=="全体A股":
+                allnum=12
+                daysnum=2500
+                # daysnum=200
+                dt=pd.DataFrame({}) #初始化一个空的dt用来拼接因子数据
+                start_date=((datetime.datetime.now()-datetime.timedelta(days=daysnum)).strftime("%Y-%m-%d")) #测试当天的数据
+                print(start_date)
+                end_date=((datetime.datetime.now()).strftime("%Y-%m-%d")) #测试当天的数据
+                tradeday=get_trade_days(start_date=start_date,end_date=end_date).values
+                print(len(tradeday))
+                tradeday=[np.datetime_as_string(x,unit="D").replace("-","") for x in tradeday]
+                print("start_date",start_date,"tradeday",tradeday,len(tradeday),type(tradeday),type(tradeday[0]))
+                tradenum=0#用来计算当前总交易天数
+            for today in tradeday:
+                tradenum+=1#用来计算当前总交易天数【目的是确定是否重置仓位】
+                print(today)
+                #距离当前日期一个月时间前【2023年12月20】结束任务
+                if (float(today)-float(20240510))>0:
+                    break
+                index=tradeday.index(today)
+                #不取后四天的数据避免越界
+                if (index>0) and (index<len(tradeday)-4):
+                    yesterday=tradeday[index-1]
+                    if "可转债" in thisname:
+                        #获取所有可转债
+                        df=get_all_securities("cbond",today).reset_index(drop=False)
+                        print("当日可交易转债总数",len(df)) #这里只有579只
+                        df=df.rename(columns={"symbol":"代码","display_name":"转债名称"})
+                        df=df[["代码","转债名称","end_date","start_date","market_hq"]]
+                        df=df[df["start_date"]<(datetime.datetime.strptime(yesterday,"%Y%m%d"))] #去掉未上市的
+                        df=df[df["end_date"]>=(datetime.datetime.strptime(yesterday,"%Y%m%d")+datetime.timedelta(days=180))] #去掉半年内到期的
+                        print("去掉即将到期的之后",len(df)) #去掉即将退市的有559只
+                        #获取全市场可转债余额变动表
+                        balance=run_query(query(cbond_remaining_change))
+                        balance=balance.rename(columns={
+                            "cbond_remaining_change_symbol":"代码",
+                            "cbond_remaining_change_change_date":"转债余额变更日",
+                            "cbond_remaining_change_remaining":"转债余额"}) #转债余额的单位是万
+                        balance=balance[balance["转债余额变更日"]<(datetime.datetime.strptime(yesterday,"%Y%m%d")+datetime.timedelta(days=180)).date()] #去掉180天内到期或者赎回的
+                        balance=balance.sort_values(by="转债余额变更日",ascending=False)
+                        balance=balance.groupby("代码").apply(lambda x:x[:1]) #只保留最后一天
+                        balance=balance.reset_index(drop=True) #重置索引
+                        balance=balance[["代码","转债余额变更日","转债余额"]]
+                        balance=balance[(balance["转债余额"]!=0)] #单位是万元，这里其实是小于2.5亿
+                        #balance.to_csv("可转债余额变动表.csv")
+                        #获取全市场可转债转股价变更表【总共600只】
+                        rateprice=run_query(query(cbond_conversion_change))
+                        rateprice=rateprice.rename(columns={"cbond_conversion_change_symbol":"代码",
+                                "cbond_conversion_change_change_date":"转股价变更日",
+                                "cbond_conversion_change_report_date":"转股价变更公告日",
+                                "cbond_conversion_change_conversion_price":"更新后转股价格",
+                                                       }) #转债余额的单位是万
+                        rateprice=rateprice.sort_values(by="转股价变更日",ascending=False)
+                        rateprice=rateprice.groupby("代码").apply(lambda x:x[:1]) #只保留最后一天
+                        rateprice=rateprice.reset_index(drop=True) #重置索引
+                        rateprice=rateprice[["代码","转股价变更日","转股价变更公告日","更新后转股价格"]]
+                        #rateprice.to_csv("可转债转股价变更表.csv")
+                        #可转债标的和正股标的对应关系
+                        df_cbonds=run_query(query(cbond_info))
+                        df_cbonds=df_cbonds[(df_cbonds["cbond_info_pub_enddate"]>=(datetime.datetime.strptime(yesterday,"%Y%m%d")+datetime.timedelta(days=180)).date())] #转债结束日期在180天之后
+                        df_cbonds=df_cbonds.rename(columns={"cbond_info_symbol":"代码","cbond_info_stock_symbol":"正股代码"})
+                        df_cbonds=df_cbonds[["代码","正股代码","cbond_info_pub_enddate"]] #这里只有448只
+                        #拼接之前的数据
+                        df_cbonds=df_cbonds.merge(df,on="代码",how="inner").reset_index(drop=True) #拼接之前的可转债余额变动表
+                        df_cbonds=df_cbonds.merge(balance,on="代码",how="inner").reset_index(drop=True) #拼接之前的可转债余额变动表
+                        df_cbonds=df_cbonds.merge(rateprice,on="代码",how="inner").reset_index(drop=True) #拼接之前的可转债转股价变更表
+                        print("可转债全部信息",df_cbonds)
+                        #剔除正股ST的标的
+                        stocks=get_all_securities("stock",today).index.tolist()
+                        #stocks=[stock for stock in stocks if ((stocks[0]!= "4") and (stock[0] != "8"))] #去掉北交所新三板股票【没有去688的科创板股票】
+                        stocks=[stock for stock in stocks if stock in df_cbonds["正股代码"].tolist()] #提前去掉非可转债正股的标的
+                        df_stocks=get_price(
+                            securities=stocks,
+                            start_date=None,
+                            end_date=today,
+                            fre_step="1d",
+                            fields=["is_st"],#获取全部数据列
+                            skip_paused=True,
+                            fq="pre",
+                            #fq=None,#这里动态复权或者不复权都是可以的
+                            bar_count=1,
+                            is_panel=1,).to_frame()
+                        df_stocks=df_stocks.reset_index() #重置索引
+                        # df_stocks=df_stocks[(df_stocks["is_st"]==0)] #当天去除ST，但是不去除停牌，因为正股停牌不影响ST
+                        df_stocks=df_stocks.rename(columns={"minor":"正股代码","is_st":"正股st"})
+                        df_stocks=df_stocks[["正股代码","正股st"]] #正股数据拼接基本面【预防未来ST】
+                        olddf=get_fundamentals(query(
+                          asharevalue.symbol,
+                          income.overall_income,
+                          income.np_atsopc,
+                          ),date=yesterday)
+                        olddf=olddf.rename(columns={
+                              "asharevalue_symbol":"正股代码",
+                              "income_overall_income":"营业总收入",
+                              "income_np_atsopc":"归母净利润",
+                          })
+                        #olddf=olddf[olddf["营业总收入"] > 100000000]
+                        #olddf=olddf[olddf["归母净利润"] > 0]
+                        olddf=olddf[["正股代码","营业总收入","归母净利润"]]
+                        df_stocks=df_stocks.merge(olddf,on="正股代码",how="inner")
+                        #拼接正股数据
+                        df_cbonds=df_cbonds.merge(df_stocks,on="正股代码",how="inner")
+                        print("去掉正股ST的",len(df_cbonds))
+                        #设置获取k线的时间
+                        timestame=(datetime.datetime.now()-datetime.timedelta(minutes=2)).strftime("%Y%m%d %H:%M")
+                        #获取债券一分钟k数据
+                        cbonds=df_cbonds["代码"].tolist()
+                        df_cbonds_price=get_price(
+                            securities=cbonds,
+                            start_date=None,
+                            
+                            end_date=today,
+                            fre_step="1d",
+                            fields=["open"],#获取全部数据列【日】
+                            
+                            #end_date=timestame,
+                            #fre_step="1m",
+                            #fields=["close"],#获取全部数据列【分钟】
+                            
+                            skip_paused=True,
+                            fq="pre",
+                            #fq=None,#这里动态复权或者不复权都是可以的
+                            bar_count=1,
+                            is_panel=1,).to_frame()
+                        df_cbonds_price=df_cbonds_price.reset_index()
+                        #df_cbonds_price=df_cbonds_price[df_cbonds_price["open"]<150]
+                        df_cbonds_price=df_cbonds_price.rename(columns={"minor":"代码","open":"可转债价格"})
+                        df_cbonds_price=df_cbonds_price[["代码","可转债价格"]]
+                        df_cbonds=pd.merge(df_cbonds,df_cbonds_price,on="代码")
+                        #获取正股k数据
+                        stocks=df_cbonds["正股代码"].tolist()
+                        df_stocks_price=get_price(
+                            securities=stocks,
+                            start_date=None,
+                            
+                            end_date=today,
+                            fre_step="1d",
+                            fields=["open"],#获取全部数据列【日】
+                            
+                            #end_date=timestame,
+                            #fre_step="1m",
+                            #fields=["close"],#获取全部数据列【分钟】
+                            
+                            skip_paused=True,
+                            fq="pre",
+                            #fq=None,#这里动态复权或者不复权都是可以的
+                            bar_count=1,
+                            is_panel=1,).to_frame()
+                        df_stocks_price=df_stocks_price.reset_index()
+                        df_stocks_price=df_stocks_price.rename(columns={"minor":"正股代码","open":"正股价格"})
+                        df_stocks_price=df_stocks_price[["正股代码","正股价格"]]
+                        #print("df_stocks_price",df_stocks_price)
+                        df_cbonds=pd.merge(df_cbonds,df_stocks_price,on="正股代码")#三低指数【可转债余额就是剩余张数（乘以当前价格之后就是可转债的总市值）】
+                        df_cbonds["转股溢价率"]=df_cbonds["可转债价格"]/((100/df_cbonds["更新后转股价格"])*df_cbonds["正股价格"])
+                        df_cbonds["可转债总市值"]=df_cbonds["可转债价格"]*df_cbonds["转债余额"]/10000
+                        df_cbonds["三低指数"]=df_cbonds["可转债价格"]*df_cbonds["转股溢价率"]*df_cbonds["转债余额"]/10000
+                        stocks=df_cbonds["代码"].tolist()
+                        ###已选择转债的因子处理 ###
+                        print(stocks[0])
+                        df=pd.DataFrame({"代码":stocks})
+                        df=df.reset_index()
+                        df=df.rename(columns={"index":"索引"})
+                        #日期值的处理
+                        floattoday=float(today)
+                        floatyesterday=float(yesterday)
+                        df["floattoday"]=floattoday
+                        df["floatyesterday"]=floatyesterday
+                        df=df.merge(df_cbonds,on="代码",how="inner")#拼接可转债的基本面数据
+                        #获取个股涨跌数据
+                        price_df=get_price(
+                            securities=stocks,
+                            start_date=None,
+                            end_date=yesterday,
+                            fre_step="1d",
+                            fields=["open",
+                                    "high","low",
+                                    "close","prev_close",
+                                    "high_limit","low_limit",#可转债的限高限低值为0
+                                    "factor",#上市以来的总复权因子
+                                    #"is_st",
+                                    "is_paused",
+                                    "turnover",#成交金额(元)
+                                    "avg_price",#均价
+                                  ],#获取全部数据列,其中昨日收盘价是用来计算总股本的
+                            fq="pre",
+                            bar_count=1,
+                            is_panel=1,).to_frame()
+                        price_df=price_df.reset_index()
+                        price_df=price_df.rename(columns={"minor":"代码"})
+                        price_df=price_df.drop("major",axis=1)
+                        df=df.merge(price_df,on="代码",how="inner")
+                    if "全体A股" in thisname:
+                        df=get_all_securities("stock",yesterday).reset_index(drop=False)
+                        df=df.rename(columns={"symbol":"代码","display_name":"股票名称"})
+                        df=df[["代码","股票名称"]]
+                        stocks=df["代码"].tolist()
+                        #stocks=filter_kcb_stock(stocks) #去除科创北交
+                        # 获取基本面数据
+                        olddf=get_fundamentals(query(
+                                asharevalue.symbol,#代码
+                                asharevalue.total_shares,#总股本
+                                # asharevalue.float_shares,#流通股本
+                                asharevalue.total_mv,#总市值
+                                # ashareprofit.ebit_rate_ttm,#息税前利润率（扣非）【缺数据】
+                                income.profit_before_tax,#利润总额【当计提历史亏损的时候利润总额大于当年净利润】
+                                income.net_profit,#净利润
+                                income.np_atsopc,#归母净利润
+                                income.overall_income,#营业总收入
+                                balance.undistributed_profits,#未分配利润
+                                income.basic_eps,#基本每股收益（真实的，稀释每股收益是预期的）
+                                balance.total_liabilities,#负债合计
+                                balance.total_liab_and_holders_equity,#负债和股东权益总计
+                                growth_sq.np_atsopc_yoy,#归母净利润(同比增长率)growth_sq是季度
+                                growth.net_asset_growth_ratio,#净资产(同比增长率)growth是年度
+                                cashflow.net_cash_flows_from_opt_act,#经营活动产生的现金流量净额
+                                # cashflow.cash_at_end_of_year,#现金的期末余额
+                                asharevalue.dividend_rate_ttm,#股息率
+                                # asharevalue.pb_mrq,#市净率MRQ
+                                # asharevalue.ps_ttm,#市销率
+                            ),date=yesterday)
+                        olddf=olddf.rename(columns={
+                                "asharevalue_symbol":"代码",
+                                "asharevalue_total_shares":"总股本",
+                                # "asharevalue_float_shares":"流通股本",
+                                "asharevalue_total_mv":"总市值",
+                                # "ashareprofit_ebit_rate_ttm":"息税前利润率（扣非）",#缺失2021年5月7日数据
+                                "income_profit_before_tax":"利润总额",
+                                "income_net_profit":"净利润",
+                                "income_np_atsopc":"归母净利润",
+                                "income_overall_income":"营业总收入",
+                                "income_basic_eps":"基本每股收益",
+                                "balance_total_liabilities":"负债合计",
+                                "balance_total_liab_and_holders_equity":"负债和股东权益总计",
+                                "balance_undistributed_profits":"未分配利润",
+                                "growth_sq_np_atsopc_yoy":"归母净利润季度增长率",
+                                "growth_net_asset_growth_ratio":"净资产年度增长率",
+                                "cashflow_net_cash_flows_from_opt_act":"经营活动产生的现金流量净额",
+                                # "cashflow_cash_at_end_of_year":"现金的期末余额",
+                                "asharevalue_dividend_rate_ttm":"股息率",              #股息率_近12月＝∑近12个月派息总和／指定日股票市值×100％,12个月内没分红的标的的股息率为空值
+                                # "asharevalue_ps_ttm":"市销率",
+                                # "asharevalue_pb_mrq":"市净率",#市净率的历史数据与实际情况明显差异
+                                })
+                        olddf=olddf.merge(df,on="代码",how="inner")
+                        #获取量价数据
+                        price_df=get_price(
+                            securities=stocks,
+                            start_date=None,
+                            end_date=yesterday,
+                            fre_step="1d",
+                            fields=["open",
+                                    "high","low",
+                                    "close","prev_close",
+                                    "high_limit","low_limit",
+                                    "factor",#上市以来的总复权因子
+                                    "is_st",
+                                    "is_paused",
+                                    "turnover",#成交金额(元)
+                                    "volume",#成交量(股)
+                                    "avg_price",#均价
+                                ],#获取全部数据列，其中昨日收盘价是用来计算总股本的
+                            fq="pre",
+                            #fq=None,#这里动态复权或者不复权都是可以的
+                            bar_count=1,
+                            is_panel=1).to_frame()
+                        price_df=price_df.reset_index()
+                        price_df=price_df.rename(columns={"minor":"代码","major":"量价数据日期"})
+                        olddf=olddf.merge(price_df,on="代码",how="inner")
+                        # #资金流数据
+                        # value_df=get_money_flow_step(
+                        #     security_list=stocks,
+                        #     start_date=None,
+                        #     end_date=yesterday,
+                        #     fre_step="1d",
+                        #     fields=["act_buy_xl",
+                        #             "pas_buy_xl",
+                        #             "act_buy_l",
+                        #             "pas_buy_l",
+                        #             "act_sell_xl",
+                        #             "pas_sell_xl",
+                        #             "act_sell_l",
+                        #             "pas_sell_l",
+                        #             "net_flow_rate",                #金额流入率因子的含义是大单特大单主被动买入减去大单特大单主被动卖出，用这个值除以当前时间段的总成交额
+                        #             ],
+                        #     count=1,
+                        #     is_panel=1).to_frame()
+                        # value_df=value_df.reset_index()
+                        # value_df=value_df.rename(columns={
+                        #     "minor": "代码","major":"资金流数据日期",
+                        #     "act_buy_xl":"主动买入特大单金额",
+                        #     "pas_buy_xl":"被动买入特大单金额",
+                        #     "act_buy_l":"主动买入大单金额",
+                        #     "pas_buy_l":"被动买入大单金额",
+                        #     "act_sell_xl":"主动卖出特大单金额",
+                        #     "pas_sell_xl":"被动卖出特大单金额",
+                        #     "act_sell_l":"主动卖出大单金额",
+                        #     "pas_sell_l":"被动卖出大单金额",
+                        #     "net_flow_rate":"金额流入率",})
+                        # value_df=value_df[["代码","资金流数据日期",
+                        #     "主动买入特大单金额",
+                        #     "被动买入特大单金额",
+                        #     "主动买入大单金额",
+                        #     "被动买入大单金额",
+                        #     "主动卖出特大单金额",
+                        #     "被动卖出特大单金额",
+                        #     "主动卖出大单金额",
+                        #     "被动卖出大单金额",
+                        #     "金额流入率"]]
+                        # olddf=olddf.merge(value_df,on="代码",how="inner")
+
+                        #日期值的处理
+                        df=olddf
+                        floattoday=float(today)
+                        floatyesterday=float(yesterday)
+                        df["floattoday"]=floattoday
+                        df["floatyesterday"]=floatyesterday
+                        
+                        
+                        
+                    # 拼接集合竞价数据（不能单独获取否则新股报错）
+                    # groupprice=get_call_auction(df["代码"].tolist(),today)
+                    # groupprice=groupprice.reset_index()
+                    # groupprice=groupprice.rename(columns={
+                    #       "symbol":"代码",
+                    #       "price":"竞价开盘",#价格为空就表面当日停牌，早盘集合竞价的开盘价格，open是连续竞价阶段的开盘价
+                    #       "turnover":"竞价成交额",
+                    #   })
+                    # df=df.merge(groupprice,on="代码",how="inner")
+                    # df["竞价涨幅"]=df["竞价开盘"]/df["prev_close"]#竞价涨幅【集合竞价换手率需要单独计算】
+                    
+                    
+                    
+            
+                    # 获取最近一天的1分钟k数据
+                    thisstocks=df["代码"].tolist()
+                    thistime=str("15:00")#获取k线的时间【48个5分钟比240个1分钟好是因为集合竞价】
+                    timestamedf=get_price(
+                        securities=thisstocks,
+                        start_date=None,
+                        
+                        # # 分钟级别数据
+                        end_date=yesterday+" "+thistime,
+                        fre_step="5m",
+                        fields=["close","volume"],#这里研究量价相关性用的是成交量，主要目的是研究的筹码结构
+                        
+                        # # 日级别数据
+                        # end_date=today,
+                        # fre_step='1d',
+                        # fields=["close"],
+                        
+                        # skip_paused=True,
+                        # fq='pre',
+                        fq=None, # 这里动态复权或者不复权都是可以的
+                        bar_count=48,
+                        is_panel=1,).to_frame()
+                    timestamedf=timestamedf.reset_index()
+                    timestamedf=timestamedf.rename(columns={"major":"日期","minor":"代码"})
+                    
+                    #不同方式构建量价相关性因子
+                    def pearsonrcorrelation(group):
+                        correlation,p=pearsonr(group['close'].values,group['volume'].values)#第一个返回值是相关性系数，第二个返回值p如果很小（通常小于0.05）则可以拒绝零相关性的假设。
+                        # print("correlation",correlation,p)#这里面的值能打出来，但是后面的结果不显示
+                        group['量价相关性系数']=correlation
+                        group['量价相关性P值']=p
+                        return group
+                    timestamedf=timestamedf.groupby('代码').apply(pearsonrcorrelation)
+                    # timestamedf.to_csv("量价相关性全部数据.csv")
+                    timestamedf= timestamedf.groupby("代码").apply(lambda x: x.loc[x["日期"].idxmax()]).reset_index(drop=True)#可能差了一行看看原因
+                    columnlist=[column for column in timestamedf.columns if ("量价相关性" in column)or("代码" in column)]
+                    timestamedf=timestamedf[columnlist]
+                    
+                    
+                    #拼接其他数据
+                    df=df.merge(timestamedf,on="代码",how="inner")#加上量价相关性因子
+                    #数据打印及拼接
+                    print(floattoday,"当日所有数据列",df.columns)
+                    dt=pd.concat([dt,df],axis=0) #拼接每一天的df合并为dt
+                dt=dt.reset_index(drop=True)
+                #根据目标指数的最大时间集合对数据进行截断
+                if tradenum>=allnum:
+                    dt.to_csv("__"+str(thisname)+str(bkname)+str(floattoday)+"_回测环境"+"dt.csv")
+                    print(dt)
+                    tradenum=0
+                    dt=pd.DataFrame({})
+                # print(dt)
+                # dt.to_csv("__"+str(thisname)+str(bkname)+"_测试"+"dt.csv")

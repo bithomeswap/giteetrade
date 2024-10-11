@@ -1,0 +1,32 @@
+//以下为模型的策略部分 
+#IMPORT[DAY,2,WHBXSF] AS VAR1//调取自定义2日线周期上WHBXSF指标中的数据
+DA:=VAR1.A; //自定义2日线周期均线多头排列
+DB:=VAR1.B; //自定义2日线周期均线空头排列
+#IMPORT[MIN,40,WHBXSF] AS VAR2//调取自定义40分钟周期上WHBXSF指标中的数据
+HA:=VAR2.A; //自定义40分钟周期均线多头排列
+HB:=VAR2.B; //自定义40分钟周期均线空头排列
+MA5:MA(C,5);
+MA10:MA(C,10);
+MA20:MA(C,20);
+MA30:MA(C,30); //定义当前周期4条均线
+A:=C>MA5&&MA5>MA10&&MA10>MA20&&MA20>MA30; //当前周期均线多头排列
+B:=C<MA5&&MA5<MA10&&MA10<MA20&&MA20<MA30; //当前周期均线空头排列
+DT:=A&&DA&&HA;
+KT:=B&&DB&&HB; //3个周期均线共振
+ 
+DT,BK(1); //3个周期均线同时多头排列买入开仓
+KT,SK(1); //3个周期均线同时空头排列卖出开仓
+CROSSUP(MA5,MA10),BP(1);
+CROSSDOWN(MA5,MA10),SP(1);
+
+DRAWTEXT(DT,L,'多'),VALIGN0,COLORRED,FONTSIZE20;
+DRAWTEXT(KT,H,'空'),COLORGREEN,FONTSIZE20;
+
+//以下为模型的止损和风控部分  
+/*
+STOP(0,-20);//多单，亏损20个最小变动价位止损；
+STOP(3,20);//空单，亏损20个最小变动价位止损；
+MONEYTOT<=INITMONEY*(1-10/100),CLOSEOUT; //本金风险率超过10%，模型清仓
+*/
+
+//AUTOFILTER;

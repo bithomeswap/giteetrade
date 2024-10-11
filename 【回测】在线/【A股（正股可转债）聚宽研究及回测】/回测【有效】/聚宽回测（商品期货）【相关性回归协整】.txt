@@ -1,0 +1,1520 @@
+# 克隆自聚宽文章：https://www.joinquant.com/post/49142
+# 标题：期货相关性研究以及应用
+# 作者：yanzigao
+
+# 克隆自聚宽文章：https://www.joinquant.com/post/16318
+# 标题：【期货策略】钢厂利润模型-螺纹钢铁矿石焦炭套利
+# 作者：拉姆达投资
+
+# 导入函数库
+from jqdata import *
+import numpy as np
+import xgboost
+from xgboost import Booster, XGBRegressor
+import sklearn.base
+
+## 初始化函数，设定基准等等
+def initialize(context):
+    # 设定银华日利作为基准
+    set_benchmark('511880.XSHG')
+    #设置日志输出级别
+    log.set_level('order', 'error')
+    set_parameter(context)
+    set_option('avoid_future_data', True)#防止未来函数
+    ### 期货相关设定 ###
+    # 设定账户为金融账户
+    set_subportfolios([SubPortfolioConfig(cash=context.portfolio.starting_cash, type='futures')])
+
+    # 期货类每笔交易时的手续费是：买入时万分之1,卖出时万分之1,平今仓为万分之1
+    set_order_cost(OrderCost(open_commission=0.0001, close_commission=0.0001,close_today_commission=0.0001), type='index_futures')
+    
+    #获取可操作资金
+    g.init_cash = context.portfolio.starting_cash
+    
+    #主力合约记录
+    g.main_rb = get_dominant_future('RB', date=context.current_dt)
+    g.main_J = get_dominant_future('J', date=context.current_dt)
+    g.main_SM = get_dominant_future('SM', date=context.current_dt)
+    g.main_I = get_dominant_future('I', date=context.current_dt)
+    g.main_C = get_dominant_future('C', date=context.current_dt)
+    g.main_M = get_dominant_future('M', date=context.current_dt)
+    # 设定保证金比例
+    set_option('futures_margin_rate', 0.10)
+
+    # 设置滑点（单边万5，双边千1）
+    set_slippage(PriceRelatedSlippage(0.00),type='future')
+
+    # 开盘时运行
+    run_weekly(trade,2, time='open', reference_security='RB9999.XSGE')
+    # 收盘后运行
+    run_daily( after_market_close, time='after_close', reference_security='RB9999.XSGE')
+    
+# 在初始化函数中添加检查，确保在新年的第一天更新系数  
+# 参数设置函数
+def set_parameter(context):
+    #风控部分
+    g.risk_days = 10 
+    g.tot_values  = [context.portfolio.starting_cash]*g.risk_days
+    g.maxdown = 0.05 #最大回撤设置
+    
+
+
+#交易主体部分
+def trade(context):
+    #每周交易前平仓
+    #获取当前持仓的合约
+    hold_future_s = list(context.portfolio.short_positions.keys())
+    hold_future_l = list(context.portfolio.long_positions.keys())
+    if len(hold_future_l)>0:
+        for future_l in hold_future_l:
+            order_target_value(future_l,0,side='long')
+    if len(hold_future_s)>0:
+        for future_s in hold_future_s:
+            order_target_value(future_s,0,side='short')
+
+    '''
+    =================================================================
+    黑色系期货部分：螺纹钢、铁矿石、焦炭
+    =================================================================
+    '''
+    prices = history(251,security_list=['RB8888.XSGE','I8888.XDCE','J8888.XDCE'])
+    #print(prices)
+    # 数据归一化
+    prices=prices.apply(lambda x : (x-np.min(x))/(np.max(x)-np.min(x))) 
+    
+    # 准备自变量和因变量数据  
+    X = np.vstack([prices['I8888.XDCE'], prices['J8888.XDCE']]).T  
+    Y = np.vstack([prices['RB8888.XSGE']]).T    
+    
+    # 拆分训练集、校准集、测试集
+    X_test =  np.array(X[-1])
+    X_test = X_test.reshape(1,2)
+    Y_test = Y[-1]
+    # print(X_test)
+    # print(Y_test)
+    # 去除测试集  
+    X = X[:-1]  
+    Y = Y[:-1]  
+     
+    # 设置随机种子以确保可复现性  
+    np.random.seed(42)  
+
+    # 打乱X和Y的值  
+    shuffle_indices = np.arange(X.shape[0])  
+    np.random.shuffle(shuffle_indices)  
+    X = X[shuffle_indices]  
+    Y = Y[shuffle_indices]  
+    # 拆分训练集和校准集  
+    split_index = len(X) // 2  
+    X_train, X_cal = X[:split_index], X[split_index:] 
+    Y_train, Y_cal = Y[:split_index].ravel(), Y[split_index:].ravel()  
+    # 建立模型和保形回归器  
+    model = XGBRegressor(n_estimators=12, random_state=42)  
+    nc = NcFactory.create_nc(model)  
+    icp = IcpRegressor(nc)  
+  
+    # 拟合和校准模型  
+    # print(X_train)
+    # print(Y_train)
+    icp.fit(X_train, Y_train)  
+    icp.calibrate(X_cal, Y_cal)  
+  
+    # 生成预测及预测区间  
+    predictions = icp.predict(X_test, significance=0.05)  
+    Y_lower = predictions[:, 0]  
+    Y_upper = predictions[:, 1]  
+    Y_pred = (Y_lower + Y_upper) / 2  
+    Y_width = Y_upper - Y_lower  
+    print("rb预测值为")
+    print(Y_pred)
+    print("rb区间宽度为")
+    print(Y_width)
+    Y_Distance = (Y_test - Y_pred)
+    print("rb得分为")
+    print(Y_Distance)
+
+    #初始资金的十分之一
+    cash = context.portfolio.total_value*0.1
+    #根据交易信号进行交易
+    #获取标的的主力合约
+    main_rb = get_dominant_future('RB', date=context.current_dt)
+    main_i = get_dominant_future('I', date=context.current_dt)
+    main_j = get_dominant_future('J', date=context.current_dt)
+    
+    #获取当前持仓的合约
+    hold_future_s = list(context.portfolio.short_positions.keys())
+    hold_future_l = list(context.portfolio.long_positions.keys())
+                
+    #交易部分
+    if (Y_Distance < -0.03 and Y_width < 0.36): #预测下降且区间小：开空
+        print('触发交易信号：空螺纹钢')
+        #做空螺纹钢主力
+        order_target_value(main_rb,cash, side='short')
+        
+        #对主力合约的多仓的标的全部清空
+        if len(hold_future_l)>0:
+            for future_l in hold_future_l:
+                if  (future_l == main_rb):
+                    order_target_value(future_l,0,side='long')
+        
+    
+    elif (Y_Distance > 0.03 and Y_width < 0.36): #预测上涨且区间小：开多
+        print('触发交易信号：多螺纹钢')
+        #做多螺纹钢主力
+        order_target_value(main_rb,cash, side='long')
+
+        #对主力合约的空仓标的全部清空
+        if len(hold_future_s)>0:
+            for future_s in hold_future_s:
+                if (future_s == main_rb):
+                    order_target_value(future_s,0,side='short')
+        
+    #移仓换月逻辑
+    #主力合约变更进行换仓
+    if g.main_rb != main_rb:
+        print('rb主力合约由%s变化为%s'%(g.main_rb,main_rb))
+        if g.main_rb in hold_future_s:
+            order_target_value(g.main_rb,0,side='short')
+            order_target_value(main_rb,cash,side='short')
+        elif g.main_rb in hold_future_l:
+            order_target_value(g.main_rb,0,side='long')
+            order_target_value(main_rb,cash,side='long')
+     
+    g.main_rb = main_rb
+    g.main_j  = main_j
+    g.main_i  = main_i
+    
+    '''
+    =================================================================
+    玉米产业链部分：玉米、玉米淀粉、菜籽油
+    =================================================================
+    '''
+    prices = history(121,security_list=['C9999.XDCE','CS9999.XDCE','OI9999.XZCE'])
+    #print(prices)
+    # 数据归一化
+    prices=prices.apply(lambda x : (x-np.min(x))/(np.max(x)-np.min(x))) 
+    # 准备自变量和因变量数据  
+    X_Y = np.vstack([prices['CS9999.XDCE'],prices['OI9999.XZCE']]).T  
+    Y_Y = np.vstack([prices['C9999.XDCE']]).T    
+    
+    # 拆分训练集、校准集、测试集
+    X_Y_test =  np.array(X_Y[-1])
+    X_Y_test = X_Y_test.reshape(1,2)
+    Y_Y_test = Y_Y[-1]
+    # print(X_Y_test)
+    # print(Y_Y_test)
+    # 去除测试集  
+    X_Y = X_Y[:-1]  
+    Y_Y = Y_Y[:-1]  
+    # 设置随机种子以确保可复现性  
+    np.random.seed(42)  
+      
+    # 打乱X和Y的值  
+    shuffle_indices = np.arange(X_Y.shape[0])  
+    np.random.shuffle(shuffle_indices)  
+    X_Y = X_Y[shuffle_indices]  
+    Y_Y = Y_Y[shuffle_indices]  
+    # 拆分训练集和校准集  
+    split_index = len(X_Y) // 2  
+    X_Y_train, X_Y_cal = X_Y[:split_index], X_Y[split_index:] 
+    Y_Y_train, Y_Y_cal = Y_Y[:split_index].ravel(), Y_Y[split_index:].ravel()  
+    # 建立模型和保形回归器  
+    model = XGBRegressor(n_estimators=5, random_state=42)  
+    nc = NcFactory.create_nc(model)  
+    icp = IcpRegressor(nc)  
+  
+    # 拟合和校准模型  
+    # print(X_Y_train)
+    # print(Y_train)
+    icp.fit(X_Y_train, Y_Y_train)  
+    icp.calibrate(X_Y_cal, Y_Y_cal)  
+  
+    # 生成预测及预测区间  
+    predictions = icp.predict(X_Y_test, significance=0.05)  
+    Y_Y_lower = predictions[:, 0]  
+    Y_Y_upper = predictions[:, 1]  
+    Y_Y_pred = (Y_Y_lower + Y_Y_upper) / 2  
+    Y_Y_width = Y_Y_upper - Y_Y_lower  
+    print("C预测值为")
+    print(Y_Y_pred)
+    print("C区间宽度为")
+    print(Y_Y_width)
+    Y_Y_Distance = (Y_Y_test - Y_Y_pred)
+    print("C得分为")
+    print(Y_Y_Distance)
+
+    #初始资金的十分之一
+    cash = context.portfolio.total_value*0.1
+    #根据交易信号进行交易
+    #获取标的的主力合约
+    main_C = get_dominant_future('C', date=context.current_dt)
+    
+    #获取当前持仓的合约
+    hold_future_s = list(context.portfolio.short_positions.keys())
+    hold_future_l = list(context.portfolio.long_positions.keys())
+                
+    #交易部分
+    if (Y_Y_Distance < -0.35 and Y_Y_width < 1): 
+        print('触发交易信号：空玉米')
+        
+        #做空主力
+        order_target_value(main_C,cash, side='short')
+        
+        #对主力合约的多仓的标的全部清空
+        if len(hold_future_l)>0:
+            for future_l in hold_future_l:
+                if (future_l == main_C):
+                    order_target_value(future_l,0,side='long')
+        
+    
+    elif (Y_Y_Distance > 0.35 and Y_Y_width < 1): 
+        print('触发交易信号：多玉米')
+        
+        #做多主力
+        order_target_value(main_C,cash, side='long')
+
+        #对主力合约的空仓标的全部清空
+        if len(hold_future_s)>0:
+            for future_s in hold_future_s:
+                if (future_s == main_C):
+                    order_target_value(future_s,0,side='short')
+                 
+    
+    #移仓换月逻辑
+    #主力合约变更进行换仓
+    if g.main_C != main_C:
+        print('I主力合约由%s变化为%s'%(g.main_C,main_C))
+        if g.main_C in hold_future_s:
+            order_target_value(g.main_C,0,side='short')
+            order_target_value(main_C,cash,side='short')
+        elif g.main_C in hold_future_l:
+            order_target_value(g.main_C,0,side='long')
+            order_target_value(main_C,cash,side='long')
+     
+    g.main_C = main_C
+    
+    '''
+    =================================================================
+    化工产业链:甲醇、聚丙烯、聚氯乙烯
+    =================================================================
+    '''
+    prices = history(21,security_list=['SM9999.XZCE','SF9999.XZCE','SI9999.GFEX'])
+    #print(prices)
+    # 数据归一化
+    prices=prices.apply(lambda x : (x-np.min(x))/(np.max(x)-np.min(x))) 
+    #print(prices)
+    # 准备自变量和因变量数据  
+    X_N = np.vstack([prices['SF9999.XZCE'],prices['SI9999.GFEX']]).T    
+    Y_N = np.vstack([prices['SM9999.XZCE']]).T 
+    
+    # 拆分训练集、校准集、测试集
+    X_N_test =  np.array(X_N[-1])
+    X_N_test = X_N_test.reshape(1,2)
+    Y_N_test = Y_N[-1]
+    # print(X_test)
+    # print(Y_test)
+    # 去除测试集  
+    X_N = X_N[:-1]  
+    Y_N = Y_N[:-1]  
+     
+    # 设置随机种子以确保可复现性  
+    np.random.seed(42)  
+      
+    # 打乱X和Y的值  
+    shuffle_indices = np.arange(X_N.shape[0])  
+    np.random.shuffle(shuffle_indices)  
+    X_N = X_N[shuffle_indices]  
+    Y_N = Y_N[shuffle_indices]  
+    # 拆分训练集和校准集  
+    split_index = len(X_N) // 2  
+    X_N_train, X_N_cal = X_N[:split_index], X_N[split_index:] 
+    Y_N_train, Y_N_cal = Y_N[:split_index].ravel(), Y_N[split_index:].ravel()  
+    # 建立模型和保形回归器  
+    model = XGBRegressor(n_estimators=25, random_state=42)  
+    nc = NcFactory.create_nc(model)  
+    icp = IcpRegressor(nc)  
+  
+    # 拟合和校准模型  
+    # print(X_N_train)
+    # print(Y_N_train)
+    icp.fit(X_N_train, Y_N_train)  
+    icp.calibrate(X_N_cal, Y_N_cal)  
+  
+    # 生成预测及预测区间  
+    predictions = icp.predict(X_N_test, significance=0.05)  
+    Y_N_lower = predictions[:, 0]  
+    Y_N_upper = predictions[:, 1]  
+    Y_N_pred = (Y_N_lower + Y_N_upper) / 2  
+    Y_N_width = Y_N_upper - Y_N_lower  
+    print("SM预测值为")
+    print(Y_N_pred)
+    print("SM区间宽度为")
+    print(Y_N_width)
+    Y_N_Distance = (Y_N_test - Y_N_pred)
+    print("SM得分为")
+    print(Y_N_Distance)
+
+    #初始资金的十分之一
+    cash = context.portfolio.total_value*0.1
+    #根据交易信号进行交易
+    #获取标的的主力合约
+    main_SM = get_dominant_future('SM', date=context.current_dt)
+    
+    #获取当前持仓的合约
+    hold_future_s = list(context.portfolio.short_positions.keys())
+    hold_future_l = list(context.portfolio.long_positions.keys())
+                
+    #交易部分
+    if (Y_N_Distance < -0.62 and Y_N_width > 0.9): #预测下降且区间小：开空
+        print('触发交易信号：空甲醇')
+        #做空主力
+        order_target_value(main_SM,cash, side='short')
+        #对主力合约的多仓的标的全部清空
+        if len(hold_future_l)>0:
+            for future_l in hold_future_l:
+                if (future_l == main_SM) :
+                    order_target_value(future_l,0,side='long')
+    
+    elif (Y_N_Distance > 0.62 and Y_N_width > 0.9): #预测上涨且区间小：开多
+        print('触发交易信号：多甲醇')
+        #做多主力
+        order_target_value(main_SM,cash, side='long')
+        #对主力合约的空仓标的全部清空
+        if len(hold_future_s)>0:
+            for future_s in hold_future_s:
+                if (future_s == main_SM) :
+                    order_target_value(future_s,0,side='short')
+        
+    #移仓换月逻辑
+    #主力合约变更进行换仓
+    if g.main_SM != main_SM:
+        print('SM主力合约由%s变化为%s'%(g.main_SM,main_SM))
+        if g.main_SM in hold_future_s:
+            order_target_value(g.main_SM,0,side='short')
+            order_target_value(main_SM,cash,side='short')
+        elif g.main_SM in hold_future_l:
+            order_target_value(g.main_SM,0,side='long')
+            order_target_value(main_SM,cash,side='long')
+     
+    g.main_SM = main_SM
+    
+    '''
+    =================================================================
+    碳类产品:焦炭、焦煤、热轧卷板
+    =================================================================
+    '''
+    prices = history(121,security_list=['J9999.XDCE','JM9999.XDCE','HC9999.XSGE'])
+    #print(prices)
+    # 数据归一化
+    prices=prices.apply(lambda x : (x-np.min(x))/(np.max(x)-np.min(x))) 
+    #print(prices)
+    # 准备自变量和因变量数据  
+    X_N = np.vstack([prices['JM9999.XDCE'],prices['HC9999.XSGE']]).T    
+    Y_N = np.vstack([prices['J9999.XDCE']]).T 
+    
+    # 拆分训练集、校准集、测试集
+    X_N_test =  np.array(X_N[-1])
+    X_N_test = X_N_test.reshape(1,2)
+    Y_N_test = Y_N[-1]
+    # print(X_test)
+    # print(Y_test)
+    # 去除测试集  
+    X_N = X_N[:-1]  
+    Y_N = Y_N[:-1]  
+     
+    # 设置随机种子以确保可复现性  
+    np.random.seed(42)  
+      
+    # 打乱X和Y的值  
+    shuffle_indices = np.arange(X_N.shape[0])  
+    np.random.shuffle(shuffle_indices)  
+    X_N = X_N[shuffle_indices]  
+    Y_N = Y_N[shuffle_indices]  
+    # 拆分训练集和校准集  
+    split_index = len(X_N) // 2  
+    X_N_train, X_N_cal = X_N[:split_index], X_N[split_index:] 
+    Y_N_train, Y_N_cal = Y_N[:split_index].ravel(), Y_N[split_index:].ravel()  
+    # 建立模型和保形回归器  
+    model = XGBRegressor(n_estimators=10, random_state=42)  
+    nc = NcFactory.create_nc(model)  
+    icp = IcpRegressor(nc)  
+  
+    # 拟合和校准模型  
+    # print(X_N_train)
+    # print(Y_N_train)
+    icp.fit(X_N_train, Y_N_train)  
+    icp.calibrate(X_N_cal, Y_N_cal)  
+  
+    # 生成预测及预测区间  
+    predictions = icp.predict(X_N_test, significance=0.05)  
+    Y_N_lower = predictions[:, 0]  
+    Y_N_upper = predictions[:, 1]  
+    Y_N_pred = (Y_N_lower + Y_N_upper) / 2  
+    Y_N_width = Y_N_upper - Y_N_lower  
+    print("J预测值为")
+    print(Y_N_pred)
+    print("J区间宽度为")
+    print(Y_N_width)
+    Y_N_Distance = (Y_N_test - Y_N_pred)
+    print("J得分为")
+    print(Y_N_Distance)
+
+    #初始资金的十分之一
+    cash = context.portfolio.total_value*0.1
+    #根据交易信号进行交易
+    #获取标的的主力合约
+    main_J = get_dominant_future('J', date=context.current_dt)
+    
+    #获取当前持仓的合约
+    hold_future_s = list(context.portfolio.short_positions.keys())
+    hold_future_l = list(context.portfolio.long_positions.keys())
+                
+    #交易部分
+    if (Y_N_Distance < -0.29 and Y_N_width < 1): #预测下降且区间小：开空
+        print('触发交易信号：空焦炭')
+        #做空主力
+        order_target_value(main_J,cash, side='short')
+        #对主力合约的多仓的标的全部清空
+        if len(hold_future_l)>0:
+            for future_l in hold_future_l:
+                if (future_l == main_J) :
+                    order_target_value(future_l,0,side='long')
+    
+    elif (Y_N_Distance > 0.29 and Y_N_width < 1): #预测上涨且区间小：开多
+        print('触发交易信号：多焦炭')
+        #做多主力
+        order_target_value(main_J,cash, side='long')
+        #对主力合约的空仓标的全部清空
+        if len(hold_future_s)>0:
+            for future_s in hold_future_s:
+                if (future_s == main_J) :
+                    order_target_value(future_s,0,side='short')
+        
+    #移仓换月逻辑
+    #主力合约变更进行换仓
+    if g.main_J != main_J:
+        print('J主力合约由%s变化为%s'%(g.main_J,main_J))
+        if g.main_J in hold_future_s:
+            order_target_value(g.main_J,0,side='short')
+            order_target_value(main_J,cash,side='short')
+        elif g.main_J in hold_future_l:
+            order_target_value(g.main_J,0,side='long')
+            order_target_value(main_J,cash,side='long')
+     
+    g.main_J = main_J
+    
+    
+    '''
+    =================================================================
+    铁矿石产业链部分：铁矿石、螺纹钢、焦煤
+    =================================================================
+    '''
+    prices = history(16,security_list=['RB9999.XSGE','I9999.XDCE','JM9999.XDCE'])
+    #print(prices)
+    # 数据归一化
+    prices=prices.apply(lambda x : (x-np.min(x))/(np.max(x)-np.min(x))) 
+    # 准备自变量和因变量数据  
+    X_H = np.vstack([prices['RB9999.XSGE'], prices['JM9999.XDCE']]).T  
+    Y_H = np.vstack([prices['I9999.XDCE']]).T    
+    
+    # 拆分训练集、校准集、测试集
+    X_H_test =  np.array(X_H[-1])
+    X_H_test = X_H_test.reshape(1,2)
+    Y_H_test = Y_H[-1]
+    # print(X_test)
+    # print(Y_test)
+    # 去除测试集  
+    X_H= X_H[:-1]  
+    Y_H = Y_H[:-1]  
+    # 设置随机种子以确保可复现性  
+    np.random.seed(42)  
+      
+    # 打乱X和Y的值  
+    shuffle_indices = np.arange(X_H.shape[0])  
+    np.random.shuffle(shuffle_indices)  
+    X_H = X_H[shuffle_indices]  
+    Y_H = Y_H[shuffle_indices]  
+    # 拆分训练集和校准集  
+    split_index = len(X_H) // 2  
+    X_H_train, X_H_cal = X_H[:split_index], X_H[split_index:] 
+    Y_H_train, Y_H_cal = Y_H[:split_index].ravel(), Y_H[split_index:].ravel()  
+    # 建立模型和保形回归器  
+    model = XGBRegressor(n_estimators=6, random_state=42)  
+    nc = NcFactory.create_nc(model)  
+    icp = IcpRegressor(nc)  
+  
+    # 拟合和校准模型  
+    # print(X_train)
+    # print(Y_train)
+    icp.fit(X_H_train, Y_H_train)  
+    icp.calibrate(X_H_cal, Y_H_cal)  
+  
+    # 生成预测及预测区间  
+    predictions = icp.predict(X_H_test, significance=0.05)  
+    Y_H_lower = predictions[:, 0]  
+    Y_H_upper = predictions[:, 1]  
+    Y_H_pred = (Y_H_lower + Y_H_upper) / 2  
+    Y_H_width = Y_H_upper - Y_H_lower  
+    print("I预测值为")
+    print(Y_H_pred)
+    print("I区间宽度为")
+    print(Y_H_width)
+    Y_H_Distance = (Y_H_test - Y_H_pred)
+    print("I得分为")
+    print(Y_H_Distance)
+
+    #初始资金的十分之一
+    cash = context.portfolio.total_value*0.1
+    #根据交易信号进行交易
+    #获取标的的主力合约
+    main_I = get_dominant_future('I', date=context.current_dt)
+    
+    #获取当前持仓的合约
+    hold_future_s = list(context.portfolio.short_positions.keys())
+    hold_future_l = list(context.portfolio.long_positions.keys())
+                
+    #交易部分
+    if (Y_H_Distance < -0.33 and Y_H_width < 0.65): 
+        print('触发交易信号：空铁矿石')
+        #做空主力
+        order_target_value(main_I,cash, side='short')
+        
+        #对主力合约的多仓的标的全部清空
+        if len(hold_future_l)>0:
+            for future_l in hold_future_l:
+                if (future_l == main_I):
+                    order_target_value(future_l,0,side='long')
+        
+    
+    elif (Y_H_Distance > 0.33 and Y_H_width < 0.65): 
+        print('触发交易信号：多铁矿石')
+        #做多主力
+        order_target_value(main_I,cash, side='long')
+
+        #对主力合约的空仓标的全部清空
+        if len(hold_future_s)>0:
+            for future_s in hold_future_s:
+                if (future_s == main_I):
+                    order_target_value(future_s,0,side='short')
+                 
+    #移仓换月逻辑
+    #主力合约变更进行换仓
+    if g.main_I != main_I:
+        print('I主力合约由%s变化为%s'%(g.main_I,main_I))
+        if g.main_I in hold_future_s:
+            order_target_value(g.main_I,0,side='short')
+            order_target_value(main_I,cash,side='short')
+        elif g.main_I in hold_future_l:
+            order_target_value(g.main_I,0,side='long')
+            order_target_value(main_I,cash,side='long')
+     
+    g.main_I = main_I
+    
+   
+    
+    
+
+
+## 收盘后运行函数
+def after_market_close(context):
+    
+    cash_ratio = 1 - context.portfolio.available_cash*1.0/context.portfolio.total_value
+    #print('当日策略资金占用比例为:%s'%cash_ratio)
+    
+    l_hold_future = list(context.portfolio.long_positions.keys())
+    s_hold_future = list(context.portfolio.short_positions.keys())
+    
+    # for future in l_hold_future:
+        # print('%s有多头持仓:%s'% (future,context.portfolio.long_positions[future].total_amount))
+    # for future in s_hold_future:
+        # print('%s有空头持仓:%s'% (future,context.portfolio.short_positions[future].total_amount))
+
+
+
+
+'''
+========================================================================
+保形回归（Conformal Regression）环境配置
+========================================================================
+'''
+
+#定义base
+
+"""
+docstring
+"""
+
+# Authors: Henrik Linusson
+
+import abc
+import numpy as np
+
+from sklearn.base import BaseEstimator
+
+
+class RegressorMixin(object):
+	def __init__(self):
+		super(RegressorMixin, self).__init__()
+
+	@classmethod
+	def get_problem_type(cls):
+		return 'regression'
+
+
+class ClassifierMixin(object):
+	def __init__(self):
+		super(ClassifierMixin, self).__init__()
+
+	@classmethod
+	def get_problem_type(cls):
+		return 'classification'
+
+
+class BaseModelAdapter(BaseEstimator):
+	__metaclass__ = abc.ABCMeta
+
+	def __init__(self, model, fit_params=None):
+		super(BaseModelAdapter, self).__init__()
+
+		self.model = model
+		self.last_x, self.last_y = None, None
+		self.clean = False
+		self.fit_params = {} if fit_params is None else fit_params
+
+	def fit(self, x, y):
+		"""Fits the model.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of examples for fitting the model.
+
+		y : numpy array of shape [n_samples]
+			Outputs of examples for fitting the model.
+
+		Returns
+		-------
+		None
+		"""
+
+		self.model.fit(x, y, **self.fit_params)
+		self.clean = False
+
+	def predict(self, x):
+		"""Returns the prediction made by the underlying model.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of test examples.
+
+		Returns
+		-------
+		y : numpy array of shape [n_samples]
+			Predicted outputs of test examples.
+		"""
+		if (
+			not self.clean or
+			self.last_x is None or
+			self.last_y is None or
+			not np.array_equal(self.last_x, x)
+		):
+			self.last_x = x
+			self.last_y = self._underlying_predict(x)
+			self.clean = True
+
+		return self.last_y.copy()
+
+	@abc.abstractmethod
+	def _underlying_predict(self, x):
+		"""Produces a prediction using the encapsulated model.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of test examples.
+
+		Returns
+		-------
+		y : numpy array of shape [n_samples]
+			Predicted outputs of test examples.
+		"""
+		pass
+
+
+class ClassifierAdapter(BaseModelAdapter):
+	def __init__(self, model, fit_params=None):
+		super(ClassifierAdapter, self).__init__(model, fit_params)
+
+	def _underlying_predict(self, x):
+		return self.model.predict_proba(x)
+
+
+class RegressorAdapter(BaseModelAdapter):
+	def __init__(self, model, fit_params=None):
+		super(RegressorAdapter, self).__init__(model, fit_params)
+
+	def _underlying_predict(self, x):
+		return self.model.predict(x)
+
+
+class OobMixin(object):
+	def __init__(self, model, fit_params=None):
+		super(OobMixin, self).__init__(model, fit_params)
+		self.train_x = None
+
+	def fit(self, x, y):
+		super(OobMixin, self).fit(x, y)
+		self.train_x = x
+
+	def _underlying_predict(self, x):
+		# TODO: sub-sampling of ensemble for test patterns
+		oob = x == self.train_x
+
+		if hasattr(oob, 'all'):
+			oob = oob.all()
+
+		if oob:
+			return self._oob_prediction()
+		else:
+			return super(OobMixin, self)._underlying_predict(x)
+
+
+class OobClassifierAdapter(OobMixin, ClassifierAdapter):
+	def __init__(self, model, fit_params=None):
+		super(OobClassifierAdapter, self).__init__(model, fit_params)
+
+	def _oob_prediction(self):
+		return self.model.oob_decision_function_
+
+
+class OobRegressorAdapter(OobMixin, RegressorAdapter):
+	def __init__(self, model, fit_params=None):
+		super(OobRegressorAdapter, self).__init__(model, fit_params)
+
+	def _oob_prediction(self):
+		return self.model.oob_prediction_
+		
+#定义BaseScorer
+class BaseScorer(sklearn.base.BaseEstimator):
+	__metaclass__ = abc.ABCMeta
+
+	def __init__(self):
+		super(BaseScorer, self).__init__()
+
+	@abc.abstractmethod
+	def fit(self, x, y):
+		pass
+
+	@abc.abstractmethod
+	def score(self, x, y=None):
+		pass
+		
+#定义BaseModelNc
+class BaseModelNc(BaseScorer):
+	"""Base class for nonconformity scorers based on an underlying model.
+
+	Parameters
+	----------
+	model : ClassifierAdapter or RegressorAdapter
+		Underlying classification model used for calculating nonconformity
+		scores.
+
+	err_func : ClassificationErrFunc or RegressionErrFunc
+		Error function object.
+
+	normalizer : BaseScorer
+		Normalization model.
+
+	beta : float
+		Normalization smoothing parameter. As the beta-value increases,
+		the normalized nonconformity function approaches a non-normalized
+		equivalent.
+	"""
+	def __init__(self, model, err_func, normalizer=None, beta=0):
+		super(BaseModelNc, self).__init__()
+		self.err_func = err_func
+		self.model = model
+		self.normalizer = normalizer
+		self.beta = beta
+
+		# If we use sklearn.base.clone (e.g., during cross-validation),
+		# object references get jumbled, so we need to make sure that the
+		# normalizer has a reference to the proper model adapter, if applicable.
+		if (self.normalizer is not None and
+			hasattr(self.normalizer, 'base_model')):
+			self.normalizer.base_model = self.model
+
+		self.last_x, self.last_y = None, None
+		self.last_prediction = None
+		self.clean = False
+
+	def fit(self, x, y):
+		"""Fits the underlying model of the nonconformity scorer.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of examples for fitting the underlying model.
+
+		y : numpy array of shape [n_samples]
+			Outputs of examples for fitting the underlying model.
+
+		Returns
+		-------
+		None
+		"""
+		self.model.fit(x, y)
+		if self.normalizer is not None:
+			self.normalizer.fit(x, y)
+		self.clean = False
+
+	def score(self, x, y=None):
+		"""Calculates the nonconformity score of a set of samples.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of examples for which to calculate a nonconformity score.
+
+		y : numpy array of shape [n_samples]
+			Outputs of examples for which to calculate a nonconformity score.
+
+		Returns
+		-------
+		nc : numpy array of shape [n_samples]
+			Nonconformity scores of samples.
+		"""
+		prediction = self.model.predict(x)
+		n_test = x.shape[0]
+		if self.normalizer is not None:
+			norm = self.normalizer.score(x) + self.beta
+		else:
+			norm = np.ones(n_test)
+
+		return self.err_func.apply(prediction, y) / norm
+
+#定义TcpClassifier
+class TcpClassifier(BaseEstimator, ClassifierMixin):
+	"""Transductive conformal classifier.
+
+	Parameters
+	----------
+	nc_function : BaseScorer
+		Nonconformity scorer object used to calculate nonconformity of
+		calibration examples and test patterns. Should implement ``fit(x, y)``
+		and ``calc_nc(x, y)``.
+
+	smoothing : boolean
+		Decides whether to use stochastic smoothing of p-values.
+
+	Attributes
+	----------
+	train_x : numpy array of shape [n_cal_examples, n_features]
+		Inputs of training set.
+
+	train_y : numpy array of shape [n_cal_examples]
+		Outputs of calibration set.
+
+	nc_function : BaseScorer
+		Nonconformity scorer object used to calculate nonconformity scores.
+
+	classes : numpy array of shape [n_classes]
+		List of class labels, with indices corresponding to output columns
+		 of TcpClassifier.predict()
+
+	See also
+	--------
+	IcpClassifier
+
+	References
+	----------
+	.. [1] Vovk, V., Gammerman, A., & Shafer, G. (2005). Algorithmic learning
+	in a random world. Springer Science & Business Media.
+
+	Examples
+	--------
+	>>> import numpy as np
+	>>> from sklearn.datasets import load_iris
+	>>> from sklearn.svm import SVC
+	>>> from nonconformist.base import ClassifierAdapter
+	>>> from nonconformist.cp import TcpClassifier
+	>>> from nonconformist.nc import ClassifierNc, MarginErrFunc
+	>>> iris = load_iris()
+	>>> idx = np.random.permutation(iris.target.size)
+	>>> train = idx[:int(idx.size / 2)]
+	>>> test = idx[int(idx.size / 2):]
+	>>> model = ClassifierAdapter(SVC(probability=True))
+	>>> nc = ClassifierNc(model, MarginErrFunc())
+	>>> tcp = TcpClassifier(nc)
+	>>> tcp.fit(iris.data[train, :], iris.target[train])
+	>>> tcp.predict(iris.data[test, :], significance=0.10)
+	...             # doctest: +SKIP
+	array([[ True, False, False],
+		[False,  True, False],
+		...,
+		[False,  True, False],
+		[False,  True, False]], dtype=bool)
+	"""
+
+	def __init__(self, nc_function, condition=None, smoothing=True):
+		self.train_x, self.train_y = None, None
+		self.nc_function = nc_function
+		super(TcpClassifier, self).__init__()
+
+		# Check if condition-parameter is the default function (i.e.,
+		# lambda x: 0). This is so we can safely clone the object without
+		# the clone accidentally having self.conditional = True.
+		default_condition = lambda x: 0
+		is_default = (callable(condition) and
+		              (condition.__code__.co_code ==
+		               default_condition.__code__.co_code))
+
+		if is_default:
+			self.condition = condition
+			self.conditional = False
+		elif callable(condition):
+			self.condition = condition
+			self.conditional = True
+		else:
+			self.condition = lambda x: 0
+			self.conditional = False
+
+		self.smoothing = smoothing
+
+		self.base_icp = IcpClassifier(
+			self.nc_function,
+			self.condition,
+			self.smoothing
+		)
+
+		self.classes = None
+
+	def fit(self, x, y):
+		self.train_x, self.train_y = x, y
+		self.classes = np.unique(y)
+
+	def predict(self, x, significance=None):
+		"""Predict the output values for a set of input patterns.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of patters for which to predict output values.
+
+		significance : float or None
+			Significance level (maximum allowed error rate) of predictions.
+			Should be a float between 0 and 1. If ``None``, then the p-values
+			are output rather than the predictions.
+
+		Returns
+		-------
+		p : numpy array of shape [n_samples, n_classes]
+			If significance is ``None``, then p contains the p-values for each
+			sample-class pair; if significance is a float between 0 and 1, then
+			p is a boolean array denoting which labels are included in the
+			prediction sets.
+		"""
+		n_test = x.shape[0]
+		n_train = self.train_x.shape[0]
+		p = np.zeros((n_test, self.classes.size))
+		for i in range(n_test):
+			for j, y in enumerate(self.classes):
+				train_x = np.vstack([self.train_x, x[i, :]])
+				train_y = np.hstack([self.train_y, y])
+				self.base_icp.fit(train_x, train_y)
+				self.base_icp.calibrate(train_x, train_y)
+
+				ncal_ngt_neq = self.base_icp._get_stats(x[i, :].reshape(1, x.shape[1]))
+
+				ncal = ncal_ngt_neq[:, j, 0]
+				ngt = ncal_ngt_neq[:, j, 1]
+				neq = ncal_ngt_neq[:, j, 2]
+
+				p[i, j] = calc_p(ncal - 1, ngt, neq - 1, self.smoothing)
+
+		if significance is not None:
+			return p > significance
+		else:
+			return p
+
+	def predict_conf(self, x):
+		"""Predict the output values for a set of input patterns, using
+		the confidence-and-credibility output scheme.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of patters for which to predict output values.
+
+		Returns
+		-------
+		p : numpy array of shape [n_samples, 3]
+			p contains three columns: the first column contains the most
+			likely class for each test pattern; the second column contains
+			the confidence in the predicted class label, and the third column
+			contains the credibility of the prediction.
+		"""
+		p = self.predict(x, significance=None)
+		label = p.argmax(axis=1)
+		credibility = p.max(axis=1)
+		for i, idx in enumerate(label):
+			p[i, idx] = -np.inf
+		confidence = 1 - p.max(axis=1)
+
+		return np.array([label, confidence, credibility]).T
+		
+		
+#定义NcFactory
+class NcFactory(object):
+	@staticmethod
+	def create_nc(model, err_func=None, normalizer_model=None, oob=False,
+                      fit_params=None, fit_params_normalizer=None):
+		if normalizer_model is not None:
+			normalizer_adapter = RegressorAdapter(normalizer_model, fit_params_normalizer)
+		else:
+			normalizer_adapter = None
+
+		if isinstance(model, sklearn.base.ClassifierMixin):
+			err_func = MarginErrFunc() if err_func is None else err_func
+			if oob:
+				c = sklearn.base.clone(model)
+				c.fit([[0], [1]], [0, 1])
+				if hasattr(c, 'oob_decision_function_'):
+					adapter = OobClassifierAdapter(model, fit_params)
+				else:
+					raise AttributeError('Cannot use out-of-bag '
+					                      'calibration with {}'.format(
+						model.__class__.__name__
+					))
+			else:
+				adapter = ClassifierAdapter(model, fit_params)
+
+			if normalizer_adapter is not None:
+				normalizer = RegressorNormalizer(adapter,
+				                                 normalizer_adapter,
+				                                 err_func)
+				return ClassifierNc(adapter, err_func, normalizer)
+			else:
+				return ClassifierNc(adapter, err_func)
+
+		elif isinstance(model, sklearn.base.RegressorMixin):
+			err_func = AbsErrorErrFunc() if err_func is None else err_func
+			if oob:
+				c = sklearn.base.clone(model)
+				c.fit([[0], [1]], [0, 1])
+				if hasattr(c, 'oob_prediction_'):
+					adapter = OobRegressorAdapter(model, fit_params)
+				else:
+					raise AttributeError('Cannot use out-of-bag '
+					                     'calibration with {}'.format(
+						model.__class__.__name__
+					))
+			else:
+				adapter = RegressorAdapter(model, fit_params)
+
+			if normalizer_adapter is not None:
+				normalizer = RegressorNormalizer(adapter,
+				                                 normalizer_adapter,
+				                                 err_func)
+				return RegressorNc(adapter, err_func, normalizer)
+			else:
+				return RegressorNc(adapter, err_func)
+				
+				
+				
+#定义BaseIcp
+class BaseIcp(BaseEstimator):
+	"""Base class for inductive conformal predictors.
+	"""
+	def __init__(self, nc_function, condition=None):
+		self.cal_x, self.cal_y = None, None
+		self.nc_function = nc_function
+
+		# Check if condition-parameter is the default function (i.e.,
+		# lambda x: 0). This is so we can safely clone the object without
+		# the clone accidentally having self.conditional = True.
+		default_condition = lambda x: 0
+		is_default = (callable(condition) and
+		              (condition.__code__.co_code ==
+		               default_condition.__code__.co_code))
+
+		if is_default:
+			self.condition = condition
+			self.conditional = False
+		elif callable(condition):
+			self.condition = condition
+			self.conditional = True
+		else:
+			self.condition = lambda x: 0
+			self.conditional = False
+
+	def fit(self, x, y):
+		"""Fit underlying nonconformity scorer.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of examples for fitting the nonconformity scorer.
+
+		y : numpy array of shape [n_samples]
+			Outputs of examples for fitting the nonconformity scorer.
+
+		Returns
+		-------
+		None
+		"""
+		# TODO: incremental?
+		self.nc_function.fit(x, y)
+
+	def calibrate(self, x, y, increment=False):
+		"""Calibrate conformal predictor based on underlying nonconformity
+		scorer.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of examples for calibrating the conformal predictor.
+
+		y : numpy array of shape [n_samples, n_features]
+			Outputs of examples for calibrating the conformal predictor.
+
+		increment : boolean
+			If ``True``, performs an incremental recalibration of the conformal
+			predictor. The supplied ``x`` and ``y`` are added to the set of
+			previously existing calibration examples, and the conformal
+			predictor is then calibrated on both the old and new calibration
+			examples.
+
+		Returns
+		-------
+		None
+		"""
+		self._calibrate_hook(x, y, increment)
+		self._update_calibration_set(x, y, increment)
+
+		if self.conditional:
+			category_map = np.array([self.condition((x[i, :], y[i]))
+									 for i in range(y.size)])
+			self.categories = np.unique(category_map)
+			self.cal_scores = defaultdict(partial(np.ndarray, 0))
+
+			for cond in self.categories:
+				idx = category_map == cond
+				cal_scores = self.nc_function.score(self.cal_x[idx, :],
+				                                    self.cal_y[idx])
+				self.cal_scores[cond] = np.sort(cal_scores)[::-1]
+		else:
+			self.categories = np.array([0])
+			cal_scores = self.nc_function.score(self.cal_x, self.cal_y)
+			self.cal_scores = {0: np.sort(cal_scores)[::-1]}
+
+	def _calibrate_hook(self, x, y, increment):
+		pass
+
+	def _update_calibration_set(self, x, y, increment):
+		if increment and self.cal_x is not None and self.cal_y is not None:
+			self.cal_x = np.vstack([self.cal_x, x])
+			self.cal_y = np.hstack([self.cal_y, y])
+		else:
+			self.cal_x, self.cal_y = x, y
+
+
+
+
+#定义 IcpRegressor
+class IcpRegressor(BaseIcp, RegressorMixin):
+	"""Inductive conformal regressor.
+
+	Parameters
+	----------
+	nc_function : BaseScorer
+		Nonconformity scorer object used to calculate nonconformity of
+		calibration examples and test patterns. Should implement ``fit(x, y)``,
+		``calc_nc(x, y)`` and ``predict(x, nc_scores, significance)``.
+
+	Attributes
+	----------
+	cal_x : numpy array of shape [n_cal_examples, n_features]
+		Inputs of calibration set.
+
+	cal_y : numpy array of shape [n_cal_examples]
+		Outputs of calibration set.
+
+	nc_function : BaseScorer
+		Nonconformity scorer object used to calculate nonconformity scores.
+
+	See also
+	--------
+	IcpClassifier
+
+	References
+	----------
+	.. [1] Papadopoulos, H., Proedrou, K., Vovk, V., & Gammerman, A. (2002).
+		Inductive confidence machines for regression. In Machine Learning: ECML
+		2002 (pp. 345-356). Springer Berlin Heidelberg.
+
+	.. [2] Papadopoulos, H., & Haralambous, H. (2011). Reliable prediction
+		intervals with regression neural networks. Neural Networks, 24(8),
+		842-851.
+
+	Examples
+	--------
+	>>> import numpy as np
+	>>> from sklearn.datasets import load_boston
+	>>> from sklearn.tree import DecisionTreeRegressor
+	>>> from nonconformist.base import RegressorAdapter
+	>>> from nonconformist.icp import IcpRegressor
+	>>> from nonconformist.nc import RegressorNc, AbsErrorErrFunc
+	>>> boston = load_boston()
+	>>> idx = np.random.permutation(boston.target.size)
+	>>> train = idx[:int(idx.size / 3)]
+	>>> cal = idx[int(idx.size / 3):int(2 * idx.size / 3)]
+	>>> test = idx[int(2 * idx.size / 3):]
+	>>> model = RegressorAdapter(DecisionTreeRegressor())
+	>>> nc = RegressorNc(model, AbsErrorErrFunc())
+	>>> icp = IcpRegressor(nc)
+	>>> icp.fit(boston.data[train, :], boston.target[train])
+	>>> icp.calibrate(boston.data[cal, :], boston.target[cal])
+	>>> icp.predict(boston.data[test, :], significance=0.10)
+	...     # doctest: +SKIP
+	array([[  5. ,  20.6],
+		[ 15.5,  31.1],
+		...,
+		[ 14.2,  29.8],
+		[ 11.6,  27.2]])
+	"""
+	def __init__(self, nc_function, condition=None):
+		super(IcpRegressor, self).__init__(nc_function, condition)
+
+	def predict(self, x, significance=None):
+		"""Predict the output values for a set of input patterns.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of patters for which to predict output values.
+
+		significance : float
+			Significance level (maximum allowed error rate) of predictions.
+			Should be a float between 0 and 1. If ``None``, then intervals for
+			all significance levels (0.01, 0.02, ..., 0.99) are output in a
+			3d-matrix.
+
+		Returns
+		-------
+		p : numpy array of shape [n_samples, 2] or [n_samples, 2, 99}
+			If significance is ``None``, then p contains the interval (minimum
+			and maximum boundaries) for each test pattern, and each significance
+			level (0.01, 0.02, ..., 0.99). If significance is a float between
+			0 and 1, then p contains the prediction intervals (minimum and
+			maximum	boundaries) for the set of test patterns at the chosen
+			significance level.
+		"""
+		# TODO: interpolated p-values
+
+		n_significance = (99 if significance is None
+		                  else np.array(significance).size)
+
+		if n_significance > 1:
+			prediction = np.zeros((x.shape[0], 2, n_significance))
+		else:
+			prediction = np.zeros((x.shape[0], 2))
+
+		condition_map = np.array([self.condition((x[i, :], None))
+		                          for i in range(x.shape[0])])
+
+		for condition in self.categories:
+			idx = condition_map == condition
+			if np.sum(idx) > 0:
+				p = self.nc_function.predict(x[idx, :],
+				                             self.cal_scores[condition],
+				                             significance)
+				if n_significance > 1:
+					prediction[idx, :, :] = p
+				else:
+					prediction[idx, :] = p
+
+		return prediction
+
+
+
+
+#定义RegressionErrFunc
+class RegressionErrFunc(object):
+	"""Base class for regression model error functions.
+	"""
+
+	__metaclass__ = abc.ABCMeta
+
+	def __init__(self):
+		super(RegressionErrFunc, self).__init__()
+
+	@abc.abstractmethod
+	def apply(self, prediction, y):#, norm=None, beta=0):
+		"""Apply the nonconformity function.
+
+		Parameters
+		----------
+		prediction : numpy array of shape [n_samples, n_classes]
+			Class probability estimates for each sample.
+
+		y : numpy array of shape [n_samples]
+			True output labels of each sample.
+
+		Returns
+		-------
+		nc : numpy array of shape [n_samples]
+			Nonconformity scores of the samples.
+		"""
+		pass
+
+	@abc.abstractmethod
+	def apply_inverse(self, nc, significance):#, norm=None, beta=0):
+		"""Apply the inverse of the nonconformity function (i.e.,
+		calculate prediction interval).
+
+		Parameters
+		----------
+		nc : numpy array of shape [n_calibration_samples]
+			Nonconformity scores obtained for conformal predictor.
+
+		significance : float
+			Significance level (0, 1).
+
+		Returns
+		-------
+		interval : numpy array of shape [n_samples, 2]
+			Minimum and maximum interval boundaries for each prediction.
+		"""
+		pass
+
+
+
+
+#定义AbsErrorErrFunc
+class AbsErrorErrFunc(RegressionErrFunc):
+	"""Calculates absolute error nonconformity for regression problems.
+
+		For each correct output in ``y``, nonconformity is defined as
+
+		.. math::
+			| y_i - \hat{y}_i |
+	"""
+
+	def __init__(self):
+		super(AbsErrorErrFunc, self).__init__()
+
+	def apply(self, prediction, y):
+		return np.abs(prediction - y)
+
+	def apply_inverse(self, nc, significance):
+		nc = np.sort(nc)[::-1]
+		border = int(np.floor(significance * (nc.size + 1))) - 1
+		# TODO: should probably warn against too few calibration examples
+		border = min(max(border, 0), nc.size - 1)
+		return np.vstack([nc[border], nc[border]])
+
+
+
+
+#定义RegressorNc
+class RegressorNc(BaseModelNc):
+	"""Nonconformity scorer using an underlying regression model.
+
+	Parameters
+	----------
+	model : RegressorAdapter
+		Underlying regression model used for calculating nonconformity scores.
+
+	err_func : RegressionErrFunc
+		Error function object.
+
+	normalizer : BaseScorer
+		Normalization model.
+
+	beta : float
+		Normalization smoothing parameter. As the beta-value increases,
+		the normalized nonconformity function approaches a non-normalized
+		equivalent.
+
+	Attributes
+	----------
+	model : RegressorAdapter
+		Underlying model object.
+
+	err_func : RegressionErrFunc
+		Scorer function used to calculate nonconformity scores.
+
+	See also
+	--------
+	ProbEstClassifierNc, NormalizedRegressorNc
+	"""
+	def __init__(self,
+	             model,
+	             err_func=AbsErrorErrFunc(),
+	             normalizer=None,
+	             beta=0):
+		super(RegressorNc, self).__init__(model,
+		                                  err_func,
+		                                  normalizer,
+		                                  beta)
+
+	def predict(self, x, nc, significance=None):
+		"""Constructs prediction intervals for a set of test examples.
+
+		Predicts the output of each test pattern using the underlying model,
+		and applies the (partial) inverse nonconformity function to each
+		prediction, resulting in a prediction interval for each test pattern.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of patters for which to predict output values.
+
+		significance : float
+			Significance level (maximum allowed error rate) of predictions.
+			Should be a float between 0 and 1. If ``None``, then intervals for
+			all significance levels (0.01, 0.02, ..., 0.99) are output in a
+			3d-matrix.
+
+		Returns
+		-------
+		p : numpy array of shape [n_samples, 2] or [n_samples, 2, 99]
+			If significance is ``None``, then p contains the interval (minimum
+			and maximum boundaries) for each test pattern, and each significance
+			level (0.01, 0.02, ..., 0.99). If significance is a float between
+			0 and 1, then p contains the prediction intervals (minimum and
+			maximum	boundaries) for the set of test patterns at the chosen
+			significance level.
+		"""
+		n_test = x.shape[0]
+		prediction = self.model.predict(x)
+		if self.normalizer is not None:
+			norm = self.normalizer.score(x) + self.beta
+		else:
+			norm = np.ones(n_test)
+
+		if significance:
+			intervals = np.zeros((x.shape[0], 2))
+			err_dist = self.err_func.apply_inverse(nc, significance)
+			err_dist = np.hstack([err_dist] * n_test)
+			err_dist *= norm
+
+			intervals[:, 0] = prediction - err_dist[0, :]
+			intervals[:, 1] = prediction + err_dist[1, :]
+
+			return intervals
+		else:
+			significance = np.arange(0.01, 1.0, 0.01)
+			intervals = np.zeros((x.shape[0], 2, significance.size))
+
+			for i, s in enumerate(significance):
+				err_dist = self.err_func.apply_inverse(nc, s)
+				err_dist = np.hstack([err_dist] * n_test)
+				err_dist *= norm
+
+				intervals[:, 0, i] = prediction - err_dist[0, :]
+				intervals[:, 1, i] = prediction + err_dist[0, :]
+
+			return intervals

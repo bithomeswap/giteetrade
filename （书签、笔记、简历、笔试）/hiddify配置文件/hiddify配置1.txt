@@ -1,0 +1,1822 @@
+{
+  "log": {
+    "level": "warn",
+    "output": "box.log",
+    "timestamp": true
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-remote",
+        "address": "udp://1.1.1.1",
+        "address_resolver": "dns-direct"
+      },
+      {
+        "tag": "dns-trick-direct",
+        "address": "https://sky.rethinkdns.com/",
+        "detour": "direct-fragment"
+      },
+      {
+        "tag": "dns-direct",
+        "address": "223.5.5.5",
+        "address_resolver": "dns-local",
+        "detour": "direct"
+      },
+      {
+        "tag": "dns-local",
+        "address": "local",
+        "detour": "direct"
+      },
+      {
+        "tag": "dns-block",
+        "address": "rcode://success"
+      }
+    ],
+    "rules": [
+      {
+        "domain": [
+          "joinv2ngfast-2mm.pages.dev",
+          "23spt.pages.dev",
+          "96110.cf.090227.xyz",
+          "joinmahdiserver-az7.pages.dev",
+          "www.speedtest.net",
+          "speedtest.net"
+        ],
+        "server": "dns-direct"
+      },
+      {
+        "domain": "connectivitycheck.gstatic.com",
+        "server": "dns-remote",
+        "rewrite_ttl": 3000
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-cn"
+        ],
+        "server": "dns-direct"
+      },
+      {
+        "domain_suffix": ".cn",
+        "server": "dns-direct"
+      }
+    ],
+    "final": "dns-remote",
+    "static_ips": {
+      "sky.rethinkdns.com": [
+        "104.17.147.22",
+        "104.17.148.22",
+        "104.21.83.62",
+        "172.67.214.246"
+      ]
+    },
+    "independent_cache": true
+  },
+  "inbounds": [
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 12334,
+      "sniff": true,
+      "sniff_override_destination": true,
+      "set_system_proxy": true
+    },
+    {
+      "type": "direct",
+      "tag": "dns-in",
+      "listen": "127.0.0.1",
+      "listen_port": 16450
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "select",
+      "outbounds": [
+        "auto",
+        "[🇨🇦]t.me/ConfigsHub` § 0",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 1",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 2",
+        "T.me/SafeNet_Server+💚🤍❤` § 3",
+        "[🇸🇪]t.me/ConfigsHub` § 4",
+        "[🇸🇪]t.me/ConfigsHub` § 5",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 6",
+        "[🇮🇷]t.me/ConfigsHub` § 7",
+        "Telegram @VlessConfig 🇫🇷` § 8",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 9",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 10",
+        "[🇨🇦]t.me/ConfigsHub` § 11",
+        "[🇨🇦]t.me/ConfigsHub` § 12",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 13",
+        "[🇮🇷]t.me/ConfigsHub` § 14",
+        "[🇨🇦]t.me/ConfigsHub` § 15",
+        "[🇸🇪]t.me/ConfigsHub` § 16",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 17",
+        "[🇸🇪]t.me/ConfigsHub` § 18",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 19",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 20",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 21",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 22",
+        "[🇨🇦]t.me/ConfigsHub` § 23",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 24",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 25",
+        "[🇨🇷]t.me/ConfigsHub` § 26",
+        "[🇨🇦]t.me/ConfigsHub` § 27",
+        "[🇨🇦]t.me/ConfigsHub` § 28",
+        "👉🆔 @v2ray_configs_pool📡🇮🇷Iran` § 29",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 30",
+        "proxystore11-joinsho-ip6` § 31",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 32",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 33",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 34",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 35",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 36",
+        "[🇨🇦]t.me/ConfigsHub` § 37",
+        "👉🆔 @v2ray_configs_pool📡🇸🇪Sweden` § 38",
+        "[🇨🇦]t.me/ConfigsHub` § 39",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 40",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 41",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 42",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 43",
+        "[🇨🇦]t.me/ConfigsHub` § 44",
+        "[🇨🇦]t.me/ConfigsHub` § 45",
+        "[🇸🇪]t.me/ConfigsHub` § 46",
+        "[🇨🇦]t.me/ConfigsHub` § 47",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 48",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 49",
+        "👉🆔 @v2ray_configs_pool📡🇸🇪Sweden` § 50",
+        "📡61@oneclickvpnkeys § 51",
+        "📡59@oneclickvpnkeys § 52",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 53",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 54",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 55",
+        "[🇨🇦]t.me/ConfigsHub` § 56",
+        "[🇨🇦]t.me/ConfigsHub` § 57",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 58",
+        "[🇨🇦]t.me/ConfigsHub` § 59",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 60",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 61",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 62",
+        "[🇨🇦]t.me/ConfigsHub`vless://ce17e25d-73b5-4d83-9ad7-a26f505ab2e3@104.17.234.114:8443?path=/Telegram,VPNCUSTOMIZE?ed=8080\u0026security=tls\u0026encryption=none\u0026alpn=h3,h2,http/1.1\u0026host=Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com\u0026fp=chrome\u0026type=ws\u0026sni=Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com#[🇨🇦]t.me/ConfigsHub` § 63",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 64",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 65",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 66",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 67",
+        "[🇨🇦]t.me/ConfigsHub` § 68"
+      ],
+      "default": "auto"
+    },
+    {
+      "type": "urltest",
+      "tag": "auto",
+      "outbounds": [
+        "[🇨🇦]t.me/ConfigsHub` § 0",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 1",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 2",
+        "T.me/SafeNet_Server+💚🤍❤` § 3",
+        "[🇸🇪]t.me/ConfigsHub` § 4",
+        "[🇸🇪]t.me/ConfigsHub` § 5",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 6",
+        "[🇮🇷]t.me/ConfigsHub` § 7",
+        "Telegram @VlessConfig 🇫🇷` § 8",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 9",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 10",
+        "[🇨🇦]t.me/ConfigsHub` § 11",
+        "[🇨🇦]t.me/ConfigsHub` § 12",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 13",
+        "[🇮🇷]t.me/ConfigsHub` § 14",
+        "[🇨🇦]t.me/ConfigsHub` § 15",
+        "[🇸🇪]t.me/ConfigsHub` § 16",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 17",
+        "[🇸🇪]t.me/ConfigsHub` § 18",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 19",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 20",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 21",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 22",
+        "[🇨🇦]t.me/ConfigsHub` § 23",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 24",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 25",
+        "[🇨🇷]t.me/ConfigsHub` § 26",
+        "[🇨🇦]t.me/ConfigsHub` § 27",
+        "[🇨🇦]t.me/ConfigsHub` § 28",
+        "👉🆔 @v2ray_configs_pool📡🇮🇷Iran` § 29",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 30",
+        "proxystore11-joinsho-ip6` § 31",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 32",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 33",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 34",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 35",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 36",
+        "[🇨🇦]t.me/ConfigsHub` § 37",
+        "👉🆔 @v2ray_configs_pool📡🇸🇪Sweden` § 38",
+        "[🇨🇦]t.me/ConfigsHub` § 39",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 40",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 41",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 42",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 43",
+        "[🇨🇦]t.me/ConfigsHub` § 44",
+        "[🇨🇦]t.me/ConfigsHub` § 45",
+        "[🇸🇪]t.me/ConfigsHub` § 46",
+        "[🇨🇦]t.me/ConfigsHub` § 47",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 48",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 49",
+        "👉🆔 @v2ray_configs_pool📡🇸🇪Sweden` § 50",
+        "📡61@oneclickvpnkeys § 51",
+        "📡59@oneclickvpnkeys § 52",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 53",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 54",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 55",
+        "[🇨🇦]t.me/ConfigsHub` § 56",
+        "[🇨🇦]t.me/ConfigsHub` § 57",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 58",
+        "[🇨🇦]t.me/ConfigsHub` § 59",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 60",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 61",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 62",
+        "[🇨🇦]t.me/ConfigsHub`vless://ce17e25d-73b5-4d83-9ad7-a26f505ab2e3@104.17.234.114:8443?path=/Telegram,VPNCUSTOMIZE?ed=8080\u0026security=tls\u0026encryption=none\u0026alpn=h3,h2,http/1.1\u0026host=Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com\u0026fp=chrome\u0026type=ws\u0026sni=Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com#[🇨🇦]t.me/ConfigsHub` § 63",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 64",
+        "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 65",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 66",
+        "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 67",
+        "[🇨🇦]t.me/ConfigsHub` § 68"
+      ],
+      "url": "http://connectivitycheck.gstatic.com/generate_204",
+      "interval": "10m0s",
+      "tolerance": 1,
+      "idle_timeout": "30m0s"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 0",
+      "server": "joinmahdiserver-az7.pages.dev",
+      "server_port": 8443,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "JOInMahdIServER-Az7.PaGeS.DEv",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/5MYfsbXPTJZd737O",
+        "headers": {
+          "Host": "JoInmaHDiseRveR-Az7.paGES.dEv"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 1",
+      "server": "104.18.39.232",
+      "server_port": 2083,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "ArGodev11222.PaGes.Dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/iEKjUnufUjeTiIrt",
+        "headers": {
+          "Host": "argodev11222.pages.dev"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 2",
+      "server": "www.speedtest.net",
+      "server_port": 8880,
+      "uuid": "9500cae1-ef15-47c9-8664-b60bf99e7264",
+      "transport": {
+        "type": "ws",
+        "path": "/-LiV2ry@LIGHTNING6-TEL--@LIGHTNING6-TEL--@LIGHTNING6-TEL--@LIGHTNING6-JOIN-@LIGHTNING6-TEL--@LIGHTNING6-JOIN-@LIGHTNING6-TEL-@LIGHTNING6-TEL--@LIGHTNING6-JOIN-@LIGHTNING6-TEL--@LIGHTNING6",
+        "headers": {
+          "Host": "www.speedtest.net.B.lightning-6.LiVE."
+        },
+        "max_early_data": 8880,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "T.me/SafeNet_Server+💚🤍❤` § 3",
+      "server": "172.66.47.200",
+      "server_port": 443,
+      "uuid": "c6d299d4-db0b-4444-8b56-b23bbdcbcd67",
+      "tls": {
+        "enabled": true,
+        "server_name": "midsUMmER-Bpb.pAgES.DEV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/StDNeNqkbQxrj6Xy",
+        "headers": {
+          "Host": "mIDsuMMer-bpb.PAgEs.DeV"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇸🇪]t.me/ConfigsHub` § 4",
+      "server": "185.146.173.58",
+      "server_port": 8080,
+      "uuid": "476c9705-0ab2-4729-904b-3774179fad8b",
+      "transport": {
+        "type": "ws",
+        "path": "/servernett",
+        "headers": {
+          "Host": "lc58.lebasnoo.ir."
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇸🇪]t.me/ConfigsHub` § 5",
+      "server": "185.146.173.58",
+      "server_port": 8080,
+      "uuid": "e8f27947-b951-47ea-9132-3edae1fdab86",
+      "transport": {
+        "type": "ws",
+        "path": "/servernett",
+        "headers": {
+          "Host": "lc57.lebasnoo.ir."
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 6",
+      "server": "www.speedtest.net",
+      "server_port": 2052,
+      "uuid": "e9a16594-c112-5714-915e-b221a907f33a",
+      "transport": {
+        "type": "ws",
+        "path": "/TEL%20%7C@V2RYNPLUS%7C---TEL%20%7C@V2RYNPLUS%7C---TEL%20%7C@V2RYNPLUS%7C--TEL%20%7C@V2RYNPLUS%7C---TEL%20%7C@V2RYNPLUS%7C",
+        "headers": {
+          "Host": "www.abrha.net.join.eliv2ry.org.se1.vless.Sitespeedtest.net."
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇮🇷]t.me/ConfigsHub` § 7",
+      "server": "213.176.127.36",
+      "server_port": 48793,
+      "uuid": "47d9be46-0504-47b6-a630-5f1168aeb685",
+      "transport": {
+        "type": "grpc",
+        "idle_timeout": "15s",
+        "ping_timeout": "15s"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "Telegram @VlessConfig 🇫🇷` § 8",
+      "server": "15.188.128.189",
+      "server_port": 22222,
+      "uuid": "05519058-d2ac-4f28-9e4a-2b2a1386749e",
+      "tls": {
+        "enabled": true,
+        "server_name": "telegram-channel-vlessconfig.sohala.uk",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/telegram-channel-vlessconfig-ws",
+        "headers": {
+          "Host": "telegram-channel-vlessconfig.sohala.uk"
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 9",
+      "server": "speedtest.net",
+      "server_port": 443,
+      "uuid": "fcced667-7c2e-4ac2-a6b1-fb087be03ff4",
+      "tls": {
+        "enabled": true,
+        "server_name": "speedtest.net",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/telegram-Proxy_MTM-Proxy_MTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-Proxy_MTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-Proxy_MTM-Proxy_MTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM",
+        "headers": {
+          "Host": "barkat1.ir"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 10",
+      "server": "www.speedtest.net",
+      "server_port": 80,
+      "uuid": "48017f86-daf2-4fdd-9fcc-9ff543ecbf83",
+      "transport": {
+        "type": "ws",
+        "path": "/@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy",
+        "headers": {
+          "Host": "shhproxy.com.www.speedtest.net.www.zula.ir.cloudflare.com.developsp.ir."
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 11",
+      "server": "172.67.133.177",
+      "server_port": 8880,
+      "uuid": "33f8c4f4-2515-4798-9ea0-15f2030ef4d8",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "bia-zod-falcunargo.545c437f13.workers.Dev"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 12",
+      "server": "172.66.47.101",
+      "server_port": 443,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "0F4c3270.vpNHAVEn.PAgEs.dEV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram@V2ray_Alpha/",
+        "headers": {
+          "Host": "0F4c3270.vPNHAVEN.PagES.DEV"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 13",
+      "server": "172.66.44.211",
+      "server_port": 443,
+      "uuid": "690f16d0-6425-462b-86e0-a70a8169c5d9",
+      "tls": {
+        "enabled": true,
+        "server_name": "pardazeshvpn-tg97.pages.dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN",
+        "headers": {
+          "Host": "pardazeshvpn-tg97.pages.dev"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇮🇷]t.me/ConfigsHub` § 14",
+      "server": "46.245.66.77",
+      "server_port": 5300,
+      "uuid": "9874370d-a394-4d84-aca9-6c5b173092e4",
+      "transport": {
+        "type": "http",
+        "host": "cafeariel.ir",
+        "path": "/",
+        "method": "GET"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 15",
+      "server": "104.17.234.114",
+      "server_port": 8443,
+      "uuid": "ce17e25d-73b5-4d83-9ad7-a26f505ab2e3",
+      "tls": {
+        "enabled": true,
+        "server_name": "Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram,VPNCUSTOMIZE",
+        "headers": {
+          "Host": "Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com"
+        },
+        "max_early_data": 8080,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇸🇪]t.me/ConfigsHub` § 16",
+      "server": "70.34.220.82",
+      "server_port": 12345,
+      "uuid": "7eca4439-444c-40ee-aa65-9200fccfed32",
+      "transport": {
+        "type": "grpc",
+        "service_name": "sw.v2shopvip.cfd",
+        "idle_timeout": "15s",
+        "ping_timeout": "15s"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 17",
+      "server": "joinv2ngfast-2mm.pages.dev",
+      "server_port": 2096,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "JoinV2nGFaSt-2MM.pAges.DEV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/N9AxDoukMSap6Kq1",
+        "headers": {
+          "Host": "JOInv2ngFaSt-2mM.pAges.DeV"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇸🇪]t.me/ConfigsHub` § 18",
+      "server": "185.146.173.46",
+      "server_port": 80,
+      "uuid": "77be959a-3a9f-53a1-ab5c-71e461a79f4d",
+      "transport": {
+        "type": "ws",
+        "path": "/@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----@Evay_vpn----/",
+        "headers": {
+          "Host": "Fi2.vless.site."
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 19",
+      "server": "104.18.218.118",
+      "server_port": 8443,
+      "uuid": "ce17e25d-73b5-4d83-9ad7-a26f505ab2e3",
+      "tls": {
+        "enabled": true,
+        "server_name": "Join.VPNCUSTOMIZE.usa.speedtest.net.Naziitness.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram,VPNCUSTOMIZE",
+        "headers": {
+          "Host": "Join.VPNCUSTOMIZE.usa.speedtest.net.Naziitness.com"
+        },
+        "max_early_data": 8443,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 20",
+      "server": "www.speedtest.net",
+      "server_port": 8443,
+      "uuid": "ce17e25d-73b5-4d83-9ad7-a26f505ab2e3",
+      "tls": {
+        "enabled": true,
+        "server_name": "Join.VPNCUSTOMIZE.www.speedtest.net.Naziitness.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram,VPNCUSTOMIZE",
+        "headers": {
+          "Host": "Join.VPNCUSTOMIZE.www.speedtest.net.Naziitness.com"
+        },
+        "max_early_data": 2480,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 21",
+      "server": "104.19.239.120",
+      "server_port": 8443,
+      "uuid": "ce17e25d-73b5-4d83-9ad7-a26f505ab2e3",
+      "tls": {
+        "enabled": true,
+        "server_name": "Join.Bede.VPNCUSTOMIZE.speedtest.net.Naziitness.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram,VPNCUSTOMIZE",
+        "headers": {
+          "Host": "Join.Bede.VPNCUSTOMIZE.speedtest.net.Naziitness.com"
+        },
+        "max_early_data": 8080,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 22",
+      "server": "172.66.45.7",
+      "server_port": 443,
+      "uuid": "a94edb46-0734-4593-a8b5-9cd11ddc57f6",
+      "tls": {
+        "enabled": true,
+        "server_name": "5c53ca21.vpn-aryoo.pages.dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "5c53ca21.vpn-aryoo.pages.dev"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 23",
+      "server": "172.66.47.200",
+      "server_port": 443,
+      "uuid": "850a9d4e-4e1f-41e1-8ba1-b8d0a0d6fe00",
+      "tls": {
+        "enabled": true,
+        "server_name": "eV2rAYdEV.pageS.dEv",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/pimYiCPFd3353OXG/MTM5LjE4NS4zNC4xMzE=",
+        "headers": {
+          "Host": "ev2raydev.pages.dev"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 24",
+      "server": "www.speedtest.net",
+      "server_port": 443,
+      "uuid": "e2f4d1fa-0a6d-48c3-a5bb-8b438e78af23",
+      "tls": {
+        "enabled": true,
+        "server_name": "119f3a0b.chikiy123w.pages.dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "119f3a0b.chikiy123w.pages.dev"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 25",
+      "server": "speedtest.net",
+      "server_port": 443,
+      "uuid": "46dfea72-91c8-4cd3-b609-a5a4e9891ba8",
+      "tls": {
+        "enabled": true,
+        "server_name": "speedtest.net",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "firefox"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/@custom_config",
+        "headers": {
+          "Host": "downloadlynet.ir."
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇷]t.me/ConfigsHub` § 26",
+      "server": "190.93.247.56",
+      "server_port": 2052,
+      "uuid": "3142ceda-6964-4377-94e5-190f17c8ad32",
+      "transport": {
+        "type": "ws",
+        "path": "/speedtest",
+        "headers": {
+          "Host": "webmail.palmex.iR."
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 27",
+      "server": "www.speedtest.net",
+      "server_port": 8443,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "jOInmAHDiSERVer-AZ7.paGes.dEV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/ISB6gvC3mmVSWxzE",
+        "headers": {
+          "Host": "joinmahdiseRver-Az7.pAgES.dev"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 28",
+      "server": "151.101.64.223",
+      "server_port": 443,
+      "uuid": "7d2dfb7a-2ecc-4448-bcbe-245a2092fe85",
+      "tls": {
+        "enabled": true,
+        "server_name": "python.org",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram-Xv2ry2-q1",
+        "headers": {
+          "Host": "2v.com"
+        },
+        "max_early_data": 1080,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇮🇷Iran` § 29",
+      "server": "79.127.70.80",
+      "server_port": 2082,
+      "uuid": "e7cae227-ffda-4612-a76c-adcf3a9e49b6",
+      "transport": {
+        "type": "http",
+        "host": "www.speedtest.net",
+        "path": "/",
+        "method": "GET"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 30",
+      "server": "104.18.5.250",
+      "server_port": 443,
+      "uuid": "a64f0cea-ca89-40e6-b316-b3badff1eb90",
+      "tls": {
+        "enabled": true,
+        "server_name": "iSaa1.PAGeS.DeV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/BDwnEtVwG7BS0S9f",
+        "headers": {
+          "Host": "iSAA1.paGEs.DEV"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "proxystore11-joinsho-ip6` § 31",
+      "server": "2a12:5940:b856::2",
+      "server_port": 8080,
+      "uuid": "b4db04e9-cbaa-47d9-8881-e6bf8479105f",
+      "transport": {
+        "type": "http",
+        "host": "www.anten.ir",
+        "path": "/",
+        "method": "GET"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 32",
+      "server": "www.speedtest.net",
+      "server_port": 80,
+      "uuid": "5106fd10-16ac-47f0-a88a-88a4fd3f227e",
+      "transport": {
+        "type": "ws",
+        "path": "/@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy",
+        "headers": {
+          "Host": "shhproxy.com.www.speedtest.net.www.zula.ir.cloudflare.com.developsp.ir."
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 33",
+      "server": "104.23.132.178",
+      "server_port": 443,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "i-H302-Ww4-GmT-32UE-ii2-mo3-FEE-3-3-dew-no-ew22-IUE3-NN1-j.PagES.DeV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/cbJhR5rOvzKE7es9/MzUuMjI2LjIxMS4xMjk=",
+        "headers": {
+          "Host": "I-H302-Ww4-gMT-32ue-Ii2-Mo3-FeE-3-3-DEW-NO-EW22-iUe3-NN1-j.pAgeS.Dev"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 34",
+      "server": "34.194.42.132",
+      "server_port": 22222,
+      "uuid": "05519058-d2ac-4f28-9e4a-2b2a1386749e",
+      "tls": {
+        "enabled": true,
+        "server_name": "telegram-channel-vlessconfig.sohala.uk",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/telegram-channel-vlessconfig-ws",
+        "headers": {
+          "Host": "telegram-channel-vlessconfig.sohala.uk"
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 35",
+      "server": "www.speedtest.net",
+      "server_port": 8443,
+      "uuid": "8155d2bb-0eb4-40ff-ba1d-95df410a672a",
+      "tls": {
+        "enabled": true,
+        "server_name": "01.ev02-02-q2wx8ryz0vic3bfmd1sng7pjjn6lqk4p.tech",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "grpc",
+        "service_name": "@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN,@Everyday_VPN",
+        "idle_timeout": "15s",
+        "ping_timeout": "15s"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 36",
+      "server": "172.66.47.155",
+      "server_port": 443,
+      "uuid": "34a83286-ba4e-4f0a-ac08-77a95469eeaf",
+      "tls": {
+        "enabled": true,
+        "server_name": "pardazesh18.pages.dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/TELEGRAM-MARAMBASHI/",
+        "headers": {
+          "Host": "pardazesh18.pages.dev"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 37",
+      "server": "104.20.19.168",
+      "server_port": 8880,
+      "uuid": "f0d584bc-342f-4443-ba24-79e4d0e504b1",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "late-tooth.granzinhannah.workers.dev"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇸🇪Sweden` § 38",
+      "server": "89.22.238.133",
+      "server_port": 8080,
+      "uuid": "b4db04e9-cbaa-47d9-8881-e6bf8479105f",
+      "transport": {
+        "type": "http",
+        "host": "www.anten.ir",
+        "path": "/",
+        "method": "GET"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 39",
+      "server": "23spt.pages.dev",
+      "server_port": 443,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "23sPT.pAGEs.dEV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/xqc11iXB2DOVwbv9",
+        "headers": {
+          "Host": "23spt.pages.dev"
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 40",
+      "server": "172.64.33.243",
+      "server_port": 443,
+      "uuid": "d7dd3a35-b68b-4992-b319-a85b8a1fc8e5",
+      "tls": {
+        "enabled": true,
+        "server_name": "dns68.putata.eu.org",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "dns68.putata.eu.org"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 41",
+      "server": "172.66.47.151",
+      "server_port": 443,
+      "uuid": "a64f0cea-ca89-40e6-b316-b3badff1eb90",
+      "tls": {
+        "enabled": true,
+        "server_name": "iSaA1.paGes.DEv",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/T7OzaaLG5SkllZJf",
+        "headers": {
+          "Host": "IsaA1.pAGEs.DEV"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 42",
+      "server": "www.speedtest.net",
+      "server_port": 2095,
+      "uuid": "177f142a-79fd-41cf-8010-37ff250035db",
+      "transport": {
+        "type": "ws",
+        "path": "/Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--",
+        "headers": {
+          "Host": "Academi-82.com.www.speedtest.net.www.zula.ir.cloudflare.com.AcadeMigroup.IR."
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 43",
+      "server": "www.speedtest.net",
+      "server_port": 2082,
+      "uuid": "7e345e35-f2e8-496e-bbf3-02c56ceab062",
+      "transport": {
+        "type": "ws",
+        "path": "/Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--Join--ACADEMI_VPN--",
+        "headers": {
+          "Host": "academi-82.com.www.speedtest.net.www.zula.ir.cloudflare.com.AcademiGroup.IR."
+        },
+        "max_early_data": 1024,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 44",
+      "server": "104.18.218.118",
+      "server_port": 443,
+      "uuid": "a94edb46-0734-4593-a8b5-9cd11ddc57f6",
+      "tls": {
+        "enabled": true,
+        "server_name": "5c53ca21.vpn-aryoo.pages.dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram-@V2ray_Alpha/",
+        "headers": {
+          "Host": "5c53ca21.vpn-aryoo.pages.dev"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 45",
+      "server": "104.16.14.99",
+      "server_port": 443,
+      "uuid": "03a987de-7e12-4b38-acbc-e19c90e1cc85",
+      "tls": {
+        "enabled": true,
+        "server_name": "ARCane-ROYAL.Pages.DEV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "ARCane-ROYAL.Pages.DEV"
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇸🇪]t.me/ConfigsHub` § 46",
+      "server": "185.146.173.58",
+      "server_port": 8080,
+      "uuid": "1fba084a-2944-438a-9219-9536574568b3",
+      "transport": {
+        "type": "ws",
+        "path": "/servernett",
+        "headers": {
+          "Host": "lc57.lebasnoo.ir."
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 47",
+      "server": "172.66.47.106",
+      "server_port": 443,
+      "uuid": "bf7e1009-1574-44f7-86df-6cbecd338477",
+      "tls": {
+        "enabled": true,
+        "server_name": "pardazeshvpn-tg18.pages.dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "pardazeshvpn-tg18.pages.dev"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 48",
+      "server": "www.speedtest.net",
+      "server_port": 8880,
+      "uuid": "82d50fd7-8f06-4130-962d-005e88ad52e4",
+      "transport": {
+        "type": "ws",
+        "path": "/@mehrosaboran,@mehrosaboran,/-LiV2ry@LIGHTNING6-TEL--@LIGHTNING6-TEL--@LIGHTNING6-TEL--@LIGHTNING6-JOIN-@LIGHTNING6-TEL--@LIGHTNING6-JOIN-@LIGHTNING6-TEL-@LIGHTNING6-TEL--@LIGHTNING6-JOIN-@LIGHTNING6-TEL--@LIGHTNING6",
+        "headers": {
+          "Host": "www.speedtest.net.A.lightning-6.LiVE."
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 49",
+      "server": "198.41.202.5",
+      "server_port": 8443,
+      "uuid": "ce17e25d-73b5-4d83-9ad7-a26f505ab2e3",
+      "tls": {
+        "enabled": true,
+        "server_name": "Join.VPNCUSTOMIZE.www.speedtest.net.Naziitness.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram,VPNCUSTOMIZE",
+        "headers": {
+          "Host": "Join.VPNCUSTOMIZE.www.speedtest.net.Naziitness.com"
+        },
+        "max_early_data": 2480,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇸🇪Sweden` § 50",
+      "server": "185.146.173.95",
+      "server_port": 8443,
+      "uuid": "ce17e25d-73b5-4d83-9ad7-a26f505ab2e3",
+      "tls": {
+        "enabled": true,
+        "server_name": "Join.VPNCUSTOMIZE.usa.speedtest.net.Naziitness.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram,VPNCUSTOMIZE",
+        "headers": {
+          "Host": "Join.VPNCUSTOMIZE.usa.speedtest.net.Naziitness.com"
+        },
+        "max_early_data": 8443,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "📡61@oneclickvpnkeys § 51",
+      "server": "104.21.224.176",
+      "server_port": 80,
+      "uuid": "d342d11e-d424-4583-b36e-524ab1f0afa4",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "a.ssll.gay"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "📡59@oneclickvpnkeys § 52",
+      "server": "104.21.224.138",
+      "server_port": 80,
+      "uuid": "d342d11e-d424-4583-b36e-524ab1f0afa4",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "a.ssll.gay"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 53",
+      "server": "188.114.96.216",
+      "server_port": 80,
+      "uuid": "ef493c7a-e640-5874-9dc8-fdaa1b3a0529",
+      "transport": {
+        "type": "ws",
+        "path": "/join-@mosiv2-@mosiv2-",
+        "headers": {
+          "Host": "www.digikala.com.joinTelegram.mosiv2.be3.vless.Sitespeedtest.net."
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 54",
+      "server": "172.67.185.141",
+      "server_port": 443,
+      "uuid": "89b3cbba-e6ac-490a-9481-976a0465eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "eSeTSeCuRiTYliCENSE.JCtqk.WORkerS.dEV",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/OklEALGrsy4LBqHx",
+        "headers": {
+          "Host": "EsEtSeCuriTylicensE.JctqK.wOrkErs.dEv"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 55",
+      "server": "172.66.44.197",
+      "server_port": 443,
+      "uuid": "d3a12e79-ef42-4268-b367-42eeb3494e60",
+      "tls": {
+        "enabled": true,
+        "server_name": "Hagh.PaGes.DEv",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Path/Telegram@proxy_mtm/",
+        "headers": {
+          "Host": "Hagh.PaGes.DEv"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 56",
+      "server": "104.21.80.211",
+      "server_port": 443,
+      "uuid": "89b3cbba-e6ac-485a-9481-976a0415eab9",
+      "tls": {
+        "enabled": true,
+        "server_name": "pPaL03.bRAdfoRD-aVa.wOrkerS.dEv",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "randomized"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/jq6TR43rJy5rM49Y",
+        "headers": {
+          "Host": "Ppal03.bRadfoRd-Ava.WORkers.dev"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 57",
+      "server": "104.18.218.118",
+      "server_port": 8443,
+      "uuid": "e93db79d-fa80-4c33-8dea-0833753b25a1",
+      "tls": {
+        "enabled": true,
+        "server_name": "Join.VPNCUSTOMIZE.usa.speedtest.net.Naziitness.com",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram,VPNCUSTOMIZE,Telegram,VPNCUSTOMIZE",
+        "headers": {
+          "Host": "Join.VPNCUSTOMIZE.usa.speedtest.net.Naziitness.com"
+        },
+        "max_early_data": 8443,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 58",
+      "server": "172.66.46.225",
+      "server_port": 8443,
+      "uuid": "1de40725-3e6b-42b1-9e3e-330c852d049e",
+      "tls": {
+        "enabled": true,
+        "server_name": "pardazeshvpn-tg56.pages.dev",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN-Telegram:@PARDAZESHVPN",
+        "headers": {
+          "Host": "pardazeshvpn-tg56.pages.dev"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 59",
+      "server": "104.21.88.231",
+      "server_port": 443,
+      "uuid": "66b3cbba-e6ac-485a-9481-962a0415eab5",
+      "tls": {
+        "enabled": true,
+        "server_name": "ESeTSEcuRitYlIcensE.eIeOq.wORkErs.DEv",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/WDB88gPdosx8kBP7",
+        "headers": {
+          "Host": "eSEtseCUrityliCEnse.EIeoQ.WORkErs.DEV"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 60",
+      "server": "www.speedtest.net",
+      "server_port": 80,
+      "uuid": "58d34a1e-208f-4a2f-b0d3-a0ec705d9549",
+      "transport": {
+        "type": "ws",
+        "path": "/@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy",
+        "headers": {
+          "Host": "shhproxy.com.www.speedtest.net.www.zula.ir.cloudflare.com.developsp.ir."
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 61",
+      "server": "104.21.69.44",
+      "server_port": 8443,
+      "uuid": "17fafaf9-7402-40eb-87ae-a75944c84c52",
+      "tls": {
+        "enabled": true,
+        "server_name": "ggho.pages.dev.",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/TELEGRAM-PROXY_MTM/",
+        "headers": {
+          "Host": "ggho.pages.dev."
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 62",
+      "server": "speedtest.net",
+      "server_port": 443,
+      "uuid": "6a62ae9a-be02-4f5b-8743-1e1a15ac51c7",
+      "tls": {
+        "enabled": true,
+        "server_name": "speedtest.net",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy",
+        "headers": {
+          "Host": "joinshhproxybede.ir"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub`vless://ce17e25d-73b5-4d83-9ad7-a26f505ab2e3@104.17.234.114:8443?path=/Telegram,VPNCUSTOMIZE?ed=8080\u0026security=tls\u0026encryption=none\u0026alpn=h3,h2,http/1.1\u0026host=Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com\u0026fp=chrome\u0026type=ws\u0026sni=Join.VPNCUSTOMIZE.speedtest.net.Naziitness.com#[🇨🇦]t.me/ConfigsHub` § 63",
+      "server": "172.66.47.59",
+      "server_port": 443,
+      "uuid": "d3a12e79-ef42-4268-b367-42eeb3494e60",
+      "tls": {
+        "enabled": true,
+        "server_name": "Hagh.PaGes.DEv",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "Hagh.PaGes.DEv"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 64",
+      "server": "speedtest.net",
+      "server_port": 80,
+      "uuid": "349ece52-713d-4955-b8c7-5874b4906235",
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "wWw.SpEeDtEsT.NeT.ZuLa.Ir.IkCoSaLeS.iR.D662599.v20.com"
+        },
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇨🇦Canada` § 65",
+      "server": "96110.cf.090227.xyz",
+      "server_port": 443,
+      "uuid": "1d399c5a-1c32-4fff-a4d0-d78fd3328a4c",
+      "tls": {
+        "enabled": true,
+        "server_name": "pages.teasalo.cloudns.org",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "random"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/",
+        "headers": {
+          "Host": "pages.teasalo.cloudns.org"
+        },
+        "max_early_data": 2560,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 66",
+      "server": "speedtest.net",
+      "server_port": 443,
+      "uuid": "16c12866-1d02-4529-83dc-388214841124",
+      "tls": {
+        "enabled": true,
+        "server_name": "speedtest.net",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy----@Shh_Proxy",
+        "headers": {
+          "Host": "joinshhproxybede.ir"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "👉🆔 @v2ray_configs_pool📡🇺🇸United States` § 67",
+      "server": "speedtest.net",
+      "server_port": 443,
+      "uuid": "516ef31f-77f9-4b0e-b0f9-2978a8b21bc1",
+      "tls": {
+        "enabled": true,
+        "server_name": "speedtest.net",
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      },
+      "transport": {
+        "type": "ws",
+        "path": "/telegram-Proxy_MTM-telegram-Proxy_MTM-Proxy_MTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-Proxy_MTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-Proxy_MTM-Proxy_MTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-ProxyMTM-Proxy_MTM-Proxy_MTM-Proxy_MTM",
+        "headers": {
+          "Host": "barkat1.ir"
+        },
+        "max_early_data": 2048,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "vless",
+      "tag": "[🇨🇦]t.me/ConfigsHub` § 68",
+      "server": "www.speedtest.net",
+      "server_port": 80,
+      "uuid": "7d2dfb7a-2ecc-4448-bcbe-245a2092fe85",
+      "transport": {
+        "type": "ws",
+        "path": "/Telegram-Xv2ry2-q1",
+        "headers": {
+          "Host": "www.speedtest.net.25.15.432.20.20.20.20.ir.xn--g28h.dns-dynamic.net."
+        },
+        "max_early_data": 512,
+        "early_data_header_name": "Sec-WebSocket-Protocol"
+      },
+      "packet_encoding": "xudp"
+    },
+    {
+      "type": "dns",
+      "tag": "dns-out"
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "direct",
+      "tag": "direct-fragment",
+      "tls_fragment": {
+        "enabled": true,
+        "size": "10-30",
+        "sleep": "2-8"
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "bypass"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ],
+  "route": {
+    "rules": [
+      {
+        "domain": ".cn",
+        "outbound": "direct"
+      },
+      {
+        "rule_set": [
+          "geoip-cn",
+          "geosite-cn"
+        ],
+        "outbound": "direct"
+      },
+      {
+        "inbound": "dns-in",
+        "outbound": "dns-out"
+      },
+      {
+        "port": 53,
+        "outbound": "dns-out"
+      },
+      {
+        "clash_mode": "Direct",
+        "outbound": "direct"
+      },
+      {
+        "clash_mode": "Global",
+        "outbound": "select"
+      }
+    ],
+    "rule_set": [
+      {
+        "type": "remote",
+        "tag": "geoip-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set/country/geoip-cn.srs",
+        "update_interval": "120h0m0s"
+      },
+      {
+        "type": "remote",
+        "tag": "geosite-cn",
+        "format": "binary",
+        "url": "https://raw.githubusercontent.com/hiddify/hiddify-geo/rule-set/country/geosite-cn.srs",
+        "update_interval": "120h0m0s"
+      }
+    ],
+    "final": "select",
+    "auto_detect_interface": true,
+    "override_android_vpn": true
+  },
+  "experimental": {
+    "cache_file": {
+      "enabled": true,
+      "path": "clash.db"
+    },
+    "clash_api": {
+      "external_controller": "127.0.0.1:16756",
+      "secret": "zqyxdKMHOe4Zb0hI"
+    }
+  }
+}

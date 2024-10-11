@@ -1,0 +1,105 @@
+#region imports
+from AlgorithmImports import *
+from Selection.FundamentalUniverseSelectionModel import FundamentalUniverseSelectionModel
+# 添加阿尔法
+class myAlpha(AlphaModel):
+    securities = []
+    month = -1
+    def Update(self, algorithm: QCAlgorithm, data: Slice) -> List[Insight]:
+        # Only emit insights at the start of every month when there is QuoteBar data
+        if self.month == algorithm.Time.month or not data.QuoteBars:
+            return []
+        self.month = algorithm.Time.month
+        expiry = self.securities[0].Exchange.Hours.GetNextMarketOpen(Expiry.EndOfMonth(data.Time), extendedMarketHours=False)
+        return [Insight.Price(security.Symbol, expiry, InsightDirection.Up) for security in self.securities]
+    def OnSecuritiesChanged(self, algorithm: QCAlgorithm, changes: SecurityChanges) -> None:
+        for security in changes.RemovedSecurities:
+            if security in self.securities:
+                self.securities.remove(security)
+        self.securities.extend(changes.AddedSecurities)
+# 添加基本面选股
+class baseFundamentalModel(FundamentalUniverseSelectionModel):
+    def __init__(self,
+            universe_settings: UniverseSettings=None,#None是全市场
+            coarse_size: int = 1000,
+            fine_size: int = 10) -> None:
+        super().__init__(None, universe_settings)
+        self.coarse_size = coarse_size
+        self.fine_size = fine_size
+        self.month = -1
+        self.hours = None
+        
+    def Select(self, algorithm, fundamental) -> List[Symbol]:
+        if not self.hours or algorithm.LiveMode:
+            self.hours = algorithm.MarketHoursDatabase.GetEntry(Market.USA, "SPY", SecurityType.Equity).ExchangeHours
+        # Only update the universe at the start of the month
+        self.next_open = self.hours.GetNextMarketOpen(algorithm.Time, False)
+        if self.month == self.next_open.month:
+            return Universe.Unchanged
+        self.month = self.next_open.month
+        
+        # # 不排名
+        # shortlisted = [c for c in fundamental]
+        # 成交额排名
+        shortlisted = [c for c in sorted(fundamental, key=lambda x: x.DollarVolume, reverse=True)[:self.coarse_size]]
+        # 基本面筛选
+        fine = [i for i in shortlisted if i.EarningReports.BasicAverageShares.ThreeMonths!=0
+                                  and i.EarningReports.BasicEPS.TwelveMonths!=0
+                                  and i.ValuationRatios.PERatio!=0
+                                  ]
+        # 市值排序
+        sorted_by_market_cap = sorted(fine, key = lambda x:x.MarketCap, reverse=True)
+        
+        # # 一月份选择小市值
+        # if self.month == 1:
+        #     return [f.Symbol for f in sorted_by_market_cap[-self.fine_size:]]
+        # 否则返回大市值
+        return [f.Symbol for f in sorted_by_market_cap[:self.fine_size]]
+
+class JanuaryEffectInStocksAlgorithm(QCAlgorithm):
+    undesired_symbols_from_previous_deployment = []
+    checked_symbols_from_previous_deployment = False
+    def Initialize(self):
+        self.SetStartDate(2002, 7, 1)
+        self.SetEndDate(2023, 7, 1)
+        self.SetCash(1000000)
+        self.Settings.MinimumOrderMarginPortfolioPercentage = 0
+        self.UniverseSettings.DataNormalizationMode = DataNormalizationMode.Raw
+        self.SetSecurityInitializer(BrokerageModelSecurityInitializer(self.BrokerageModel, FuncSecuritySeeder(self.GetLastKnownPrices)))
+        
+        # 基本面选股
+        self.AddUniverseSelection(baseFundamentalModel(
+            self.UniverseSettings,#获取股票
+            self.GetParameter("coarse_size",1000),
+            self.GetParameter("fine_size",50)#设置持仓数量
+        ))
+        # 一月份处理
+        self.AddAlpha(myAlpha())
+
+        self.Settings.RebalancePortfolioOnSecurityChanges = False
+        self.Settings.RebalancePortfolioOnInsightChanges = False
+        self.month = -1
+        self.SetPortfolioConstruction(EqualWeightingPortfolioConstructionModel(self.rebalance_func))
+
+        self.AddRiskManagement(NullRiskManagementModel())
+        self.SetExecution(ImmediateExecutionModel())
+        self.SetWarmUp(timedelta(31))
+    def rebalance_func(self, time):
+        if self.month != self.Time.month and not self.IsWarmingUp and self.CurrentSlice.QuoteBars.Count > 0:
+            self.month = self.Time.month
+            return time
+        return None
+    def OnData(self, data):
+        # Exit positions that aren't backed by existing insights.
+        if not self.IsWarmingUp and not self.checked_symbols_from_previous_deployment:
+            for security_holding in self.Portfolio.Values:
+                if not security_holding.Invested:
+                    continue
+                symbol = security_holding.Symbol
+                if not self.Insights.HasActiveInsights(symbol, self.UtcTime):
+                    self.undesired_symbols_from_previous_deployment.append(symbol)
+            self.checked_symbols_from_previous_deployment = True
+        for symbol in self.undesired_symbols_from_previous_deployment[:]:
+            if self.IsMarketOpen(symbol):
+                self.Liquidate(symbol, tag="Holding from previous deployment that's no longer desired")
+                self.undesired_symbols_from_previous_deployment.remove(symbol)

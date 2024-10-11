@@ -1,0 +1,1354 @@
+# 联系方式：lianghuajiaoyi123456
+# 通过调整下面两个参数确定策略类型是可转债、中小板、微盘股g.Strategy、g.stocknum
+import pandas as pd
+import numpy as np
+import time
+import datetime
+import math
+
+###策略仿真启动大概需要提前五分钟【注意启动策略的时候保留好这个时间】###
+
+def symbol_convert(x):#股票代码加后缀
+    if x.startswith("6"):
+        return str(str(x)+".SS")
+    elif x.startswith("00"):
+        return str(str(x)+".SZ")
+    elif x.startswith("30"):
+        return str(str(x)+".SZ")
+    else:
+        pass
+        
+def filter_kcb_stock(stocks):#过滤科创北交股票
+    for stock in stocks[:]:
+        # 去掉科创北交的股票
+        if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+            stocks.remove(stock)
+        # # 只要科创北交的股票
+        # if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
+        #     pass
+        # else:
+        #     stocks.remove(stock)
+    return stocks
+    
+#金额设置单股最大金额，持仓数根据当前金额调整，但是不低于多少
+def initialize(context):
+    set_benchmark("000905.SS")#设置基准收益【实盘应该是没用的】
+    
+    now=get_trading_day(0)#获取当前交易日（0日前交易日）
+    start_date=now.strftime("%Y-%m-%d")#测试当天的数据
+    print("******","start_date",start_date)
+    last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+    today=get_trade_days(end_date=start_date,count=2)[1]
+    g.today=today.replace("-","")
+    yesterday=get_trade_days(end_date=start_date,count=2)[0]
+    g.yesterday=yesterday.replace("-","")
+    print("******","g.today",g.today,type(g.today),"g.yesterday",g.yesterday)
+
+    # g.Strategy="可转债" #策略名称，只要不修改这个名称，即便关闭了策略，重新开启，依然可以按照之前持有仓位运行。
+    # g.stocknum=30 #持仓数【理论】
+    
+    g.Strategy="中小板" #策略名称，只要不修改这个名称，即便关闭了策略，重新开启，依然可以按照之前持有仓位运行。
+    g.stocknum=7 #持仓数【理论】
+    
+    # g.Strategy="微盘股" #策略名称，只要不修改这个名称，即便关闭了策略，重新开启，依然可以按照之前持有仓位运行。
+    # g.stocknum=30 #持仓数【理论】
+
+    #设置交易参数并且获取买卖计划
+    g.bidrate=0.0025 #设置下单滑点为0.0025
+    # g.timetickwait=2000 #设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快，3秒一根但是返回的速度不够快】
+    g.targetmoney=20000 #设置下单时对手盘挂单金额阈值（满足阈值之后g.targetmoney的单笔下单金额，因为下单股数需要是100的整数倍所以实际金额比这个值低）【开通免五功能之后这个值可以很小（未开通也不能太大避免验证下单失败无法下单）】
+    g.traderate=2 #设置满足下单条件之后单次挂单金额是g.targetmoney的g.traderate倍以上时，按照g.targetmoney一笔进行下单，否则全部下单
+    # g.cancellorder=False #取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
+    g.cancellorder=True #设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
+    
+    #初始化全局变量
+    g.dforderalls=pd.DataFrame({})
+    g.dfordercancelled=pd.DataFrame({})
+    g.dfposition=pd.DataFrame({})
+    g.moneymanage=pd.DataFrame({})
+
+def handle_data(context,data):
+    current_dt=context.blotter.current_dt
+    log.info(str(current_dt)+"时分秒数据"+str(current_dt.time())+"小时"+str(current_dt.time().hour)+"分钟"+str(current_dt.time().minute))
+    # 全天调仓【datetime.time()格式的时间一般不能带0】
+    if (
+    (current_dt.time()>datetime.time(9,55))and(current_dt.time()<datetime.time(11,20))
+    )or(
+    (current_dt.time()>datetime.time(13,5))and(current_dt.time()<datetime.time(14,50))
+    ):
+    # #下午调仓
+    # if (
+    # (current_dt.time()>datetime.time(13,45))and(current_dt.time()<datetime.time(14,50))
+    # ):
+    # #一直调仓【仅限测试】
+    # if True:
+        
+        # # 重置持仓数量
+        # if g.Strategy=="可转债":
+            # maxmoney=60000#单股最大持仓金额
+            # g.stocknum=math.floor(context.portfolio.portfolio_value/maxmoney)
+            # if g.stocknum<=6:#最小持仓数量为6只
+                # g.stocknum=6
+                # g.Strategy="可转债" #策略名称
+            # elif g.stocknum>6 and g.stocknum<=30:
+                # #缓冲地带自动确认持仓数量
+                # g.Strategy="可转债" #策略名称
+            # elif g.stocknum>30:
+                # g.stocknum=30
+                # g.Strategy="可转债" #策略名称
+            # print("当前账户资产总额",context.portfolio.portfolio_value,"执行策略",g.Strategy,"持仓只数",g.stocknum)
+        # else:
+            # maxmoney=60000#单股最大持仓金额
+            # g.stocknum=math.floor(context.portfolio.portfolio_value/maxmoney)
+            # if g.stocknum<=6:#最小持仓数量为6只
+                # g.stocknum=6
+                # g.Strategy="中小板" #策略名称
+            # elif g.stocknum>6 and g.stocknum<=10:
+                # #缓冲地带自动确认持仓数量
+                # g.Strategy="中小板" #策略名称
+            # elif g.stocknum>10 and g.stocknum<=20:#在10-20只之间留一个缓冲地带，不指定持仓数量和选股策略
+                # pass
+            # elif g.stocknum>20 and g.stocknum<=30:
+                # #缓冲地带自动确认持仓数量
+                # g.Strategy="微盘股" #策略名称
+            # elif g.stocknum>30:
+                # g.stocknum=30
+                # g.Strategy="微盘股" #策略名称
+            # print("当前账户资产总额",context.portfolio.portfolio_value,"执行策略",g.Strategy,"持仓只数",g.stocknum)
+            
+        print("选股前先获取持仓信息",current_dt.time())
+        #交易开始之前输出持仓
+        positions=context.portfolio.positions
+        # positions=get_positions()
+        g.dfposition=pd.DataFrame({})
+        for position in positions.values():
+            if position.amount>0:#只拼接总余额大于0的持仓
+                thisposition=pd.DataFrame({
+                            "代码":[position.sid],
+                            "余额":[position.amount],
+                            "可用余额":[position.enable_amount],
+                            "当前价":[position.last_sale_price],
+                            "成本价":[position.cost_basis],
+                            "类型":[position.business_type],
+                            })
+                thisposition["日期"]=g.today
+                thisposition["持仓市值"]=thisposition["余额"]*thisposition["当前价"]
+                thisposition["可用资金"]=context.portfolio.cash
+                thisposition["总资产"]=context.portfolio.portfolio_value
+                g.dfposition=pd.concat([g.dfposition,thisposition])
+        if not g.dfposition.empty:#持仓不为空值
+            g.dfposition["总持仓市值"]=g.dfposition["持仓市值"].sum()
+        # print("当前持仓状态",g.dfposition)
+        g.dfposition.to_csv("/home/fly/notebook/---g.dfposition"+".csv")
+        
+        print("符合交易时间开始选股",current_dt.time())
+        #执行买卖交易计划
+        max_getnum=50 #最多重新获取五次
+        getnum=0 #计算当前重新获取了getnum次
+        while getnum < max_getnum:
+            try:
+                now=get_trading_day(0)#获取当前交易日（0日前交易日）
+                start_date=now.strftime("%Y-%m-%d")#测试当天的数据
+                print("******","start_date",start_date)
+                last_date=(now-datetime.timedelta(days=250)).strftime("%Y-%m-%d")
+                today=get_trade_days(end_date=start_date,count=2)[1]
+                g.today=today.replace("-","")
+                yesterday=get_trade_days(end_date=start_date,count=2)[0]
+                g.yesterday=yesterday.replace("-","")
+                print("******","g.today",g.today,type(g.today),"g.yesterday",g.yesterday)
+                
+                # #【这里按照季度获取到的财报可能是最新的目标季度财报，不按季度只按日期获取的可能是当前年度的最新财报】# #
+                #不用它也能取到基本面数据【但是实盘的时候会少数据，加上之后略微滞后，但是不少数据了】
+                thistime=(context.blotter.current_dt)
+                log.info("日期说明"+str(thistime)+"月"+str(thistime.month)+"日"+str(thistime.day))
+                if((thistime.month>=4)and(thistime.month<5)):
+                    basenum=4
+                if ((thistime.month>=5)and(thistime.month<9)):
+                    basenum=1
+                if ((thistime.month>=9)and(thistime.month<11)):
+                    basenum=2
+                if ((thistime.month>=11)or(thistime.month<4)):
+                    basenum=3
+                    
+                if g.Strategy=="可转债":
+                    #先过滤正股，只要基本面好的正股
+                    stocks=get_Ashares(date=g.today) # 全市场
+                    print("原始数据",len(stocks))
+                    stocks==filter_kcb_stock(stocks) # 去除科创北交
+                    print("过滤科创板之后",len(stocks))
+
+                    #【报错说明】获取GTN数据为空：券商端访问量限制
+                    #利润表-净利润、归母净利润、营收
+                    basedf=get_fundamentals(stocks,"income_statement",fields=[
+                                            "net_profit",#净利润
+                                            "np_parent_company_owners",#归母净利润
+                                            "operating_revenue",#营业收入
+                                            ],
+                                            date=g.yesterday,
+                                            report_types=str(basenum),
+                                            ).reset_index()
+                    basedf=basedf.rename(columns={
+                            "secu_code":"代码",
+                            "net_profit":"净利润",
+                            "np_parent_company_owners":"归母净利润",
+                            "operating_revenue":"营业收入",
+                            })
+                    basedf=basedf[["代码","营业收入","净利润","归母净利润"]]
+                    # basedf=basedf[basedf["营业收入"]>10000000]
+                    basedf=basedf[basedf["净利润"]>0]
+                    basedf=basedf[basedf["归母净利润"]>0]
+                    basedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留净利润、归母净利润大于0的",len(basedf))
+                    
+                    #利润表-净利润、归母净利润、营收[最新]
+                    # 3月19日更新000001.SZ在3月15出来的最新的财报，中间间隔了2个交易日，
+                    # 也就是只能拿到截止到在3月18日周一的g.yesterday之前的数据，哪怕用g.today也会滞后一天，
+                    # 不过数据确实是最新一期的财报，即当年年报
+                    newbasedf=get_fundamentals(stocks,"income_statement",fields=[
+                                            "net_profit",#净利润
+                                            "np_parent_company_owners",#归母净利润
+                                            "operating_revenue",#营业收入
+                                            ],
+                                            date=g.yesterday,
+                                            # report_types=str(basenum),
+                                            ).reset_index()
+                    newbasedf=newbasedf.rename(columns={
+                            "secu_code":"代码",
+                            "net_profit":"净利润",
+                            "np_parent_company_owners":"归母净利润",
+                            "operating_revenue":"营业收入",
+                            })
+                    newbasedf=newbasedf[["代码","营业收入","净利润","归母净利润"]]#很多公司尚未更新最近一期财报所以含有空值
+                    newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    # newbasedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新newbasedf.csv")
+                    print("变更数据",len(newbasedf))
+                    # #打印被更新掉的旧数据
+                    # dropdf=basedf[(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    # dropdf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新dropdf.csv")
+                    # print("len(dropdf)",len(dropdf))
+                    # #打印被填充进来的新数据
+                    # newdropdf=newbasedf[newbasedf["代码"].isin(dropdf["代码"].tolist())]
+                    # newdropdf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新newdropdf.csv")
+                    # print("len(newdropdf)",len(newdropdf))
+                    #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    # print("最新一期财报删减数据",basedf[(basedf["净利润"]<=0)|(basedf["归母净利润"]<=0)]["代码"].tolist())
+                    # basedf=basedf[basedf["营业收入"]>10000000]
+                    basedf=basedf[basedf["净利润"]>0]
+                    basedf=basedf[basedf["归母净利润"]>0]
+                    basedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收最新.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留净利润、归母净利润大于0的【最新】",len(basedf))
+                    
+                    #盈利能力-扣非净利润
+                    basedf=get_fundamentals(stocks,"profit_ability",fields=[
+                                        "net_profit_cut",#扣非净利润
+                                        ],
+                                        date=g.yesterday,
+                                        report_types=str(basenum)
+                                        ).reset_index()
+                    basedf=basedf.rename(columns={
+                            "secu_code":"代码",
+                            "net_profit_cut":"扣非净利润",
+                            })
+                    basedf=basedf[["代码","扣非净利润"]]
+                    basedf=basedf[basedf["扣非净利润"]>0]
+                    basedf.to_csv("/home/fly/notebook/扣非净利润.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留扣非净利润大于0的",len(basedf))
+                    
+                    #盈利能力-扣非净利润[最新]
+                    newbasedf=get_fundamentals(stocks,"profit_ability",fields=[
+                                        "net_profit_cut",#扣非净利润
+                                        ],
+                                        date=g.yesterday,
+                                        # report_types=str(basenum)
+                                        ).reset_index()
+                    newbasedf=newbasedf.rename(columns={
+                            "secu_code":"代码",
+                            "net_profit_cut":"扣非净利润",
+                            })
+                    newbasedf=newbasedf[["代码","扣非净利润"]]#很多公司尚未更新最近一期财报所以含有空值
+                    newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    print("变更数据",len(newbasedf))
+                    #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    print("最新一期财报删减数据",basedf[basedf["扣非净利润"]<=0]["代码"].tolist())
+                    basedf=basedf[basedf["扣非净利润"]>0]
+                    basedf.to_csv("/home/fly/notebook/扣非净利润最新.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留扣非净利润大于0的",len(basedf))
+                    
+                    # #资产负债表-未分配利润，为正时能够排除历史遗留问题股票
+                    # basedf=get_fundamentals(stocks,"balance_statement",fields=[
+                                        # "retained_profit",#未分配利润
+                                        # ],
+                                        # date=g.yesterday,
+                                        # report_types=str(basenum)
+                                        # ).reset_index()
+                    # basedf=basedf.rename(columns={
+                            # "secu_code":"代码",
+                            # "retained_profit":"未分配利润",
+                            # })
+                    # basedf=basedf[["代码","未分配利润"]]
+                    # basedf=basedf[basedf["未分配利润"]>0]
+                    # basedf.to_csv("/home/fly/notebook/未分配利润.csv")
+                    # stocks=basedf["代码"].tolist()
+                    # print("保留未分配利润大于0的",len(basedf))
+                    
+                    # #资产负债表-未分配利润，为正时能够排除历史遗留问题股票[最新]
+                    # newbasedf=get_fundamentals(stocks,"balance_statement",fields=[
+                                        # "retained_profit",#未分配利润
+                                        # ],
+                                        # date=g.yesterday,
+                                        # # report_types=str(basenum)
+                                        # ).reset_index()
+                    # newbasedf=newbasedf.rename(columns={
+                            # "secu_code":"代码",
+                            # "retained_profit":"未分配利润",
+                            # })
+                    # newbasedf=newbasedf[["代码","未分配利润"]]
+                    # newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    # print("变更数据",len(newbasedf))
+                    # #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    # basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    # basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    # # print("最新一期财报删减数据",basedf[basedf["未分配利润"]<=0]["代码"].tolist())
+                    # basedf=basedf[basedf["未分配利润"]>0]
+                    # basedf.to_csv("/home/fly/notebook/未分配利润最新.csv")
+                    # stocks=basedf["代码"].tolist()
+                    # print("保留未分配利润大于0的",len(basedf))
+                    
+                    #偿债能力-资产负债比
+                    basedf=get_fundamentals(stocks,"debt_paying_ability",fields=[
+                                        "sewmi_to_total_liability",#归属母公司股东的权益与负债合计的百分比
+                                        ],
+                                        date=g.yesterday,
+                                        report_types=str(basenum)
+                                        ).reset_index()
+                    basedf=basedf.rename(columns={
+                            "secu_code":"代码",
+                            "sewmi_to_total_liability":"归属母公司股东的权益与负债合计的百分比",
+                            })
+                    basedf=basedf[["代码","归属母公司股东的权益与负债合计的百分比"]]
+                    basedf["归属母公司股东的权益与负债合计的百分比"]=basedf["归属母公司股东的权益与负债合计的百分比"]/100
+                    basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>0]#大部分时候都是正的（也就是净资产大于0）
+                    # basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>float(0.1)]#去掉净资产不足总负债的百分之10的情况
+                    basedf.to_csv("/home/fly/notebook/归属母公司股东的权益与负债合计的百分比.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留归属母公司股东的权益与负债合计的百分比大于0的",len(basedf))
+                    
+                    #偿债能力-资产负债比[最新]
+                    newbasedf=get_fundamentals(stocks,"debt_paying_ability",fields=[
+                                        "sewmi_to_total_liability",#归属母公司股东的权益与负债合计的百分比
+                                        ],
+                                        date=g.yesterday,
+                                        report_types=str(basenum)
+                                        ).reset_index()
+                    newbasedf=newbasedf.rename(columns={
+                            "secu_code":"代码",
+                            "sewmi_to_total_liability":"归属母公司股东的权益与负债合计的百分比",
+                            })
+                    newbasedf=newbasedf[["代码","归属母公司股东的权益与负债合计的百分比"]]
+                    newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    print("变更数据",len(newbasedf))
+                    #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    basedf["归属母公司股东的权益与负债合计的百分比"]=basedf["归属母公司股东的权益与负债合计的百分比"]/100
+                    # print("最新一期财报删减数据",basedf[basedf["归属母公司股东的权益与负债合计的百分比"]<=0]["代码"].tolist())
+                    basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>0]#大部分时候都是正的（也就是净资产大于0）
+                    # basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>float(0.1)]#去掉净资产不足总负债的百分之10的情况
+                    basedf.to_csv("/home/fly/notebook/归属母公司股东的权益与负债合计的百分比最新.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留归属母公司股东的权益与负债合计的百分比大于0的",len(basedf))
+                    
+                    #获取正股tick数据
+                    stockstick=get_snapshot(stocks)
+                    stockstick=pd.DataFrame(stockstick).T#原来是字典需要转df才行
+                    stockstick=stockstick.reset_index()
+                    stockstick=stockstick.rename(columns={"index":"代码",})
+                    stockstick.to_csv("/home/fly/notebook/可转债正股tick.csv")
+                    # 代码有行情快照并且交易状态不在暂停交易、停盘、长期停盘、退市状态的判定为可交易代码，即status不为以下的任何一种None, "HALT", "SUSP", "STOPT", "DELISTED"
+                    stockstick=stockstick[stockstick["trade_status"]=="TRADE"]#只要可交易的转债
+                    stockstick=stockstick[["代码","last_px"]]
+                    stockstick=stockstick.rename(columns={"代码":"正股代码","last_px":"正股last_px",})
+                    stockstick=stockstick[["正股代码","正股last_px"]]
+                    print("可转债正股tick",stockstick,type(stockstick))
+                    
+                    # pip install xcsc-tushare
+                    import xcsc_tushare as ts
+                    # ts.set_token('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7')
+                    # ts.pro_api(server='http://116.128.206.39:7172')   #指定tocken对应的环境变量，此处以生产为例
+                    pro = ts.pro_api('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7',server='http://116.128.206.39:7172')
+                    #可转债基础信息
+                    df=pro.cb_basic(fields="ts_code,bond_full_name,stk_code,remain_size,conv_price,maturity_date")
+                    df=df.reset_index()
+                    df=df.rename(columns={"ts_code":"代码",
+                                        "bond_full_name":"转债名称",
+                                        "stk_code":"正股代码",
+                                        "remain_size":"债券余额",
+                                        "conv_price":"最新转股价",
+                                        "maturity_date":"到期日期",})
+                    df=df[df["正股代码"].isin(stocks)]#只要前面基本面筛选当中基本面好的正股对应的转债                    
+                    df=df[df["债券余额"]>0]#只要还有余额的转债【不要已经因为强赎、到赎及其它原因没有余额的】
+                    df["到期日期"]=pd.to_datetime(df['到期日期'], format='%Y-%m-%d')#到期日列字符串格式转datetime格式
+                    alldf=df[df["到期日期"]>(datetime.datetime.now()+datetime.timedelta(days=180))]#只保留180日后到期的
+                    alldf.to_csv("/home/fly/notebook/可转债基础信息.csv")
+                    #可转债赎回信息（历史上只有40个到期赎回的标的，基本都是转股或者强赎）
+                    # ts_code    str    Y    转债代码
+                    # call_type    str    Y    赎回类型：
+                    # is_call    str    Y    是否赎回：公告到期赎回、公告强赎、公告不强赎
+                    # ann_date    str    Y    公告日期
+                    # call_date    str    Y    赎回日期
+                    # call_price    float    Y    赎回价格(含税，元/张)
+                    # call_price_tax    float    Y    赎回价格(扣税，元/张)
+                    # call_vol    float    Y    赎回债券数量(张)
+                    # call_amount    float    Y    赎回金额(万元)
+                    # payment_date    str    Y    行权后款项到账日
+                    # call_reg_date    str    Y    赎回登记日
+                    df=pro.cb_call(fields=['ts_code', 'call_type', 'is_call', 'ann_date', 'call_date','call_price'])
+                    df=df.reset_index()
+                    df=df.rename(columns={"ts_code":"代码",
+                                        "call_type":"赎回类型",#到赎、强赎
+                                        "is_call":"是否赎回",#公告到期赎回、公告强赎、公告不强赎
+                                        "ann_date":"公告日期",
+                                        "call_date":"赎回日期",})
+                    df["赎回日期"]=pd.to_datetime(df['赎回日期'], format='%Y-%m-%d')#到期日列字符串格式转datetime格式
+                    df.to_csv("/home/fly/notebook/可转债强赎信息.csv")
+                    dropalldf=df[(df["赎回类型"]=="到赎")|(df["是否赎回"]=="公告到期赎回")]#未来180日内公告到期赎回的需要去掉【一般上述两列的数据是一致的】
+                    dropalldf=dropalldf[(dropalldf["赎回日期"]<(datetime.datetime.now()+datetime.timedelta(days=180)))]#只保留在未来180日只能到期赎回的可转债
+                    dropalldf=dropalldf[(dropalldf["赎回日期"]>(datetime.datetime.now()-datetime.timedelta(days=50)))]#去掉10天前已经赎回的干扰数据
+                    dropalldf.to_csv("/home/fly/notebook/可转债近期到赎.csv")
+                    dropdf=df[df["赎回类型"]=="强赎"]#未来180日内公告到期赎回的需要去掉
+                    dropdf=dropdf[(dropdf["是否赎回"]=="公告实施强赎")]
+                    dropdf=dropdf[(dropdf["赎回日期"]<(datetime.datetime.now()+datetime.timedelta(days=180)))]#只保留在未来180日只能强赎的可转债
+                    dropdf=dropdf[(dropdf["赎回日期"]>(datetime.datetime.now()-datetime.timedelta(days=50)))]#去掉10天前已经赎回的干扰数据
+                    dropdf.to_csv("/home/fly/notebook/可转债近期强赎.csv")
+                    alldf=alldf[~((alldf["代码"].isin(dropdf["代码"].tolist())|alldf["代码"].isin(dropalldf["代码"].tolist())))]
+                    alldf.to_csv("/home/fly/notebook/可转债去掉近期赎回标的后.csv")
+                    
+                    # # get_snapshot返回值当中不同变量的含义
+                    # amount:持仓量(str:int)；
+                    # avg_px:均价
+                    # bid_grp:委买档位(第一档包含委托队列（仅L2支持）)(str:dict[int:list[float,int,int,{int:int,...}],int:list[float,int,int]...])；
+                    # business_amount:总成交量(str:int)；
+                    # business_amount_in:内盘成交量(str:int)；
+                    # business_amount_out:外盘成交量(str:int)；
+                    # business_balance:总成交额(str:float)；
+                    # business_count:成交笔数(str:int)
+                    # circulation_amount:流通股本(str:int)；
+                    # close_px:今收价(str:float)
+                    # current_amount:最近成交量(现手)(str:int)；
+                    # down_px:跌停价格(str:float)；
+                    # end_trade_date:最后交易日(str:str)
+                    # entrust_diff:委差(str:float)；
+                    # entrust_rate:委比(str:float)；
+                    # high_px:最高价(str:float)；
+                    # hsTimeStamp:时间戳(str:float)；
+                    # issue_date:上市日期(str:int)；
+                    # last_px:最新成交价(str:float)；
+                    # low_px:最低价(str:float)；
+                    # offer_grp:委卖档位(第一档包含委托队列（仅L2支持）)(str:dict[int:list[float,int,int,{int:int,...}],int:list[float,int,int]...])；
+                    # open_px:今开盘价(str:float)；
+                    # pb_rate:市净率(str:float)；
+                    # pe_rate:动态市盈率(str:float)；
+                    # preclose_px:昨收价(str:float)；
+                    # prev_settlement:昨结算(str:float)；
+                    # px_change_rate:涨跌幅(str:float)；
+                    # settlement:结算价(str:float)
+                    # start_trade_date:首个交易日(str:float)
+                    # tick_size:最小报价单位(str:float)
+                    # total_bid_turnover:委买金额(str:int)；
+                    # total_bidqty:委买量(str:int)；
+                    # total_offer_turnover:委卖金额(str:int)
+                    # total_offerqty:委卖量(str:int)；
+                    # trade_mins:交易分钟数(str:int)
+                    # trade_status:交易状态(str:str)；
+                    # turnover_ratio:换手率(str:int)；
+                    # up_px:涨停价格(str:float)；
+                    # vol_ratio:量比(str:float)；
+                    # wavg_px:加权平均价(str:float)；
+                    # #【可转债委托订单数量是10的整数倍】
+                    bounds=get_cb_list()
+                    print("所有可转债",bounds,type(bounds))
+                    boundsdf=get_stock_info(bounds,field=None)
+                    boundsdf=pd.DataFrame(boundsdf).T#原来是字典需要转df才行
+                    boundsdf=boundsdf.reset_index()
+                    boundsdf=boundsdf.rename(columns={"index":"代码",})
+                    boundsdf.to_csv("/home/fly/notebook/可转债详情.csv")
+                    print("可转债详情",boundsdf,type(boundsdf))
+                    boundstick=get_snapshot(bounds)
+                    boundstick=pd.DataFrame(boundstick).T#原来是字典需要转df才行
+                    boundstick=boundstick.reset_index()
+                    boundstick=boundstick.rename(columns={"index":"代码",})
+                    boundstick.to_csv("/home/fly/notebook/可转债tick.csv")
+                    # 代码有行情快照并且交易状态不在暂停交易、停盘、长期停盘、退市状态的判定为可交易代码，即status不为以下的任何一种None, "HALT", "SUSP", "STOPT", "DELISTED"
+                    boundstick=boundstick[boundstick["trade_status"]=="TRADE"]#只要可交易的转债
+                    #获取涨停标的和跌停标的
+                    updf=boundstick.copy()
+                    updf=updf[updf["last_px"]==updf["up_px"]]
+                    upstocks=updf["代码"].tolist()
+                    downdf=boundstick.copy()
+                    downdf=downdf[downdf["last_px"]==downdf["down_px"]]
+                    downstocks=downdf["代码"].tolist()
+                    print("当前涨停标的可转债",upstocks,"当前跌停标的可转债",downstocks)
+                    #过滤150元以上的债券
+                    boundstick=boundstick[["代码","last_px"]]
+                    boundstick=boundstick[boundstick["last_px"]<150]#不要高价转债
+                    print("可转债tick",boundstick,type(boundstick))
+                    
+                    alldf=alldf.merge(boundstick,on="代码")
+                    alldf.to_csv("/home/fly/notebook/可转债alldf拼接可转债tick之后.csv")
+                    alldf=alldf.merge(stockstick,on="正股代码")
+                    alldf.to_csv("/home/fly/notebook/可转债alldf拼接正股tick之后.csv")
+                    
+                    alldf["总市值"]=alldf["last_px"]*alldf["债券余额"]  
+                    alldf["转股溢价率"]=alldf["last_px"]/((100/alldf["最新转股价"])*alldf["正股last_px"])
+                    alldf["三低指数"]=alldf["总市值"]*alldf["转股溢价率"]
+                    alldf["排名"]=alldf["三低指数"].rank(method="max", ascending=True,na_option='bottom')
+                    alldf.to_csv("/home/fly/notebook/可转债三低指数.csv")
+                    
+                    alldf["当前时间"]=(datetime.datetime.utcnow()+datetime.timedelta(hours=8))
+                    alldf=alldf.sort_values(by="排名")
+                    # alldf.to_csv("/home/fly/notebook/实时因子值.csv")
+                    dfone=alldf.nsmallest(math.ceil(g.stocknum),"排名")
+                    dfone=dfone.reset_index(drop=True)
+                    print("待买入股票池",dfone)
+                    dfone.to_csv("/home/fly/notebook/dfone.csv")
+                    dftwo=alldf.nsmallest(math.ceil(1.5*g.stocknum),"排名")
+                    dftwo=dftwo.reset_index(drop=True)
+                    print("不卖出股票池",dftwo)
+                    dftwo.to_csv("/home/fly/notebook/dftwo.csv")
+                    if (len(dfone)>0)and(len(dftwo)>0):
+                        break
+                    else:
+                        log.info("股票数据获取异常，重试中")
+                        getnum+=1
+                if g.Strategy!="可转债":
+                    if g.Strategy=="中小板":
+                        # stocks=get_index_stocks(index_code="399101.SZ",date=g.today) # 中小板指
+                        stocks=get_index_stocks(index_code="399101.XBHS",date=g.today) # 中小板指
+                    elif g.Strategy=="微盘股":
+                        stocks=get_Ashares(date=g.today) # 全市场
+
+                    print("原始数据",len(stocks))
+                    stocks==filter_kcb_stock(stocks) # 去除科创北交
+                    print("过滤科创板之后",len(stocks))
+                    
+                    #利润表-净利润、归母净利润、营收
+                    basedf=get_fundamentals(stocks,"income_statement",fields=[
+                                            "net_profit",#净利润
+                                            "np_parent_company_owners",#归母净利润
+                                            "operating_revenue",#营业收入
+                                            ],
+                                            date=g.yesterday,
+                                            report_types=str(basenum),
+                                            ).reset_index()
+                    basedf=basedf.rename(columns={
+                            "secu_code":"代码",
+                            "net_profit":"净利润",
+                            "np_parent_company_owners":"归母净利润",
+                            "operating_revenue":"营业收入",
+                            })
+                    basedf=basedf[["代码","营业收入","净利润","归母净利润"]]
+                    # basedf=basedf[basedf["营业收入"]>10000000]
+                    basedf=basedf[basedf["净利润"]>0]
+                    basedf=basedf[basedf["归母净利润"]>0]
+                    basedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留净利润、归母净利润大于0的",len(basedf))
+                    
+                    #利润表-净利润、归母净利润、营收[最新]
+                    # 3月19日更新000001.SZ在3月15出来的最新的财报，中间间隔了2个交易日，
+                    # 也就是只能拿到截止到在3月18日周一的g.yesterday之前的数据，哪怕用g.today也会滞后一天，
+                    # 不过数据确实是最新一期的财报，即当年年报
+                    newbasedf=get_fundamentals(stocks,"income_statement",fields=[
+                                            "net_profit",#净利润
+                                            "np_parent_company_owners",#归母净利润
+                                            "operating_revenue",#营业收入
+                                            ],
+                                            date=g.yesterday,
+                                            # report_types=str(basenum),
+                                            ).reset_index()
+                    newbasedf=newbasedf.rename(columns={
+                            "secu_code":"代码",
+                            "net_profit":"净利润",
+                            "np_parent_company_owners":"归母净利润",
+                            "operating_revenue":"营业收入",
+                            })
+                    newbasedf=newbasedf[["代码","营业收入","净利润","归母净利润"]]#很多公司尚未更新最近一期财报所以含有空值
+                    newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    # newbasedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新newbasedf.csv")
+                    print("变更数据",len(newbasedf))
+                    # #打印被更新掉的旧数据
+                    # dropdf=basedf[(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    # dropdf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新dropdf.csv")
+                    # print("len(dropdf)",len(dropdf))
+                    # #打印被填充进来的新数据
+                    # newdropdf=newbasedf[newbasedf["代码"].isin(dropdf["代码"].tolist())]
+                    # newdropdf.to_csv("/home/fly/notebook/净利润、归母净利润、营收更新newdropdf.csv")
+                    # print("len(newdropdf)",len(newdropdf))
+                    #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    # print("最新一期财报删减数据",basedf[(basedf["净利润"]<=0)|(basedf["归母净利润"]<=0)]["代码"].tolist())
+                    # basedf=basedf[basedf["营业收入"]>10000000]
+                    basedf=basedf[basedf["净利润"]>0]
+                    basedf=basedf[basedf["归母净利润"]>0]
+                    basedf.to_csv("/home/fly/notebook/净利润、归母净利润、营收最新.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留净利润、归母净利润大于0的【最新】",len(basedf))
+                    
+                    # #盈利能力-扣非净利润
+                    # basedf=get_fundamentals(stocks,"profit_ability",fields=[
+                                        # "net_profit_cut",#扣非净利润
+                                        # ],
+                                        # date=g.yesterday,
+                                        # report_types=str(basenum)
+                                        # ).reset_index()
+                    # basedf=basedf.rename(columns={
+                            # "secu_code":"代码",
+                            # "net_profit_cut":"扣非净利润",
+                            # })
+                    # basedf=basedf[["代码","扣非净利润"]]
+                    # basedf=basedf[basedf["扣非净利润"]>0]
+                    # basedf.to_csv("/home/fly/notebook/扣非净利润.csv")
+                    # stocks=basedf["代码"].tolist()
+                    # print("保留扣非净利润大于0的",len(basedf))
+                    
+                    # #盈利能力-扣非净利润[最新]
+                    # newbasedf=get_fundamentals(stocks,"profit_ability",fields=[
+                                        # "net_profit_cut",#扣非净利润
+                                        # ],
+                                        # date=g.yesterday,
+                                        # # report_types=str(basenum)
+                                        # ).reset_index()
+                    # newbasedf=newbasedf.rename(columns={
+                            # "secu_code":"代码",
+                            # "net_profit_cut":"扣非净利润",
+                            # })
+                    # newbasedf=newbasedf[["代码","扣非净利润"]]#很多公司尚未更新最近一期财报所以含有空值
+                    # newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    # print("变更数据",len(newbasedf))
+                    # #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    # basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    # basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    # print("最新一期财报删减数据",basedf[basedf["扣非净利润"]<=0]["代码"].tolist())
+                    # basedf=basedf[basedf["扣非净利润"]>0]
+                    # basedf.to_csv("/home/fly/notebook/扣非净利润最新.csv")
+                    # stocks=basedf["代码"].tolist()
+                    # print("保留扣非净利润大于0的",len(basedf))
+                    
+                    # #资产负债表-未分配利润，为正时能够排除历史遗留问题股票
+                    # basedf=get_fundamentals(stocks,"balance_statement",fields=[
+                                        # "retained_profit",#未分配利润
+                                        # ],
+                                        # date=g.yesterday,
+                                        # report_types=str(basenum)
+                                        # ).reset_index()
+                    # basedf=basedf.rename(columns={
+                            # "secu_code":"代码",
+                            # "retained_profit":"未分配利润",
+                            # })
+                    # basedf=basedf[["代码","未分配利润"]]
+                    # basedf=basedf[basedf["未分配利润"]>0]
+                    # basedf.to_csv("/home/fly/notebook/未分配利润.csv")
+                    # stocks=basedf["代码"].tolist()
+                    # print("保留未分配利润大于0的",len(basedf))
+                    
+                    # #资产负债表-未分配利润，为正时能够排除历史遗留问题股票[最新]
+                    # newbasedf=get_fundamentals(stocks,"balance_statement",fields=[
+                                        # "retained_profit",#未分配利润
+                                        # ],
+                                        # date=g.yesterday,
+                                        # # report_types=str(basenum)
+                                        # ).reset_index()
+                    # newbasedf=newbasedf.rename(columns={
+                            # "secu_code":"代码",
+                            # "retained_profit":"未分配利润",
+                            # })
+                    # newbasedf=newbasedf[["代码","未分配利润"]]
+                    # newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    # print("变更数据",len(newbasedf))
+                    # #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    # basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    # basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    # # print("最新一期财报删减数据",basedf[basedf["未分配利润"]<=0]["代码"].tolist())
+                    # basedf=basedf[basedf["未分配利润"]>0]
+                    # basedf.to_csv("/home/fly/notebook/未分配利润最新.csv")
+                    # stocks=basedf["代码"].tolist()
+                    # print("保留未分配利润大于0的",len(basedf))
+                    
+                    #偿债能力-资产负债比
+                    basedf=get_fundamentals(stocks,"debt_paying_ability",fields=[
+                                        "sewmi_to_total_liability",#归属母公司股东的权益与负债合计的百分比
+                                        ],
+                                        date=g.yesterday,
+                                        report_types=str(basenum)
+                                        ).reset_index()
+                    basedf=basedf.rename(columns={
+                            "secu_code":"代码",
+                            "sewmi_to_total_liability":"归属母公司股东的权益与负债合计的百分比",
+                            })
+                    basedf=basedf[["代码","归属母公司股东的权益与负债合计的百分比"]]
+                    basedf["归属母公司股东的权益与负债合计的百分比"]=basedf["归属母公司股东的权益与负债合计的百分比"]/100
+                    basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>0]#大部分时候都是正的（也就是净资产大于0）
+                    # basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>float(0.1)]#去掉净资产不足总负债的百分之10的情况
+                    basedf.to_csv("/home/fly/notebook/归属母公司股东的权益与负债合计的百分比.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留归属母公司股东的权益与负债合计的百分比大于0的",len(basedf))
+                    
+                    #偿债能力-资产负债比[最新]
+                    newbasedf=get_fundamentals(stocks,"debt_paying_ability",fields=[
+                                        "sewmi_to_total_liability",#归属母公司股东的权益与负债合计的百分比
+                                        ],
+                                        date=g.yesterday,
+                                        report_types=str(basenum)
+                                        ).reset_index()
+                    newbasedf=newbasedf.rename(columns={
+                            "secu_code":"代码",
+                            "sewmi_to_total_liability":"归属母公司股东的权益与负债合计的百分比",
+                            })
+                    newbasedf=newbasedf[["代码","归属母公司股东的权益与负债合计的百分比"]]
+                    newbasedf=newbasedf.dropna()#只拼接已经出来的数据也就是非空数据【去掉之后在4月1日附近3000多只符合要求的里面仅仅几百只有数据】
+                    print("变更数据",len(newbasedf))
+                    #数据拼接【把因为数据更新而移除的数据填充上新的】
+                    basedf=basedf[~(basedf["代码"].isin(newbasedf["代码"].tolist()))]
+                    basedf=pd.concat([basedf,newbasedf],axis=0)#指定垂直拼接【问题是很多数据直接拼没了】
+                    basedf["归属母公司股东的权益与负债合计的百分比"]=basedf["归属母公司股东的权益与负债合计的百分比"]/100
+                    # print("最新一期财报删减数据",basedf[basedf["归属母公司股东的权益与负债合计的百分比"]<=0]["代码"].tolist())
+                    basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>0]#大部分时候都是正的（也就是净资产大于0）
+                    # basedf=basedf[basedf["归属母公司股东的权益与负债合计的百分比"]>float(0.1)]#去掉净资产不足总负债的百分之10的情况
+                    basedf.to_csv("/home/fly/notebook/归属母公司股东的权益与负债合计的百分比最新.csv")
+                    stocks=basedf["代码"].tolist()
+                    print("保留归属母公司股东的权益与负债合计的百分比大于0的",len(basedf))
+                    
+                    #拼接市值数据【初筛】
+                    df=get_price(
+                        security=stocks,
+                        start_date=None,
+                        end_date=g.today,
+                        frequency="1d",
+                        fields=["open","preclose"],# 获取全部数据列，其中昨日收盘价是用来计算总股本的
+                        # fq="pre",
+                        fq=None,# 这里需要用不复权的数据才是准确的
+                        count=1).to_frame()
+                    df=df.reset_index()
+                    df=df[df["open"]>4]#现在有面值退市规则了尽量只做4元以上的股票
+                    df=df.rename(columns={"minor": "代码"})
+                    df=df[["代码","open"]]
+                    stocks=df["代码"].tolist()
+                    print("只保留开盘时价格大于4元的标的",len(stocks))
+                    # 获取基本面数据
+                    olddf=get_fundamentals(stocks,"valuation",fields=[
+                                            "a_shares",#A股总股本
+                                            "b_shares",#B股总股本
+                                            "h_shares",#H股总股本
+                                            "total_shares",#全部总股本
+                                            ],date=g.yesterday).reset_index()
+                    olddf=olddf.rename(columns={
+                            "secu_code":"代码",
+                            })
+                    olddf["总股本"]=olddf["a_shares"]#A股总股本
+                    # olddf["总股本"]=olddf["a_shares"]+olddf["b_shares"]+olddf["h_shares"]#ABH全体总股本
+                    olddf=olddf.merge(df,on="代码",how="inner")
+                    olddf["总市值"]=olddf["总股本"]*olddf["open"]
+                    olddf=olddf[["代码","总市值","总股本"]]
+                    olddf.nsmallest(math.ceil(300),"总市值")#只要开盘市值后300的标的
+                    print("保留开盘时市值最小的300只",len(stocks))
+                    
+                    #严格来讲就前面的基本面数据容易出错，如果不出错的话后面的不会出问题了，但是怕历史的变量数据对当前的变量数据产生干扰，因而这里继续在试错循环当中
+                    stocks=olddf["代码"].tolist()
+                    stocks=filter_st_stock(context,stocks)#过滤ST和退市
+                    print("过滤ST、退市之后",len(stocks))
+                    
+                    #根据快照重新拼接市值
+                    df=get_snapshot(stocks)
+                    df=pd.DataFrame(df).T#在转置之前的列名是股票
+                    df=df.reset_index()
+                    df=df.rename(columns={"index":"代码",})
+                    # print("快照数据",df)
+                    # df["hsTimeStamp"]#这里其实就是前面的几位是年月日时分秒，后三位的毫秒级数据。反而不是传统意义上的时间戳数据。
+                    df["当前时间"]=(datetime.datetime.utcnow()+datetime.timedelta(hours=8))
+                    # df=df[~(df["trade_status"]=="STOPT")]#去掉停牌状态
+                    df=df[(df["trade_status"]=="TRADE")]#只保留可交易状态
+                    df.to_csv("/home/fly/notebook/快照数据.csv")
+                    # #快照包含以下信息：
+                    # amount:持仓量(str:int)；
+                    # avg_px:均价
+                    # bid_grp:委买档位(第一档包含委托队列（仅L2支持）)(str:dict[int:list[float,int,int,{int:int,...}],int:list[float,int,int]...])；
+                    # business_amount:总成交量(str:int)；
+                    # business_amount_in:内盘成交量(str:int)；
+                    # business_amount_out:外盘成交量(str:int)；
+                    # business_balance:总成交额(str:float)；
+                    # business_count:成交笔数(str:int)
+                    # circulation_amount:流通股本(str:int)；
+                    # close_px:今收价(str:float)
+                    # current_amount:最近成交量(现手)(str:int)；
+                    # down_px:跌停价格(str:float)；
+                    # end_trade_date:最后交易日(str:str)
+                    # entrust_diff:委差(str:float)；
+                    # entrust_rate:委比(str:float)；
+                    # high_px:最高价(str:float)；
+                    # hsTimeStamp:时间戳(str:float)；
+                    # issue_date:上市日期(str:int)；
+                    # last_px:最新成交价(str:float)；
+                    # low_px:最低价(str:float)；
+                    # offer_grp:委卖档位(第一档包含委托队列（仅L2支持）)(str:dict[int:list[float,int,int,{int:int,...}],int:list[float,int,int]...])；
+                    # open_px:今开盘价(str:float)；
+                    # pb_rate:市净率(str:float)；
+                    # pe_rate:动态市盈率(str:float)；
+                    # preclose_px:昨收价(str:float)；
+                    # prev_settlement:昨结算(str:float)；
+                    # px_change_rate:涨跌幅(str:float)；
+                    # settlement:结算价(str:float)
+                    # start_trade_date:首个交易日(str:float)
+                    # tick_size:最小报价单位(str:float)
+                    # total_bid_turnover:委买金额(str:int)；
+                    # total_bidqty:委买量(str:int)；
+                    # total_offer_turnover:委卖金额(str:int)
+                    # total_offerqty:委卖量(str:int)；
+                    # trade_mins:交易分钟数(str:int)
+                    # trade_status:交易状态(str:str)；
+                    # turnover_ratio:换手率(str:int)；
+                    # up_px:涨停价格(str:float)；
+                    # vol_ratio:量比(str:float)；
+                    # wavg_px:加权平均价(str:float)；
+                    #获取涨停标的和跌停标的
+                    updf=df.copy()
+                    updf=updf[updf["last_px"]==updf["up_px"]]#可能是验证的时候还没涨停，验证完已经涨停了
+                    upstocks=updf["代码"].tolist()
+                    downdf=df.copy()
+                    downdf=downdf[downdf["last_px"]==downdf["down_px"]]
+                    downstocks=downdf["代码"].tolist()
+                    print("当前涨停标的",upstocks,"当前跌停标的",downstocks)
+                    
+                    #根据tick数据重新计算标的总市值
+                    df=df[["代码","last_px"]]
+                    olddf=olddf.merge(df,on="代码",how="inner")
+                    olddf["总市值"]=olddf["总股本"]*olddf["last_px"]
+                    olddf=olddf[olddf["总市值"]>500000000]#只保留总市值大于五亿元的股票（一遍不会过滤掉别的股票）
+                    olddf["排名"]=olddf["总市值"].rank(method="max",ascending=True,na_option="bottom")#总市值从小到大排名
+                    olddf["当前时间"]=(datetime.datetime.utcnow()+datetime.timedelta(hours=8))
+                    olddf=olddf.sort_values(by="总市值")
+                    # olddf.to_csv("/home/fly/notebook/实时因子值.csv")
+                    dfone=olddf.nsmallest(math.ceil(g.stocknum),"排名")
+                    dfone=dfone.reset_index(drop=True)
+                    print("待买入股票池",dfone)
+                    dfone.to_csv("/home/fly/notebook/dfone.csv")
+                    dftwo=olddf.nsmallest(math.ceil(1.5*g.stocknum),"排名")
+                    dftwo=dftwo.reset_index(drop=True)
+                    print("不卖出股票池",dftwo)
+                    dftwo.to_csv("/home/fly/notebook/dftwo.csv")
+                    if (len(dfone)>0)and(len(dftwo)>0):
+                        break
+                    else:
+                        log.info("股票数据获取异常，重试中")
+                        getnum+=1
+            except Exception as e:#报索引越界一般是tick数据没出来
+                print("******","发生bug:",e)
+        print("******股票池准备完毕启动交易流程")
+
+        #交易开始之前输出持仓
+        positions=context.portfolio.positions
+        # positions=get_positions()
+        g.dfposition=pd.DataFrame({})
+        for position in positions.values():
+            if position.amount>0:#只拼接总余额大于0的持仓
+                thisposition=pd.DataFrame({
+                            "代码":[position.sid],
+                            "余额":[position.amount],
+                            "可用余额":[position.enable_amount],
+                            "当前价":[position.last_sale_price],
+                            "成本价":[position.cost_basis],
+                            "类型":[position.business_type],
+                            })
+                thisposition["日期"]=g.today
+                thisposition["持仓市值"]=thisposition["余额"]*thisposition["当前价"]
+                thisposition["可用资金"]=context.portfolio.cash
+                thisposition["总资产"]=context.portfolio.portfolio_value
+                g.dfposition=pd.concat([g.dfposition,thisposition])
+        selldflist=dftwo["代码"].tolist()
+        buydflist=dfone["代码"].tolist()
+        
+        # #【设置1、4月空仓】
+        # thistime=(context.blotter.current_dt)
+        # if ((thistime.month==4)or(thistime.month==1)):
+            # print(thistime.month,"当前月份空仓")
+            # selldflist=[]
+            # buydflist=[]
+            
+        # #【设置一键清仓】
+        # selldflist=[]
+        # buydflist=[]
+        
+        if not g.dfposition.empty:#持仓不为空值
+            g.dfposition["总持仓市值"]=g.dfposition["持仓市值"].sum()
+            # print("当前持仓状态",g.dfposition)
+            g.dfposition.to_csv("/home/fly/notebook/---g.dfposition"+".csv")
+            #打印当日调仓信息
+            positionsymbols=g.dfposition["代码"].tolist()
+            falsesymbol=[x for x in positionsymbols if x not in selldflist]
+            truesymbol=[x for x in positionsymbols if x in selldflist]
+            havesymbol=[x for x in buydflist if x in positionsymbols]
+            nothavesymbol=[x for x in buydflist if x not in positionsymbols]
+            print("******",
+                "不在卖出观察池的需卖出标的",
+                falsesymbol,
+                "在卖出观察池的正确持仓标的",
+                truesymbol,
+                "在买入观察池的已持仓标的",
+                havesymbol,
+                "在买入观察池的未持仓标的",
+                nothavesymbol,
+                "持仓标的",
+                positionsymbols,
+            )
+            
+            selldf=g.dfposition.copy()#只针对持仓当中的标的筛选应卖出标的
+            buydf=dfone[dfone["代码"].isin(buydflist)]
+            buydf=buydf[~(buydf["代码"].isin(upstocks))]#涨停不买
+            selldf=selldf[~(selldf["代码"].isin(selldflist))]
+            print("实际应卖出股票，去掉应持有标的后",len(selldf))
+            selldf=selldf[~(selldf["代码"].isin(upstocks))]#涨停不卖
+            selldf=selldf[~(selldf["代码"].isin(downstocks))]#跌停不卖
+            print("实际应卖出股票，去掉涨停标的后",len(selldf))
+            if len(selldf)>0:
+                print("应卖出股票只数大于0，需要先根据是否涨停再次计算卖出计划")
+                # 只保留未停牌的股票【获取当前tick确认其trade_status不为STOPT】
+                notstopstocks=[]
+                for stock in selldf["代码"].tolist():#错在没有分别对每一个标的进行过滤参数传错了
+                    stock_trade_status=get_snapshot(stock)[stock]["trade_status"]
+                    print("stock_trade_status",stock_trade_status,type(stock_trade_status))
+                    # if (stock_trade_status!="STOPT"):#仅仅保留未停牌状态的标的                    
+                    if (stock_trade_status=="TRADE"):#仅仅保留处于连续竞价状态的标的
+                        print(stock,"未停牌")
+                        notstopstocks.append(stock)                
+                selldf=selldf[(selldf["代码"].isin(notstopstocks))]
+                print("实际应卖出股票，只保留可以交易标的后",len(selldf))
+                #应买入股票处理
+                buydf=buydf[~(buydf["代码"].isin(selldf["代码"].tolist()))]
+                buydf=buydf[~(buydf["代码"].isin(g.dfposition["代码"].tolist()))]
+                print("实际应买入股票，去除应卖出标的后",len(buydf))
+                #计算卖出后剩余持仓数量
+                hodlstocks=len(g.dfposition["代码"].tolist())-len(selldf["代码"].tolist())
+                print("卖出后剩余持仓数量",hodlstocks)
+                if hodlstocks!=0:
+                    buydf=buydf.sort_values(by="总市值")
+                    buydf=buydf[:(g.stocknum-hodlstocks)]#这里减去的是持仓股票数量，然后在持仓标的中选择金额不足的向上拼接
+                    print("对买入计划重新配置之后",len(buydf))
+            else:
+                print("应卖出股票只数小于0，直接去除掉当前的持仓标的计算买入计划")
+                #应买入股票处理
+                buydf=buydf[~(buydf["代码"].isin(g.dfposition["代码"].tolist()))]
+                print("实际应买入股票，去除应卖出标的后",len(buydf))
+                #计算卖出后剩余持仓数量
+                hodlstocks=len(g.dfposition["代码"].tolist())-len(selldf["代码"].tolist())
+                print("全部卖出后剩余持仓数量",hodlstocks)
+                if hodlstocks!=0:
+                    buydf=buydf.sort_values(by="总市值")
+                    buydf=buydf[:(g.stocknum-hodlstocks)]#这里减去的是持仓股票数量，然后在持仓标的中选择金额不足的向上拼接
+                    print("对买入计划重新配置之后",len(buydf))
+        else:    
+            if (len(selldflist)==0)and(len(buydflist)==0):
+                print(thistime.month,"当月空仓")
+                selldf=pd.DataFrame({"代码":[],"总市值":[]})
+                buydf=pd.DataFrame({"代码":[],"总市值":[]})
+            else:
+                selldf=dftwo.copy()
+                buydf=dfone.copy()
+            print("实际应卖出股票",len(selldf))
+            print("实际应买入股票",len(buydf))
+        selldf=selldf.reset_index(drop=True)
+        buydf=buydf.reset_index(drop=True)
+        selldf.to_csv("/home/fly/notebook/selldf.csv")
+        buydf.to_csv("/home/fly/notebook/buydf.csv")
+        print("实际卖出计划",selldf,"实际买入计划",buydf)
+            
+        # #资金管理机制
+        # 就是每次下单的仓位计算要做好，优先根据市值低的补仓，要不就容易漏仓位
+        # cash 当前可用资金（不包含冻结资金）
+        # positions 当前持有的标的(包含不可卖出的标的)，dict类型，key是标的代码，value是Position对象
+        # portfolio_value 当前持有的标的和现金的总价值
+        # positions_value 持仓价值
+        # capital_used 已使用的现金
+        # returns 当前的收益比例,相对于初始资金
+        # pnl 当前账户总资产-初始账户总资产
+        # start_date 开始时间
+        print("总资产",context.portfolio.portfolio_value,"余额",context.portfolio.cash)
+        premoney=(context.portfolio.portfolio_value)/g.stocknum#每股理论应持仓金额
+        #这个金额还得补之前超跌的股票的部分的差额
+        buydf["moneymanage"]=premoney
+        g.moneymanage=buydf[["代码","moneymanage"]]
+        print("单股金额",premoney,"moneymanage",g.moneymanage)
+        if not g.dfposition.empty:
+            #加上对未持仓标的进行补仓的部分
+            holddf=g.dfposition.copy()
+            
+            
+            #********
+            #********
+            # 重置下单金额，避免总金额少的时候，恰好因为余额不匹配导致无法下单【后面资金量大了涉及补仓的时候可以删掉这段，主要是如果一天的交易任务没有执行完毕的话，后面就没办法调整了】
+            notholddf=holddf[(holddf["代码"].isin(selldf["代码"].tolist()))]
+            print("应卖出清单",notholddf,"应卖出金额",notholddf["持仓市值"].sum())
+            resetmoney=(context.portfolio.portfolio_value-notholddf["持仓市值"].sum())/(g.stocknum-len(notholddf))
+            g.moneymanage["moneymanage"]=resetmoney#根据应卖出情况重置下单金额
+            print("g.moneymanage重置下单金额后",g.moneymanage)
+            #********
+            #********
+            
+            
+            #对当前持仓标的进行下单金额的调整
+            holddf=holddf[~(holddf["代码"].isin(selldf["代码"].tolist()))]
+            for index,thisposition in holddf.iterrows():#余额不为零才进行下一步免得浪费时间
+                # print(index,thisposition)
+                symbol=thisposition["代码"]
+                # print("symbol",symbol)
+                if thisposition["余额"]>0:#只对当前持仓大于0的标的进行处理
+                    thispositionmoney=thisposition["持仓市值"]
+                    # if (premoney-thispositionmoney)>float(0.0000001)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
+                    if (premoney-thispositionmoney)>float(0.1)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
+                        print(symbol,"premoney",thispositionmoney,"premoney",premoney,"持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上执行补仓操作")
+                        if symbol not in g.moneymanage["代码"].tolist():
+                            newdata=pd.DataFrame([{"代码":symbol,"moneymanage":(premoney-thispositionmoney)}])
+                            g.moneymanage=pd.concat([g.moneymanage,newdata],ignore_index=True)
+                            print("******","拼接上之前应买入未买全的股票，之后最新的下单金额计划",g.moneymanage)
+                        elif symbol in g.moneymanage["代码"].tolist():
+                            g.moneymanage.loc[g.moneymanage["代码"]==str(symbol),"moneymanage"]=(premoney-thispositionmoney)
+                            print("******","更新完之前应买入未买全的股票，之后最新的下单金额计划",g.moneymanage)
+            g.moneymanage=g.moneymanage[g.moneymanage["moneymanage"]>=g.targetmoney]#只保留应下单金额大于g.targetmoney的标的
+        else:
+            print("当前没有持仓，无需对下单计划进行调整")
+        print(g.moneymanage)
+        g.moneymanage.to_csv("/home/fly/notebook/---g.moneymanage排序前"+".csv")
+
+        
+        
+        
+        
+        
+        #初始化存储已经撤销订单的列表【只初始化一次，不要重置】
+        g.dfordercancelled=pd.DataFrame({})
+        ordernum=0#交易轮次计数，避免频繁撤单
+        while True:
+            # if (len(selldf)==0) and (len(buydf)==0):
+                # print("当前无交易计划，20秒后重启以等待新的机会")
+                # time.sleep(20)
+                # break
+            ordernum+=1#交易轮次计数，避免频繁撤单
+            print("是否执行订单管理",g.cancellorder)
+            if ordernum>1:
+                print("从第二轮开始每执行一轮休息15秒避免订单过度冲击市场","当前轮次",ordernum)
+                time.sleep(15)#休息一秒，避免空转
+            if ordernum%10==0:
+                print("交易轮次达标，执行撤单任务")
+                if g.cancellorder:#执行订单管理功能的话则后面代码才起作用
+                    g.dforderalls=pd.DataFrame({})#初始化存储全部订单的列表【每一轮都可以重置】
+                    ##该接口用于获取当日该账户内所有订单，或按条件获取指定订单。
+                    todayorders=get_all_orders()#get_orders是只获取当前策略的订单
+                    print("todayorders",todayorders,type(todayorders))
+                    if len(todayorders)>0:
+                        print("当日存在已经委托的订单需要进行撤单计算")
+                        g.dforderalls=pd.DataFrame(todayorders)
+                        print("g.dforderalls",g.dforderalls,type(g.dforderalls))
+                        g.dforderalls=g.dforderalls.rename(columns={"symbol":"代码",
+                                                                "price":"委托价格",
+                                                                "amount":"委托数量",
+                                                                "filled_amount":"已成交数量",
+                                                                "entrust_no":"委托编号",
+                                                                "entrust_bs":"委托方向",
+                                                                # "status":"订单状态",#这里需要注销不然后续的代码还得改否则就报错了
+                                                                })
+                        # {'price': 29.42,#价格
+                        # 'entrust_no': 460,
+                        # 'status': '2',#订单状态(str)，该字段取值范围：
+                            # '0' -- "未报"
+                            # '1' -- "待报"
+                            # '2' -- "已报"
+                            # '3' -- "已报待撤"
+                            # '4' -- "部成待撤"
+                            # '5' -- "部撤"
+                            # '6' -- "已撤"
+                            # '7' -- "部成"
+                            # '8' -- "已成"
+                            # '9' -- "废单"
+                            # '+' -- "已受理"
+                            # '-' -- "已确认"
+                            # 'V' -- "已确认"
+                        # 'symbol': '301588.SZ',标的代码(备注：标的代码尾缀为四位，上证为XSHG，深圳为XSHE，如需对应到代码请做代码尾缀兼容)
+                        # 'filled_amount': 0,#成交数量，买入时为正数，卖出时为负数
+                        # 'entrust_bs': 2,#委托编号
+                        # 'amount': -500}#下单数量，买入是正数，卖出是负数
+                        g.dfordercancelled.to_csv("/home/fly/notebook/---g.dfordercancelled"+".csv")
+                        g.dforderalls.to_csv("/home/fly/notebook/---g.dforderalls"+".csv")
+                        #订单处理
+                        for index,thisorder in g.dforderalls.iterrows():
+                            orderid=thisorder["委托编号"]
+                            ordersymbol=thisorder["代码"]#标的代码
+                            orderprice=thisorder["委托价格"]
+                            orderamount=thisorder["委托数量"]
+                            orderfilled_amount=thisorder["已成交数量"]
+                            # print(thisorder["status"],type(thisorder["status"]))#这个就是字符串下面应该的是对的
+                            if thisorder["status"] in ["2","7"]:#针对已报2、部成7进行撤单
+                                print(ordersymbol,"只针对已报或者部成订单进行撤单，状态",thisorder["status"])
+                                if (orderfilled_amount==0):
+                                    print(ordersymbol,"订单未成交")
+                                    cancelinfo=cancel_order_ex(orderid)
+                                    print("撤单详情",cancelinfo)
+                                elif((orderamount-orderfilled_amount)*orderprice>g.targetmoney):
+                                    print(ordersymbol,"订单部分成交但剩余金额大于g.targetmoney")
+                                    cancelinfo=cancel_order_ex(orderid)
+                                    print("撤单详情",cancelinfo)
+                            if thisorder["status"] in ["5","6","9"]:#针部撤5、已撤6、废弃9
+                                print(ordersymbol,"只针对已报或者部成订单进行撤单，状态",thisorder["status"])
+                                if thisorder["代码"]==1:
+                                    print(ordersymbol,"该被撤销订单为买入订单需要重置下单金额")
+                                    if g.dfordercancelled.empty:#g.dfordercancelled一开始是个空值，这里主要是确认一下之前有没有数据，有数据才需要检验之前是否撤销过
+                                        g.dfordercancelled=pd.concat([g.dfordercancelled,thisorder],ignore_index=True)
+                                        cancel_money=(orderamount-orderfilled_amount)*orderprice#然后就是计算撤销了的订单的未完成金额，加给下单金额当中
+                                        g.moneymanage.loc[g.moneymanage["代码"]==str(ordersymbol),"moneymanage"]+=cancel_money
+                                    else:
+                                        if orderall.order_id not in g.dfordercancelled["order_id"].tolist():
+                                            g.dfordercancelled=pd.concat([g.dfordercancelled,thisorder],ignore_index=True)
+                                            cancel_money=(orderamount-orderfilled_amount)*orderprice#然后就是计算撤销了的订单的未完成金额，加给下单金额当中
+                                            g.moneymanage.loc[g.moneymanage["代码"]==str(ordersymbol),"moneymanage"]+=cancel_money
+                    else:
+                        print("当日尚且没有任何订单，无需进行撤单计算")
+            # #下限价单参数order()
+            # security: 股票代码(str)；
+            # amount: 交易数量，正数表示买入，负数表示卖出(int)；
+            # limit_price：买卖限价(float)；
+            ##下市价单参数order_market()
+            # security：股票代码(str)；
+            # amount：交易数量(int)，正数表示买入，负数表示卖出；
+            # market_type：市价委托类型(int)，上证股票支持参数0、1、2、4，深证股票支持参数0、2、3、4、5，必传参数；
+            # limit_price：保护限价(float)，委托上证股票时必传参数；
+            # 0：对手方最优价格；
+            # 1：最优五档即时成交剩余转限价；（深证不支持）
+            # 2：本方最优价格；
+            # 3：即时成交剩余撤销；
+            # 4：最优五档即时成交剩余撤销；
+            # 5：全额成交或撤单；（上证不支持）
+            #卖出函数
+            log.info("开始卖出委托")
+            if not g.dfposition.empty:#持仓不为空值
+                for stock in g.dfposition["代码"].tolist():
+                    if stock in selldf["代码"].tolist():
+                        thispostion=context.portfolio.positions[stock]
+                        thisamount=thispostion.amount
+                        thisenable_amount=thispostion.enable_amount#计算卖出订单用这个可用余额
+                        print("当前持仓",thispostion,"总共余额",thisamount,"可用余额",thisenable_amount)
+                        if thisenable_amount>0:
+                            print("可用余额大于0，执行卖出",stock)
+                            stock_trade_status=get_snapshot(stock)[stock]["trade_status"]
+                            print("stock_trade_status",stock_trade_status,type(stock_trade_status))
+                            # if (stock_trade_status!="STOPT"):#仅仅保留未停牌状态的标的                    
+                            if (stock_trade_status=="TRADE"):#仅仅保留处于连续竞价状态的标的
+                                print(stock,"未停牌，可以执行交易")
+                                log.info("卖出的股票名称：%s"% get_stock_name(stock))
+                                # 获取买卖价格范围，【一分钱价差】或者【0.005滑点+一分钱】的最大值
+                                tick=get_snapshot(stock)
+                                current_price=tick[stock]["last_px"]
+                                high_limit=tick[stock]["up_px"]
+                                low_limit=tick[stock]["down_px"]
+                                ask_price_1=tick[stock]["offer_grp"][1][0]
+                                ask_volume_1=tick[stock]["offer_grp"][1][1]
+                                bid_price_1=tick[stock]["bid_grp"][1][0]
+                                bid_volume_1=tick[stock]["bid_grp"][1][1]
+                                # print(tick[stock]["offer_grp"],tick[stock]["bid_grp"],"ask_price_1",ask_price_1,"ask_volume_1",ask_volume_1,"bid_price_1",bid_price_1,"bid_volume_1",bid_volume_1,)
+                                
+                                
+                                #********
+                                #********
+                                if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*g.bidrate):#这里的滑点比例仅仅用来过滤盘口滑点
+                                    print("盘口价差符合要求",g.bidrate,"ask_price_1",ask_price_1,"bid_price_1",bid_price_1)
+                                    #滑点小的时候固定对手价一档下单
+                                    buy_limit=ask_price_1
+                                    sell_limit=bid_price_1
+                                # else:
+                                    # #滑点大的时候按照固定滑点比例在己方一档和对手方一档之间接单【这个等金额大了涉及撤单才有用】
+                                    # buy_limit=min(round((bid_price_1+0.01),2),high_limit)
+                                    # sell_limit=max(round((sell_limit-0.01),2),low_limit)
+                                #********
+                                #********
+                                    if ((stock.startswith("12")) or (stock.startswith("11"))):
+                                        #可转债10股一手
+                                        if (thisenable_amount*sell_limit)<(g.traderate*g.targetmoney):#剩余应卖出金额小于g.traderate倍的g.targetmoney以下
+                                            log.info("卖出的股票名称：%s"% get_stock_name(stock),"全部卖出",thisenable_amount)
+                                            # 计算应下单金额
+                                            sellvolume=thisenable_amount
+                                            order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                            # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                            # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                            log.info("[%s]卖出股票" % stock)
+                                            log.info("[%s]卖出订单" % order_id)
+                                        else:
+                                            log.info("卖出的股票名称：%s"% get_stock_name(stock),"限额卖出",g.targetmoney)
+                                            # 计算应下单金额
+                                            sellvolume=(math.floor((g.targetmoney/current_price)/10)*10)
+                                            order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                            # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                            # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                            log.info("[%s]卖出股票" % stock)
+                                            log.info("[%s]卖出订单" % order_id)
+                                    else:
+                                        if (bid_price_1*bid_volume_1)>g.targetmoney:
+                                            print("对手盘买单一档足够下g.targetmoney的卖出订单，仅对非可转债标的进行验证")
+                                            #非可转债都是100股一手
+                                            if (thisenable_amount*sell_limit)<(g.traderate*g.targetmoney):#剩余应卖出金额小于g.traderate倍的g.targetmoney以下
+                                                log.info("卖出的股票名称：%s"% get_stock_name(stock),"全部卖出",thisenable_amount)
+                                                # 计算应下单金额
+                                                sellvolume=thisenable_amount
+                                                order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                                # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                                # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                                log.info("[%s]卖出股票" % stock)
+                                                log.info("[%s]卖出订单" % order_id)
+                                            else:
+                                                log.info("卖出的股票名称：%s"% get_stock_name(stock),"限额卖出",g.targetmoney)
+                                                # 计算应下单金额
+                                                sellvolume=(math.floor((g.targetmoney/current_price)/100)*100)
+                                                order_id=order(stock,-sellvolume,limit_price=sell_limit)#限价单，sell_limit是计算后的卖价，current_price实时价格也可以
+                                                # order_id=order_market(stock,-sellvolume,0,limit_price=sell_limit) #市价单对手方最优；
+                                                # order_id=order_market(stock,-sellvolume,4,limit_price=sell_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                                log.info("[%s]卖出股票" % stock)
+                                                log.info("[%s]卖出订单" % order_id)
+                log.info("卖出订单已全部委托")
+            else:
+                log.info("当前没有持仓直接开始买入")
+            # 买入函数
+            log.info("15秒后开始买入委托")
+            time.sleep(15)
+            g.moneymanage=g.moneymanage.sort_values(by="moneymanage",ascending=False)#这里是由大到小排序，默认由小到大
+            g.moneymanage.to_csv("/home/fly/notebook/---g.moneymanage排序后"+".csv")
+            for stock in g.moneymanage["代码"].tolist():
+                # buymoney=g.moneymanage[g.moneymanage["代码"]==stock]["moneymanage"].iloc[0]
+                buymoney=g.moneymanage[g.moneymanage["代码"]==stock]["moneymanage"].values[0]
+                print(stock,"应下单金额",buymoney)
+                if buymoney>g.targetmoney:#只在应下单金额大于g.targetmoney的时候下单
+                    # 获取买卖价格范围，【一分钱价差】或者【0.005滑点+一分钱】的最大值
+                    tick=get_snapshot(stock)
+                    current_price=tick[stock]["last_px"]
+                    high_limit=tick[stock]["up_px"]
+                    low_limit=tick[stock]["down_px"]
+                    ask_price_1=tick[stock]["offer_grp"][1][0]
+                    ask_volume_1=tick[stock]["offer_grp"][1][1]
+                    bid_price_1=tick[stock]["bid_grp"][1][0]
+                    bid_volume_1=tick[stock]["bid_grp"][1][1]
+                    # print(tick[stock]["offer_grp"],tick[stock]["bid_grp"],"ask_price_1",ask_price_1,"ask_volume_1",ask_volume_1,"bid_price_1",bid_price_1,"bid_volume_1",bid_volume_1,)
+                    
+                    
+                    #********
+                    #********
+                    if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*g.bidrate):#这里的滑点比例仅仅用来过滤盘口滑点
+                        print("盘口价差符合要求",g.bidrate,"ask_price_1",ask_price_1,"bid_price_1",bid_price_1)
+                        #滑点小的时候固定对手价一档下单
+                        buy_limit=ask_price_1
+                        sell_limit=bid_price_1
+                    # else:
+                        # #滑点大的时候按照固定滑点比例在己方一档和对手方一档之间接单【这个等金额大了涉及撤单才有用】
+                        # buy_limit=min(round((bid_price_1+0.01),2),high_limit)
+                        # sell_limit=max(round((sell_limit-0.01),2),low_limit)
+                    #********
+                    #********
+                        if ((stock.startswith("12")) or (stock.startswith("11"))):#非可转债都是10股一手
+                            if buymoney<(g.traderate*g.targetmoney):#剩余应买入金额为g.traderate倍的g.targetmoney以下
+                                log.info("买入的股票名称：%s"% get_stock_name(stock),"全部买入",buymoney)
+                                # 计算应下单金额
+                                buyvolume=(math.floor((buymoney/current_price)/10)*10)
+                                order_id=order(stock,buyvolume,limit_price=buy_limit)#限价单，buy_limit是计算后的买价，current_price实时价格也可以
+                                # order_id=order_market(stock,buyvolume,0,limit_price=buy_limit) #市价单对手方最优；
+                                # order_id=order_market(stock,buyvolume,4,limit_price=buy_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                log.info("[%s]买入股票" % stock)
+                                log.info("[%s]买入订单" % order_id)
+                                bidmoney=float(buy_limit)*buyvolume
+                                g.moneymanage.loc[g.moneymanage["代码"]==stock,"moneymanage"]-=bidmoney
+                            else:
+                                log.info("买入的股票名称：%s"% get_stock_name(stock),"限额买入",g.targetmoney)
+                                # 计算应下单金额
+                                buyvolume=(math.floor((g.targetmoney/current_price)/10)*10)
+                                order_id=order(stock,buyvolume,limit_price=buy_limit)#限价单，buy_limit是计算后的买价，current_price实时价格也可以
+                                # order_id=order_market(stock,buyvolume,0,limit_price=buy_limit) #市价单对手方最优；
+                                # order_id=order_market(stock,buyvolume,4,limit_price=buy_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                log.info("[%s]买入股票" % stock)
+                                log.info("[%s]买入订单" % order_id)
+                                bidmoney=float(buy_limit)*buyvolume
+                                g.moneymanage.loc[g.moneymanage["代码"]==stock,"moneymanage"]-=bidmoney
+                        else:#非可转债都是100股一手
+                            if (ask_price_1*ask_volume_1)>g.targetmoney:
+                                print("对手盘卖单一档足够下g.targetmoney的买入订单，仅对非可转债标的进行验证")
+                                if buymoney<(g.traderate*g.targetmoney):#剩余应买入金额为g.traderate倍的g.targetmoney以下
+                                    log.info("买入的股票名称：%s"% get_stock_name(stock),"全部买入",buymoney)
+                                    # 计算应下单金额
+                                    buyvolume=(math.floor((buymoney/current_price)/100)*100)
+                                    order_id=order(stock,buyvolume,limit_price=buy_limit)#限价单，buy_limit是计算后的买价，current_price实时价格也可以
+                                    # order_id=order_market(stock,buyvolume,0,limit_price=buy_limit) #市价单对手方最优；
+                                    # order_id=order_market(stock,buyvolume,4,limit_price=buy_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                    log.info("[%s]买入股票" % stock)
+                                    log.info("[%s]买入订单" % order_id)
+                                    bidmoney=float(buy_limit)*buyvolume
+                                    g.moneymanage.loc[g.moneymanage["代码"]==stock,"moneymanage"]-=bidmoney
+                                else:
+                                    log.info("买入的股票名称：%s"% get_stock_name(stock),"限额买入",g.targetmoney)
+                                    # 计算应下单金额
+                                    buyvolume=(math.floor((g.targetmoney/current_price)/100)*100)
+                                    order_id=order(stock,buyvolume,limit_price=buy_limit)#限价单，buy_limit是计算后的买价，current_price实时价格也可以
+                                    # order_id=order_market(stock,buyvolume,0,limit_price=buy_limit) #市价单对手方最优；
+                                    # order_id=order_market(stock,buyvolume,4,limit_price=buy_limit) #市价单委托，最优五档即时成交剩余撤销；
+                                    log.info("[%s]买入股票" % stock)
+                                    log.info("[%s]买入订单" % order_id)
+                                    bidmoney=float(buy_limit)*buyvolume
+                                    g.moneymanage.loc[g.moneymanage["代码"]==stock,"moneymanage"]-=bidmoney
+            log.info("买入订单已全部委托")
+
+            g.moneymanage.to_csv("/home/fly/notebook/---g.moneymanage结束时"+".csv")
+
+            #到收盘时间停止
+            thisnow=(datetime.datetime.utcnow()+datetime.timedelta(hours=8)).time()#获取标准时间，换算成东八区
+            print("当前小时分钟数",thisnow,"如果卡在这里了说明未到开盘时间或者同花顺可能修改时区了")
+            if (thisnow>datetime.time(14,55)):#【收盘一段时间之后才打断任务，避免任务中途重新启动】
+                print("已到收盘时间任务结束",thisnow)
+                break
+            # if (ordernum>10000):#ordernum等于5时可以用来测试
+                # print("交易次数已达标任务结束",ordernum)
+                # break
+                
+                
+                
+                
+                
+        
+def after_trading_end(context,data):
+    g.dforderalls=pd.DataFrame({})
+    g.dfordercancelled=pd.DataFrame({})
+    g.dfposition=pd.DataFrame({})
+    g.moneymanage=pd.DataFrame({})
+    print("收盘后资金数据清零避免第二天受到干扰")
+
+# 过滤ST及其他具有退市标签的股票
+def filter_st_stock(context,stock_list):
+    if stock_list:
+        current_date=context.blotter.current_dt.strftime("%Y%m%d")
+        # 最多尝试获取3次
+        MAX_RETRIES=3
+        for i in range(MAX_RETRIES):
+            try:
+                st_status=get_stock_status(stock_list,"ST",current_date)#ST
+                delisting_status=get_stock_status(stock_list,"DELISTING",current_date)#退市
+                sto_names=get_stock_name(stock_list)
+                break
+            except Exception as e:
+                if i==MAX_RETRIES-1:  # 如果是最后一次尝试还是失败，则抛出异常
+                    raise e
+                else:
+                    print("ST、退市状态、股票名称数据获取错误")
+        stock_list=[s for s in stock_list if "退" not in sto_names[s]]
+        stock_list=[s for s in stock_list if "*" not in sto_names[s]]
+        stock_list=[s for s in stock_list if "ST" not in sto_names[s]]
+        stock_list=[s for s in stock_list if st_status[s] not in (True,None)]
+        #stock_list=[s for s in stock_list if delisting_status[s] not in (True,None)]#这里可能报错
+    return stock_list

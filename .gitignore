@@ -1,0 +1,12 @@
+数据文件
+# *.zip
+*.log
+# *.csv
+pwd.txt
+# *.png
+# *.jpg
+# xtquant
+mgdata
+mgquant
+node_modules
+# 高考志愿填报系统
