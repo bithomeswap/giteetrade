@@ -3,8 +3,8 @@
 
 from pathlib import Path
 import datetime
-from traderapi import traderapi#从文件夹当中引入
-from xmdapi import xmdapi#从文件夹当中引入
+from traderapi import traderapi#从文件夹当中引入【from 文件夹 引入 文件】
+from xmdapi import xmdapi#从文件夹当中引入【from 文件夹 引入 文件】
 ''' 注意: 如果提示找不到_tradeapi 且与已发布的库文件不一致时,可自行重命名为_tradeapi.so (windows下为_tradeapi.pyd)'''
 
 import pandas as pd
