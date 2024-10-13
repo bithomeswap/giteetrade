@@ -1,0 +1,1 @@
+2024-10-13 08:43:36.810 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
