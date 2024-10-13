@@ -89,7 +89,8 @@ from supermind.mod.tradeapi.api import (
 # #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
 # 配置日志
 basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】SDK选股"
-from loguru import logger # pip install loguru # 这个框架可以解决中文不显示的问题
+# pip install loguru # 这个框架可以解决中文不显示的问题
+from loguru import logger
 logger.add(
     sink=f"{basepath}/log.log",#sink: 创建日志文件的路径。
     level="INFO",#level: 记录日志的等级,低于这个等级的日志不会被记录。等级顺序为 debug < info < warning < error。设置 INFO 会让 logger.debug 的输出信息不被写入磁盘。
