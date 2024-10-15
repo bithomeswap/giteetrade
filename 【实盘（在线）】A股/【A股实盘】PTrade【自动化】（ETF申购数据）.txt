@@ -65,7 +65,7 @@ def initialize(context):
     
 import json
 import pymysql#pip install pymysql
-def post_etf(context):#链接失败
+def post_etf(context):#链接失败的概率非常大
     # 配置参数
     HOST = 'mysql.sqlpub.com'#或者82.103.129.94【这个地址链接不到，域名可以连接到】
     PORT = 3306
