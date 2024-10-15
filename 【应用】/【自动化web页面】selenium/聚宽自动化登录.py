@@ -10,6 +10,7 @@ import requests
 import numpy as np
 from PIL import Image#pip install pillow
 from io import BytesIO
+# pip install selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
@@ -17,7 +18,8 @@ from selenium.webdriver import EdgeOptions
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-#pip install pyautogui# import pyautogui
+#pip install pyautogui
+# import pyautogui
 import ddddocr#pip install ddddocr
 
 ###【风控识别】###
@@ -85,7 +87,8 @@ def get_img(driver,targettype,path,classname,picname):
 # 打开参数【避免模拟的时候被平台识别为机器人】
 alloptions.add_experimental_option('excludeSwitches', ['enable-automation']) # 避免终端下执行代码报警告
 #账户密码登录推特【selenium模拟登陆过程，自动输入twitter账号和密码，并且获取cookies】
-alllist=[{"username":"19511189162","password":"wthWTH00"},
+alllist=[
+    # {"username":"19511189162","password":"wthWTH00"},
          {"username":"15803281949","password":"wthWTH00"}
          ]
 for thislist in alllist:
