@@ -597,10 +597,13 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                pRapidMarketDataField.TotalValueTrade, pRapidMarketDataField.BidPrice1, pRapidMarketDataField.BidVolume1, pRapidMarketDataField.BidCount1, pRapidMarketDataField.AskPrice1,
                pRapidMarketDataField.AskVolume1, pRapidMarketDataField.AskCount1, pRapidMarketDataField.UpperLimitPrice, pRapidMarketDataField.LowerLimitPrice))
 
-CTORATstpMarketDataField#行情数据IOPV
 
+
+CTORATstpMarketDataField#包含行情数据IOPV
 # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
 # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
+
+
 
 # if __name__ == "__main__":
 #     # 打印接口版本号
