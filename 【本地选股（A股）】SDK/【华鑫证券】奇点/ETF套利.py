@@ -534,7 +534,6 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
 
 import sys
-
 class MdSpi(xmdapi.CTORATstpXMdSpi):
     def __init__(self, api):
         xmdapi.CTORATstpXMdSpi.__init__(self)
@@ -599,167 +598,88 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
 
 
 
-CTORATstpMarketDataField#包含行情数据IOPV
-# PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
-# IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
+# 1、ETF
+# CTORATstpMarketDataField#包含行情数据IOPV
+# # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
+# # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
+
+# 打印接口版本号
+print("XMDAPI版本号::"+xmdapi.CTORATstpXMdApi_GetApiVersion())
+print("sys.argv",sys.argv)#系统文件参数，这里就一个，后面的方式应该是同时启动多个文件啥的，或者干脆就是想办法默认获取得到1
+argc=len(sys.argv)#【参数1默认执行TCP访问】
+print("argc",argc)
+XMD_TCP_FrontAddress ="tcp://210.14.72.21:4402"#行情服务器接口
+'''*************************创建实例 注册服务*****************'''
+print("************* XMD TCP *************")
+#TCP订阅lv1行情，前置Front和FENS方式都用默认构造
+xmdapi = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi()
+xmdapi.RegisterFront(XMD_TCP_FrontAddress)
+# 注册多个行情前置服务地址，用逗号隔开
+# 例如:xmdapi.RegisterFront("tcp://10.0.1.101:6402,tcp://10.0.1.101:16402")
+print("XMD_TCP_FrontAddress[TCP]::%s" % XMD_TCP_FrontAddress)
+# 创建回调对象
+spi = MdSpi(xmdapi)
+# 注册回调接口
+xmdapi.RegisterSpi(spi)
+# 启动接口
+xmdapi.Init()
+# 等待程序结束
+input()
+# 释放接口对象
+xmdapi.Release()
 
 
 
-# if __name__ == "__main__":
-#     # 打印接口版本号
-#     print("XMDAPI版本号::"+xmdapi.CTORATstpXMdApi_GetApiVersion())
-#     print("sys.argv",sys.argv)#系统文件参数，这里就一个，后面的方式应该是同时启动多个文件啥的，或者干脆就是想办法默认获取得到1
-#     argc=len(sys.argv)#【参数1默认执行TCP访问】
-#     print("argc",argc)
-#     if argc==1 : #默认TCP连接仿真环境
-#         XMD_TCP_FrontAddress ="tcp://210.14.72.21:4402"#行情服务器接口
-#     elif argc == 3 and sys.argv[1]=="tcp": #普通TCP方式
-#         XMD_TCP_FrontAddress=sys.argv[2]
-#     elif argc == 4 and sys.argv[1]=="udp": #UDP 组播
-#         XMD_MCAST_FrontAddress=sys.argv[2] #组播地址
-#         XMD_MCAST_InterfaceIP=sys.argv[3]	#组播接收地址
-#     elif argc == 5 and sys.argv[1]=="fens":  #FENS名字服务器 TCP方式
-#         XMD_FENS_FrontAddress=sys.argv[2]	#FENS 名字服务器地址
-#         XDM_FENS_FensEnvID=sys.argv[3] #注册FENS服务信息必需柜台环境类型，股票现货为"stock"
-#         XDM_FENS_FensNodeID=sys.argv[4] #仿真为“sim_xmd”，7*24小时“24_xmd”,支持FENS的生产环境一般为节点号
-#     elif argc == 5 and sys.argv[1]=="lob": #同时组播订阅普通行情和衍生行情（合成快照），仅适用于生产环境
-#         XMD_MCAST_FrontAddress=sys.argv[2] #普通服务组播地址
-#         XMD_MCAST_DeriveAddress=sys.argv[3]	#衍生服务组播地址
-#         XMD_MCAST_InterfaceIP=sys.argv[4]	#接收普通行情服务和衍生行情服务的网口地址(托管服务器)
-#     else:
-#         print("/*********************************************demo运行说明************************************\n")
-#         print("* argv[1]: tcp udp fens lob\t\t\t\t=[%s]" % (sys.argv[1]))
-#         print("* argv[2]: tcp/fens::FrontIP upd/lob::MCAST_IP\t\t=[%s]" % (sys.argv[2] if argc>2 else ""))
-#         print("* argv[3]: fens::EnvID udp::InterfaceIP lob::DeriveIP\t=[%s]" % (sys.argv[3] if argc>3 else ""))
-#         print("* argv[4]: fens::FensNodeID\t\t\t\t=[%s]" % (sys.argv[4] if argc>4 else ""))
-#         print("* Usage:")
-#         print("* 默认连仿真:		python3 xmddemo.py")
-#         print("* 指定TCP地址:		python3 xmddemo.py tcp tcp://210.14.72.21:4402")
-#         print("* 指定FENS地址:		python3 xmddemo fens tcp://210.14.72.21:42370 stock sim_xmd")
-#         print("* 指定组播地址:		python3 xmddemo udp udp://224.224.1.3:7880 x.x.x.x")
-#         print("* 实盘实时快照:		python3 xmddemo lob udp://224.224.1.3:7880 udp://224.224.3.3:7888 x.x.x.x")
-#         print("* 上述x.x.x.x使用托管服务器中接收XMD行情的网口IP地址")
-#         print("* ******************************************************************************************/")
-#         exit(-1)
-
-#     '''*************************创建实例 注册服务*****************'''
-#     if argc==1 or sys.argv[1]=="tcp" :   #默认或TCP方式【目前使用的方式】
-#         print("************* XMD TCP *************")
-# 		#TCP订阅lv1行情，前置Front和FENS方式都用默认构造
-#         api = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi()
-#         api.RegisterFront(XMD_TCP_FrontAddress)
-#         # 注册多个行情前置服务地址，用逗号隔开
-#         # 例如:api.RegisterFront("tcp://10.0.1.101:6402,tcp://10.0.1.101:16402")
-#         print("XMD_TCP_FrontAddress[TCP]::%s" % XMD_TCP_FrontAddress)
-#     elif sys.argv[1]=="udp"  :  #组播普通行情	
-#         print("************* XMD UDP *************")
-#         #XMD组播订阅lv1行情
-#         api = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi(xmdapi.TORA_TSTP_MST_MCAST)
-#         api.RegisterMulticast(XMD_MCAST_FrontAddress, XMD_MCAST_InterfaceIP, "")
-#         print("XMD_MCAST_FrontAddress[UDP]::%s" % XMD_MCAST_FrontAddress)
-#     elif sys.argv[1]=="fens" :  #FENS 名字服务注册
-#         print("********** XMD FENS MultiCast **********")
-#         '''********************************************************************************
-# 		 * 注册 fens 地址前还需注册 fens 用户信息,包括环境编号、节点编号、Fens 用户代码等信息
-# 		 * 使用名字服务器的好处是当券商系统部署方式发生调整时外围终端无需做任何前置地址修改
-# 		 * *****************************************************************************'''
-#         #TCP订阅lv1行情，前置Front和FENS方式都用默认构造
-#         api = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi()
-
-#         fens_user_info_field=xmdapi.CTORATstpFensUserInfoField()
-#         fens_user_info_field.FensEnvID=XDM_FENS_FensEnvID      #必填项，暂时固定为“stock”表示普通现货柜台
-#         fens_user_info_field.FensNodeID=XDM_FENS_FensNodeID   #必填项，生产环境需按实际填写,仿真环境为sim_xmd
-#         api.RegisterFensUserInfo(fens_user_info_field)
-# 		#必须先注册Fens信息再注册Fens
-#         api.RegisterNameServer(XMD_FENS_FrontAddress)
-#         # 注册名字服务器地址，支持多服务地址逗号隔开
-#         # 例如:api.RegisterNameServer('tcp://10.0.1.101:52370,tcp://10.0.1.101:62370')
-#         print("XMD_FENS_FrontAddress[FENS]::%s" % XMD_FENS_FrontAddress)
-#     elif sys.argv[1]=="lob" :   #组播普通+组播衍生行情(实时合成快照)
-#         print("************* XMD UDP+UDP *************")
-# 		#组播订阅lv1行情及组播订阅合成快照
-#         api = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi(xmdapi.TORA_TSTP_MST_MCAST, xmdapi.TORA_TSTP_MST_MCAST)
-#         #先注册普通服务，再注册衍生服务
-#         api.RegisterMulticast(XMD_MCAST_FrontAddress, XMD_MCAST_InterfaceIP, "")
-#         # 注:合成快照数据量与Lev2基本相当，从性能角度考虑，一般不推荐使用非C++ API进行开发。
-#         api.RegisterDeriveMulticast(XMD_MCAST_DeriveAddress, XMD_MCAST_InterfaceIP, "")
-#         print("XMD_MCAST_FrontAddress[lob]::%s", XMD_MCAST_FrontAddress)
-#         print("XMD_MCAST_DeriveAddress[lob]::%s", XMD_MCAST_DeriveAddress)
-#     else:
-#         print("/*********************************************demo运行说明************************************\n")
-#         print("* argv[1]: tcp udp fens lob\t\t\t\t=[%s]" % (sys.argv[1]))
-#         print("* argv[2]: tcp/fens::FrontIP upd/lob::MCAST_IP\t\t=[%s]" % (sys.argv[2] if argc>2 else ""))
-#         print("* argv[3]: fens::EnvID udp::InterfaceIP lob::DeriveIP\t=[%s]" % (sys.argv[3] if argc>3 else ""))
-#         print("* argv[4]: fens::FensNodeID\t\t\t\t=[%s]" % (sys.argv[4] if argc>4 else ""))
-#         print("* Usage:")
-#         print("* 默认连仿真:		python3 xmddemo.py")
-#         print("* 指定TCP地址:		python3 xmddemo.py tcp tcp://210.14.72.21:4402")
-#         print("* 指定FENS地址:		python3 xmddemo.py fens tcp://210.14.72.21:42370 stock sim_xmd")
-#         print("* 指定组播地址:		python3 xmddemo.py udp udp://224.224.1.3:7880 x.x.x.x")
-#         print("* 实盘实时快照:		python3 xmddemo.py lob udp://224.224.1.3:7880 udp://224.224.3.3:7888 x.x.x.x")
-#         print("* 上述x.x.x.x使用托管服务器中接收XMD行情的网口IP地址")
-#         print("* ******************************************************************************************/")
-#         sys.exit(-2)
-
-#     # 创建回调对象
-#     spi = MdSpi(api)
-#     # 注册回调接口
-#     api.RegisterSpi(spi)
-#     # 启动接口
-#     api.Init()
-#     # 等待程序结束
-#     input()
-#     # 释放接口对象
-#     api.Release()
 
 #明天根据159302计算ETF溢价率，最大现金替代比例是1，也就是可以全现金申赎
-if __name__ == '__main__':
-    # 打印接口版本号
-    print("TradeAPI Version:::"+traderapi.CTORATstpTraderApi_GetApiVersion())
-    # 创建接口对象
-    # pszFlowPath为私有流和公有流文件存储路径，若订阅私有流和公有流且创建多个接口实例，每个接口实例应配置不同的路径
-    # bEncrypt为网络数据是否加密传输，考虑数据安全性，建议以互联网方式接入的终端设置为加密传输
-    api:traderapi.CTORATstpTraderApi = traderapi.CTORATstpTraderApi.CreateTstpTraderApi('./flow', False)
-    # 创建回调对象
-    spi = TraderSpi(api)
-    # 注册回调接口
-    api.RegisterSpi(spi)
-    if 1:   #模拟环境，TCP 直连Front方式
-        # 注册单个交易前置服务地址
-        TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
-        # TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
-        # TD_TCP_FrontAddress="tcp://210.14.72.16:9500" #24小时环境B套
-        api.RegisterFront(TD_TCP_FrontAddress)
-        # 注册多个交易前置服务地址，用逗号隔开 形如: api.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
-        print("TD_TCP_FensAddress[sim or 24H]::%s\n"%TD_TCP_FrontAddress)
-    else:	#模拟环境，FENS名字服务器方式
-        TD_TCP_FensAddress ="tcp://210.14.72.21:42370"; #模拟环境通用fens地址
-        '''********************************************************************************
-        * 注册 fens 地址前还需注册 fens 用户信息，包括环境编号、节点编号、Fens 用户代码等信息
-        * 使用名字服务器的好处是当券商系统部署方式发生调整时外围终端无需做任何前置地址修改
-        * *****************************************************************************'''
-        fens_user_info_field = traderapi.CTORATstpFensUserInfoField()
-        fens_user_info_field.FensEnvID="stock" #必填项，暂时固定为“stock”表示普通现货柜台
-        fens_user_info_field.FensNodeID="sim"  #必填项，生产环境需按实际填写,仿真环境为sim
-        fens_user_info_field.FensNodeID,="24a" #必填项，生产环境需按实际填写,24小时A套环境为24a
-        # fens_user_info_field.FensNodeID="24b" #必填项，生产环境需按实际填写,24小时B套环境为24b
-        api.RegisterFensUserInfo(fens_user_info_field)
-        api.RegisterNameServer(TD_TCP_FensAddress)
-        # 注册名字服务器地址，支持多服务地址逗号隔开 形如:api.RegisterNameServer('tcp://10.0.1.101:52370,tcp://10.0.1.101:62370')
-        print("TD_TCP_FensAddress[%s]::%s\n"%(fens_user_info_field.FensNodeID,TD_TCP_FensAddress))
-    #订阅私有流
-    api.SubscribePrivateTopic(traderapi.TORA_TERT_QUICK)
-    #订阅公有流
-    api.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
-    '''**********************************
-	*	TORA_TERT_RESTART, 从日初开始
-	*	TORA_TERT_RESUME, 从断开时候开始
-	*	TORA_TERT_QUICK, 从最新时刻开始
-	*************************************'''
-    # 启动接口
-    api.Init()
-    api.Join()
-	# 等待程序结束
-    input()
-    # 释放接口对象
-    api.Release()
+
+# 【交易SDK】
+# 打印接口版本号
+print("TradeAPI Version:::"+traderapi.CTORATstpTraderApi_GetApiVersion())
+# 创建接口对象
+# pszFlowPath为私有流和公有流文件存储路径，若订阅私有流和公有流且创建多个接口实例，每个接口实例应配置不同的路径
+# bEncrypt为网络数据是否加密传输，考虑数据安全性，建议以互联网方式接入的终端设置为加密传输
+tradeapi:traderapi.CTORATstpTraderApi = traderapi.CTORATstpTraderApi.CreateTstpTraderApi('./flow', False)
+# 创建回调对象
+spi = TraderSpi(tradeapi)
+# 注册回调接口
+tradeapi.RegisterSpi(spi)
+if 1:   #模拟环境，TCP 直连Front方式
+    # 注册单个交易前置服务地址
+    TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
+    # TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
+    # TD_TCP_FrontAddress="tcp://210.14.72.16:9500" #24小时环境B套
+    tradeapi.RegisterFront(TD_TCP_FrontAddress)
+    # 注册多个交易前置服务地址，用逗号隔开 形如: tradeapi.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
+    print("TD_TCP_FensAddress[sim or 24H]::%s\n"%TD_TCP_FrontAddress)
+else:	#模拟环境，FENS名字服务器方式
+    TD_TCP_FensAddress ="tcp://210.14.72.21:42370"; #模拟环境通用fens地址
+    '''********************************************************************************
+    * 注册 fens 地址前还需注册 fens 用户信息，包括环境编号、节点编号、Fens 用户代码等信息
+    * 使用名字服务器的好处是当券商系统部署方式发生调整时外围终端无需做任何前置地址修改
+    * *****************************************************************************'''
+    fens_user_info_field = traderapi.CTORATstpFensUserInfoField()
+    fens_user_info_field.FensEnvID="stock" #必填项，暂时固定为“stock”表示普通现货柜台
+    fens_user_info_field.FensNodeID="sim"  #必填项，生产环境需按实际填写,仿真环境为sim
+    fens_user_info_field.FensNodeID,="24a" #必填项，生产环境需按实际填写,24小时A套环境为24a
+    # fens_user_info_field.FensNodeID="24b" #必填项，生产环境需按实际填写,24小时B套环境为24b
+    tradeapi.RegisterFensUserInfo(fens_user_info_field)
+    tradeapi.RegisterNameServer(TD_TCP_FensAddress)
+    # 注册名字服务器地址，支持多服务地址逗号隔开 形如:tradeapi.RegisterNameServer('tcp://10.0.1.101:52370,tcp://10.0.1.101:62370')
+    print("TD_TCP_FensAddress[%s]::%s\n"%(fens_user_info_field.FensNodeID,TD_TCP_FensAddress))
+#订阅私有流
+tradeapi.SubscribePrivateTopic(traderapi.TORA_TERT_QUICK)
+#订阅公有流
+tradeapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
+'''**********************************
+*	TORA_TERT_RESTART, 从日初开始
+*	TORA_TERT_RESUME, 从断开时候开始
+*	TORA_TERT_QUICK, 从最新时刻开始
+*************************************'''
+# 启动接口
+tradeapi.Init()
+tradeapi.Join()
+# 等待程序结束
+input()
+# 释放接口对象
+tradeapi.Release()
