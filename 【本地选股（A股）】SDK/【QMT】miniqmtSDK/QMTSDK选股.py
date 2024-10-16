@@ -57,12 +57,12 @@ def filter_kcb_stock(stocks):#过滤科创北交股票
 def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
     if choosename=="可转债":#A股可转债策略
         try:
-            pd.read_csv(str(basepath)+str(start_date)+choosename+"买入.csv")
-            logger.info(f"******"+str(basepath)+str(start_date)+choosename+"买入.csv"+"文件存在")
-            pd.read_csv(str(basepath)+str(start_date)+choosename+"卖出.csv")
-            logger.info(f"******"+str(basepath)+str(start_date)+choosename+"卖出.csv"+"文件存在")
+            pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
+            logger.info(f"******"+str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv"+"文件存在")
+            pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
+            logger.info(f"******"+str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv"+"文件存在")
         except Exception as e:
-            logger.info(f"******"+"******"+str(basepath)+str(start_date)+choosename+"买入.csv"+choosename+"卖出.csv"+"文件不同时存在")
+            logger.info(f"******"+"******"+str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv"+choosename+"卖出.csv"+"文件不同时存在")
             #pip install akshare
             import akshare as ak
             df_cbonds=ak.bond_cb_redeem_jsl()#强制赎回信息【实时数据】
@@ -138,8 +138,8 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
             numbuystock=10 # 设置持仓数量
             dftwo=olddf.nsmallest(math.ceil(1.5*numbuystock), "三低指数")
             dfone=olddf.nsmallest(math.ceil(numbuystock), "三低指数")
-            dftwo.to_csv(str(basepath)+str(start_date)+choosename+"卖出.csv")
-            dfone.to_csv(str(basepath)+str(start_date)+choosename+"买入.csv")
+            dftwo.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
+            dfone.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
             dftwo["代码"]=dftwo["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
             dfone["代码"]=dfone["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
             buylisttwo=dftwo["代码"].values
@@ -147,12 +147,12 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
             logger.info(f"******,{buylistone},{buylisttwo}")
     if (choosename=="中小板")or(choosename=="微盘股"):#A股中小板策略
         try:
-            pd.read_csv(str(basepath)+str(start_date)+choosename+"买入.csv")
-            logger.info(f"******"+str(basepath)+str(start_date)+choosename+"买入.csv"+"文件存在")
-            pd.read_csv(str(basepath)+str(start_date)+choosename+"卖出.csv")
-            logger.info(f"******"+str(basepath)+str(start_date)+choosename+"卖出.csv"+"文件存在")
+            pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
+            logger.info(f"******"+str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv"+"文件存在")
+            pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
+            logger.info(f"******"+f"/{str(start_date)}"+choosename+"卖出.csv"+"文件存在")
         except Exception as e:
-            logger.info(f"******"+"******"+str(basepath)+str(start_date)+choosename+"买入.csv"+choosename+"卖出.csv"+"文件不同时存在")
+            logger.info(f"******"+"******"+f"/{str(start_date)}"+choosename+"买入.csv"+choosename+"卖出.csv"+"文件不同时存在")
             # 获取板块列表
             stocks=xtdata.get_stock_list_in_sector("沪深A股")
             stocks=filter_kcb_stock(stocks)
@@ -224,8 +224,8 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
                 numbuystock=30#设置持仓数量
             dfone=olddf.nsmallest(math.ceil(numbuystock),"排名")
             dftwo=olddf.nsmallest(math.ceil(1.5*numbuystock),"排名")
-            dftwo.to_csv(str(basepath)+str(start_date)+choosename+"卖出.csv")
-            dfone.to_csv(str(basepath)+str(start_date)+choosename+"买入.csv")
+            dftwo.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
+            dfone.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
             dftwo["代码"]=dftwo["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
             dfone["代码"]=dfone["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
             buylisttwo=dftwo["代码"].values
@@ -319,9 +319,9 @@ trade_api.subscribe(acc)# 订阅账号
 #设置交易参数并且获取买卖计划
 bidrate=0.005#设置盘口价差为0.004
 timecancellwait=60#设置撤单函数筛选订单的确认时间
-timetickwait=2000#设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快,3秒一根但是返回的速度不够快】
+timetickwait=60#设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快,3秒一根但是返回的速度不够快】
 timeseconds=60#设置获取tick的函数的时间长度【避免没有数据】
-targetmoney=10000#设置下单时对手盘需要达到的厚度（即单笔目标下单金额,因为手数需要向下取整,所以实际金额比这个值低）
+targetmoney=20000#设置下单时对手盘需要达到的厚度（即单笔目标下单金额,因为手数需要向下取整,所以实际金额比这个值低）
 traderate=2#设置单次挂单金额是targetmoney的traderate倍
 # cancellorder=False#取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
 cancellorder=True#设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
@@ -332,8 +332,8 @@ choose_stocks(choosename,now,start_date,last_date,today,yesterday)#使用特定�
 buyfilename=choosename+"买入.csv"
 sellfilename=choosename+"卖出.csv"
 logger.info(f"{buyfilename},{sellfilename}")
-buydf=pd.read_csv(str(basepath)+str(start_date)+buyfilename)
-selldf=pd.read_csv(str(basepath)+str(start_date)+sellfilename)
+buydf=pd.read_csv(str(basepath)+f"/{str(start_date)}"+buyfilename)
+selldf=pd.read_csv(str(basepath)+f"/{str(start_date)}"+sellfilename)
 #确认买入数量【即持仓数量】
 targetnum=len(buydf)#一般是30
 logger.info(f"预计持仓只数,{targetnum}")
@@ -360,7 +360,6 @@ for position in positions:
     logger.info(symbol)
     if position.volume>0:
         logger.info(position.volume)
-        thisnow=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
         try:
             #返回五档数据
             tick=xtdata.get_full_tick([symbol])
@@ -380,7 +379,6 @@ logger.info(f"针对涨停标的不进行卖出处理之后selldf,{len(selldf)}"
 
 logger.info(f"针对跌停标的不进行买入处理之前buydf,{len(buydf)}")
 for symbol in buydf["代码"].tolist():
-    thisnow=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
     try:
         #返回五档数据
         tick=xtdata.get_full_tick([symbol])
@@ -705,9 +703,6 @@ while True:
                 logger.info(f"{thisposition},{thisposition.can_use_volume.values[0]}")
                 if (thisposition.can_use_volume.values[0]>0):#余额及可用余额都要大于0才执行卖出动作
                     logger.info(f"******,{symbol},持仓数量,{thisposition}")
-                    #历史tick数据（包含时间戳）
-                    start_date=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
-                    end_date="now"
                     try:
                         #返回五档数据
                         tick=xtdata.get_full_tick([symbol])
@@ -846,9 +841,6 @@ while True:
                 logger.info(f"当前余额,{portfolio_available_cash}")
                 if portfolio_available_cash>targetmoney:
                     logger.info(f"******,买入余额充足,{symbol},{buymoney}")
-                    #历史tick数据（包含时间戳）
-                    start_date=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
-                    end_date="now"
                     try:
                         #返回五档数据
                         tick=xtdata.get_full_tick([symbol])
