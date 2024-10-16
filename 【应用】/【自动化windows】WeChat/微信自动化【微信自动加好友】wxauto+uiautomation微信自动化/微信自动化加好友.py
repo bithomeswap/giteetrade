@@ -57,7 +57,7 @@ wechatWindow = auto.WindowControl(searchDepth=1, Name="微信", ClassName='WeCha
 num=0
 while True:
     num+=1
-    if num>=38:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
+    if num>=46:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
         button = wechatWindow.ButtonControl(Name='收起')
         if button.Exists():
             print("有收起按钮无需重新打开")
@@ -142,6 +142,11 @@ while True:
                 #         tagedit.SendKeys(tag)
                 #         NewFriendsWnd.PaneControl(ClassName='DropdownWindow').TextControl().Click(simulateMove=False)
                 NewFriendsWnd.ButtonControl(Name='确定').Click(simulateMove=False)
+                time.sleep(0.2)#无法添加情况的跳过
+                warn = wechatWindow.ButtonControl(Name='确定')
+                if warn.Exists():
+                    print("对方违规无法添加好友点击确定跳过")
+                    warn.Click(simulateMove=False)
         else:
             print("不存在该按钮")
             # children.MiddleClick()#点击鼠标中键
