@@ -4,6 +4,7 @@ import math
 import pandas as pd#conda install pandas
 import numpy as np#pip install numpy
 
+#【只要不用supermind，就可以直接使用3.12最新版的python执行策略】
 # supermind的SDK作废了拿不到数据，尽量使用pywencai库直接从问财接口获取
 # conda create -n my_env8 python=3.8#创建环境
 # conda env remove -n my_env8#删除环境
