@@ -131,7 +131,7 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
         if bIsLast:#这里是查询结束了进行输出
             df=pd.DataFrame(self.ETFFile)
             print("ETF清单信息输出开始")
-            df.to_csv(f"ETF清单信息{self.start_time}.csv")
+            df.to_csv(f"ETF清单信息{start_time}.csv")
             print("ETF清单信息输出完毕")
             # time.sleep(self.interval)
             # self.ETFFile=[]
@@ -142,7 +142,7 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
         if bIsLast:#这里是查询结束了进行输出
             df=pd.DataFrame(self.ETFBasket)
             print("ETF成份证券信息输出开始")
-            df.to_csv(f"ETF成份证券信息{self.start_time}.csv")
+            df.to_csv(f"ETF成份证券信息{start_time}.csv")
             print("ETF成份证券信息输出完毕")
             # time.sleep(self.interval)
             # self.ETFBasket=[]
@@ -204,10 +204,10 @@ etffile=False
 etfbasket=False
 while True:
     try:
-        df=pd.read_csv("ETF清单信息20241016.csv")
+        df=pd.read_csv(f"ETF清单信息{start_time}.csv")
         if len(df)>900:#平时900
             etffile=True
-        df=pd.read_csv("ETF成份证券信息20241016.csv")
+        df=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
         if len(df)>100000:#平时110000
             etfbasket=True
     except Exception as e:
