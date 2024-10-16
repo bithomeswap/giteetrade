@@ -134,6 +134,7 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
             self.ETFFile.append(pETFFileField.dict())
         if bIsLast:#这里是查询结束了进行输出
             df=pd.DataFrame(self.ETFFile)
+            print("ETF清单信息输出开始")
             df.to_csv(f"ETF清单信息{self.start_time}.csv")
             print("ETF清单信息输出完毕")
             # time.sleep(self.interval)
@@ -145,6 +146,7 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
             self.ETFBasket.append(pETFBasketField.dict())
         if bIsLast:#这里是查询结束了进行输出
             df=pd.DataFrame(self.ETFBasket)
+            print("ETF成份证券信息输出开始")
             df.to_csv(f"ETF成份证券信息{self.start_time}.csv")
             print("ETF成份证券信息输出完毕")
             # time.sleep(self.interval)
