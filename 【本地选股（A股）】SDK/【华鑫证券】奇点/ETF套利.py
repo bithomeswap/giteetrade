@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import pandas as pd
 from pathlib import Path
 import datetime
 from traderapi import traderapi#从文件夹当中引入【from 文件夹 引入 文件】
 from xmdapi import xmdapi#从文件夹当中引入【from 文件夹 引入 文件】
 ''' 注意: 如果提示找不到_tradeapi 且与已发布的库文件不一致时,可自行重命名为_tradeapi.so (windows下为_tradeapi.pyd)'''
-
-import pandas as pd
 
 #投资者账户 
 InvestorID = "00030557";   
@@ -134,21 +133,23 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
         if pETFFileField:#如果有数据则继续执行【如果不验证则会因为报错中断全部任务】
             self.ETFFile.append(pETFFileField.dict())
         if bIsLast:#这里是查询结束了进行输出
-            self.write_to_csv(self.ETFFile,f"ETFFile{self.start_time}.csv")
-            # self.ETFFile = []
+            df=pd.DataFrame(self.ETFFile)
+            df.to_csv(f"ETF清单信息{self.start_time}.csv")
+            print("ETF清单信息输出完毕")
             # time.sleep(self.interval)
             # self.QryETFFileField()#这个是循环执行任务
-            api.Release()
+            # thistraderapi.Release()
 
     def OnRspQryETFBasket(self, pETFBasketField: traderapi.CTORATstpETFBasketField, pRspInfoField: traderapi.CTORATstpRspInfoField, nRequestID: int, bIsLast: bool) -> "void":
         if pETFBasketField:#如果有数据则继续执行【如果不验证则会因为报错中断全部任务】
             self.ETFBasket.append(pETFBasketField.dict())
         if bIsLast:#这里是查询结束了进行输出
-            self.write_to_csv(self.ETFBasket,f"ETFBasket{self.start_time}.csv")
-            # self.ETFBasket = []
+            df=pd.DataFrame(self.ETFBasket)
+            df.to_csv(f"ETF成份证券信息{self.start_time}.csv")
+            print("ETF成份证券信息输出完毕")
             # time.sleep(self.interval)
             # self.QryETFBasketField()#这个是循环执行任务
-            api.Release()
+            # thistraderapi.Release()
 
     def write_to_csv(self,data,path):
         print(f'[write_to_csv] {path}')
@@ -156,6 +157,7 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path.as_posix())
+
 
     def OnRspUserLogin(self, pRspUserLoginField: "traderapi.CTORATstpRspUserLoginField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int") -> "void":
         if pRspInfoField.ErrorID == 0:
@@ -417,31 +419,24 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
             print('Login fail!!! [%d] [%d] [%s]'
                 % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
         return
-
     # def OnRspUserPasswordUpdate(self, pUserPasswordUpdateField: "CTORATstpUserPasswordUpdateField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int") -> "void":
     #     if pRspInfoField.ErrorID == 0:
     #         print('OnRspUserPasswordUpdate: OK! [%d]' % nRequestID)
     #     else:
     #         print('OnRspUserPasswordUpdate: Error! [%d] [%d] [%s]' 
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspOrderInsert(self, pInputOrderField: "CTORATstpInputOrderField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int") -> "void":
     #     if pRspInfoField.ErrorID == 0:
     #         print('OnRspOrderInsert: OK! [%d]' % nRequestID)
     #     else:
     #         print('OnRspOrderInsert: Error! [%d] [%d] [%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspOrderAction(self, pInputOrderActionField: "CTORATstpInputOrderActionField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int") -> "void":
     #     if pRspInfoField.ErrorID == 0:
     #         print('OnRspOrderAction: OK! [%d]' % nRequestID)
     #     else:
     #         print('OnRspOrderAction: Error! [%d] [%d] [%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspInquiryJZFund(self, pRspInquiryJZFundField: "CTORATstpRspInquiryJZFundField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int") -> "void":
     #     if pRspInfoField.ErrorID == 0:
     #         print('OnRspInquiryJZFund: OK! [%d] [%.2f] [%.2f]'
@@ -449,33 +444,23 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #     else:
     #         print('OnRspInquiryJZFund: Error! [%d] [%d] [%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspTransferFund(self, pInputTransferFundField: "CTORATstpInputTransferFundField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int") -> "void":
     #     if pRspInfoField.ErrorID == 0:
     #         print('OnRspTransferFund: OK! [%d]' % nRequestID)
     #     else:
     #         print('OnRspTransferFund: Error! [%d] [%d] [%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRtnOrder(self, pOrderField: "CTORATstpOrderField") -> "void":
     #     print('OnRtnOrder: InvestorID[%s] SecurityID[%s] OrderRef[%d] OrderLocalID[%s] LimitPrice[%.2f] VolumeTotalOriginal[%d] OrderSysID[%s] OrderStatus[%s]'
     #         % (pOrderField.InvestorID, pOrderField.SecurityID, pOrderField.OrderRef, pOrderField.OrderLocalID, 
     #         pOrderField.LimitPrice, pOrderField.VolumeTotalOriginal, pOrderField.OrderSysID, pOrderField.OrderStatus))
-
-
     # def OnRtnTrade(self, pTradeField: "CTORATstpTradeField") -> "void":
     #     print('OnRtnTrade: TradeID[%s] InvestorID[%s] SecurityID[%s] OrderRef[%d] OrderLocalID[%s] Price[%.2f] Volume[%d]'
     #         % (pTradeField.TradeID, pTradeField.InvestorID, pTradeField.SecurityID,
     #         pTradeField.OrderRef, pTradeField.OrderLocalID, pTradeField.Price, pTradeField.Volume))
-
-
     # def OnRtnMarketStatus(self, pMarketStatusField: "CTORATstpMarketStatusField") -> "void":
     #     print('OnRtnMarketStatus: MarketID[%s] MarketStatus[%s]'
     #         % (pMarketStatusField.MarketID, pMarketStatusField.MarketStatus))
-
-
     # def OnRspQrySecurity(self, pSecurityField: "CTORATstpSecurityField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
     #     if bIsLast != 1:
     #         print('OnRspQrySecurity[%d]: SecurityID[%s] SecurityName[%s] MarketID[%s] OrderUnit[%s] OpenDate[%s] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]'
@@ -484,8 +469,6 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #     else:
     #         print('查询合约结束[%d] ErrorID[%d] ErrorMsg[%s]'
     #         % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspQryInvestor(self, pInvestorField: "CTORATstpInvestorField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
     #     if bIsLast != 1:
     #         print('OnRspQryInvestor[%d]: InvestorID[%s]  Operways[%s]'
@@ -494,8 +477,6 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #     else:
     #         print('查询投资者结束[%d] ErrorID[%d] ErrorMsg[%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspQryShareholderAccount(self, pShareholderAccountField: "CTORATstpShareholderAccountField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
     #     if bIsLast != 1:
     #         print('OnRspQryShareholderAccount[%d]: InvestorID[%s] ExchangeID[%s] ShareholderID[%s]'
@@ -503,8 +484,6 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #     else:
     #         print('查询股东账户结束[%d] ErrorID[%d] ErrorMsg[%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspQryTradingAccount(self, pTradingAccountField: "CTORATstpTradingAccountField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
     #     if bIsLast != 1:
     #         print('OnRspQryTradingAccount[%d]: DepartmentID[%s] InvestorID[%s] AccountID[%s] CurrencyID[%s] UsefulMoney[%.2f] FetchLimit[%.2f]'
@@ -513,8 +492,6 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #     else:
     #         print('查询资金账号结束[%d] ErrorID[%d] ErrorMsg[%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
-
     # def OnRspQryOrder(self, pOrderField: "CTORATstpOrderField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
     #     if bIsLast != 1:
     #         print('OnRspQryOrder[%d]: SecurityID[%s] OrderLocalID[%s] OrderRef[%d] OrderSysID[%s] VolumeTraded[%d] OrderStatus[%s] OrderSubmitStatus[%s], StatusMsg[%s]'
@@ -523,7 +500,6 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #     else:
     #         print('查询报单结束[%d] ErrorID[%d] ErrorMsg[%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-
     # def OnRspQryPosition(self, pPositionField: "CTORATstpPositionField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int", bIsLast: "bool") -> "void":
     #     if bIsLast != 1:
     #         print('OnRspQryPosition[%d]: InvestorID[%s] SecurityID[%s] HistoryPos[%d] TodayBSPos[%d] TodayPRPos[%d]'
@@ -533,124 +509,138 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #         print('查询持仓结束[%d] ErrorID[%d] ErrorMsg[%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
 
-import sys
-class MdSpi(xmdapi.CTORATstpXMdSpi):
-    def __init__(self, api):
-        xmdapi.CTORATstpXMdSpi.__init__(self)
-        self.__api = api
-    def OnFrontConnected(self):#不进行登录和订阅的话就会报错链接错误
-        print("OnFrontConnected")
-        #请求登录，目前未校验登录用户，请求域置空即可
-        login_req = xmdapi.CTORATstpReqUserLoginField()
-        self.__api.ReqUserLogin(login_req, 1)
-    def OnRspUserLogin(self, pRspUserLoginField, pRspInfoField, nRequestID):#用户登录并且订阅600621华鑫股份
-        # pass
-        if pRspInfoField.ErrorID == 0:
-            print('Login success! [%d]' % nRequestID)#登录成功
-            '''
-            订阅行情
-            当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_SSE或TORA_TSTP_EXD_SZSE时，订阅单市场所有合约行情
-			当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_COMM时，订阅全市场所有合约行情
-			其它情况,订阅sub_arr集合中的合约行情
-            '''
-            sub_arr = [b'600621']
-            ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SSE)
-            if ret != 0:
-                print('SubscribeMarketData fail, ret[%d]' % ret)
-            else:
-                print('SubscribeMarketData success, ret[%d]' % ret)
-            sub_arr = [b'000001']
-            ret = self.__api.SubscribeRapidMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)
-            if ret != 0:
-                print('SubscribeRapidMarketData fail, ret[%d]' % ret)#订阅市场数据失败
-            else:
-                print('SubscribeRapidMarketData success, ret[%d]' % ret)#订阅市场数据成功
-        else:
-            print('Login fail!!! [%d] [%d] [%s]'
-                %(nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))#登录失败
-    def OnRspSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收已订阅市场数据
-        if pRspInfoField.ErrorID == 0:
-            print('OnRspSubMarketData: OK!')#接收已订阅市场数据成功
-        else:
-            print('OnRspSubMarketData: Error! [%d] [%s]'
-                %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-    def OnRspUnSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收未订阅市场数据
-        if pRspInfoField.ErrorID == 0:
-            print('OnRspUnSubMarketData: OK!')#接收未订阅市场数据成功
-        else:
-            print('OnRspUnSubMarketData: Error! [%d] [%s]'
-                %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-    def OnRspSubRapidMarketData(self, pSpecificSecurityField, pRspInfoField):
-        if pRspInfoField.ErrorID == 0:
-            print('OnRspSubRapidMarketData: OK!')
-        else:
-            print('OnRspSubRapidMarketData: Error! [%d] [%s]'
-                %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-    def OnRtnMarketData(self, pMarketDataField):#返回市场数据详情
-        print("OnRtnMarketData::SecurityID[%s] SecurityName[%s] LastPrice[%.2f] Volume[%d] Turnover[%.2f] BidPrice1[%.2f] BidVolume1[%d] AskPrice1[%.2f] AskVolume1[%d] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]" 
-            % (pMarketDataField.SecurityID, pMarketDataField.SecurityName, pMarketDataField.LastPrice, pMarketDataField.Volume,pMarketDataField.Turnover, pMarketDataField.BidPrice1, 
-            pMarketDataField.BidVolume1, pMarketDataField.AskPrice1,pMarketDataField.AskVolume1, pMarketDataField.UpperLimitPrice, pMarketDataField.LowerLimitPrice))
-    def OnRtnRapidMarketData(self, pRapidMarketDataField):
-        print("SecurityID[%s] LastPrice[%.2f] TotalVolumeTrade[%d] TotalValueTrade[%.2f] BidPrice1[%.2f] BidVolume1[%d] BidCount1[%d] AskPrice1[%.2f] AskVolume1[%d] AskCount1[%d] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]"
-            % (pRapidMarketDataField.SecurityID, pRapidMarketDataField.LastPrice, pRapidMarketDataField.TotalVolumeTrade,
-               pRapidMarketDataField.TotalValueTrade, pRapidMarketDataField.BidPrice1, pRapidMarketDataField.BidVolume1, pRapidMarketDataField.BidCount1, pRapidMarketDataField.AskPrice1,
-               pRapidMarketDataField.AskVolume1, pRapidMarketDataField.AskCount1, pRapidMarketDataField.UpperLimitPrice, pRapidMarketDataField.LowerLimitPrice))
+# import sys
+# class MdSpi(xmdapi.CTORATstpXMdSpi):
+#     def __init__(self, api):
+#         xmdapi.CTORATstpXMdSpi.__init__(self)
+#         self.__api = api
+#     def OnFrontConnected(self):#不进行登录和订阅的话就会报错链接错误
+#         print("OnFrontConnected")
+#         #请求登录，目前未校验登录用户，请求域置空即可
+#         login_req = xmdapi.CTORATstpReqUserLoginField()
+#         self.__api.ReqUserLogin(login_req, 1)
+#     def OnRspUserLogin(self, pRspUserLoginField, pRspInfoField, nRequestID):#用户登录并且订阅600621华鑫股份
+#         # pass
+#         if pRspInfoField.ErrorID == 0:
+#             print('Login success! [%d]' % nRequestID)#登录成功
+#             '''
+#             订阅行情
+#             当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_SSE或TORA_TSTP_EXD_SZSE时，订阅单市场所有合约行情
+# 			当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_COMM时，订阅全市场所有合约行情
+# 			其它情况,订阅sub_arr集合中的合约行情
+#             '''
+#             sub_arr = [b'159302']
+#             ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
+#             if ret != 0:
+#                 print('SubscribeMarketData fail, ret[%d]' % ret)
+#             else:
+#                 print('SubscribeMarketData success, ret[%d]' % ret)
+#             # sub_arr = [b'000001']
+#             # ret = self.__api.SubscribeRapidMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)
+#             # if ret != 0:
+#             #     print('SubscribeRapidMarketData fail, ret[%d]' % ret)#订阅市场数据失败
+#             # else:
+#             #     print('SubscribeRapidMarketData success, ret[%d]' % ret)#订阅市场数据成功          
+#         else:
+#             print('Login fail!!! [%d] [%d] [%s]'
+#                 %(nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))#登录失败
+#     def OnRspSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收已订阅市场数据
+#         if pRspInfoField.ErrorID == 0:
+#             print('OnRspSubMarketData: OK!')#接收已订阅市场数据成功
+#         else:
+#             print('OnRspSubMarketData: Error! [%d] [%s]'
+#                 %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
+#     def OnRspUnSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收未订阅市场数据
+#         if pRspInfoField.ErrorID == 0:
+#             print('OnRspUnSubMarketData: OK!')#接收未订阅市场数据成功
+#         else:
+#             print('OnRspUnSubMarketData: Error! [%d] [%s]'
+#                 %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
+#     def OnRspSubRapidMarketData(self, pSpecificSecurityField, pRspInfoField):
+#         if pRspInfoField.ErrorID == 0:
+#             print('OnRspSubRapidMarketData: OK!')
+#         else:
+#             print('OnRspSubRapidMarketData: Error! [%d] [%s]'
+#                 %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
+#     def OnRtnMarketData(self, pMarketDataField):#返回市场数据详情
+#         print("pMarketDataField.SecurityID", pMarketDataField.SecurityID, 
+#             "pMarketDataField.SecurityName", pMarketDataField.LastPrice,
+#             "pMarketDataField.LastPrice", pMarketDataField.LastPrice,
+#             "pMarketDataField.Volume",pMarketDataField.Turnover,
+#             "pMarketDataField.Turnover", pMarketDataField.Turnover,
+#             # pMarketDataField.BidPrice1, 
+#             # pMarketDataField.BidVolume1, 
+#             # pMarketDataField.AskPrice1,
+#             # pMarketDataField.AskVolume1, 
+#             # pMarketDataField.UpperLimitPrice,
+#             # pMarketDataField.LowerLimitPrice,
+#             "pMarketDataField.IOPV",pMarketDataField.IOPV,#盘前IOPV数据为0
+#             )
+#     def OnRtnRapidMarketData(self, pRapidMarketDataField):
+#         print("SecurityID[%s] LastPrice[%.2f] TotalVolumeTrade[%d] TotalValueTrade[%.2f] BidPrice1[%.2f] BidVolume1[%d] BidCount1[%d] AskPrice1[%.2f] AskVolume1[%d] AskCount1[%d] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]"
+#             % (pRapidMarketDataField.SecurityID, pRapidMarketDataField.LastPrice, pRapidMarketDataField.TotalVolumeTrade,
+#                pRapidMarketDataField.TotalValueTrade, pRapidMarketDataField.BidPrice1, pRapidMarketDataField.BidVolume1, pRapidMarketDataField.BidCount1, pRapidMarketDataField.AskPrice1,
+#                pRapidMarketDataField.AskVolume1, pRapidMarketDataField.AskCount1, pRapidMarketDataField.UpperLimitPrice, pRapidMarketDataField.LowerLimitPrice))
 
 
 
-# 1、ETF
-# CTORATstpMarketDataField#包含行情数据IOPV
-# # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
-# # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
+# # 1、ETF
+# # CTORATstpMarketDataField#包含行情数据IOPV
+# # # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
+# # # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
 
-# 打印接口版本号
-print("XMDAPI版本号::"+xmdapi.CTORATstpXMdApi_GetApiVersion())
-print("sys.argv",sys.argv)#系统文件参数，这里就一个，后面的方式应该是同时启动多个文件啥的，或者干脆就是想办法默认获取得到1
-argc=len(sys.argv)#【参数1默认执行TCP访问】
-print("argc",argc)
-XMD_TCP_FrontAddress ="tcp://210.14.72.21:4402"#行情服务器接口
-'''*************************创建实例 注册服务*****************'''
-print("************* XMD TCP *************")
-#TCP订阅lv1行情，前置Front和FENS方式都用默认构造
-xmdapi = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi()
-xmdapi.RegisterFront(XMD_TCP_FrontAddress)
-# 注册多个行情前置服务地址，用逗号隔开
-# 例如:xmdapi.RegisterFront("tcp://10.0.1.101:6402,tcp://10.0.1.101:16402")
-print("XMD_TCP_FrontAddress[TCP]::%s" % XMD_TCP_FrontAddress)
-# 创建回调对象
-spi = MdSpi(xmdapi)
-# 注册回调接口
-xmdapi.RegisterSpi(spi)
-# 启动接口
-xmdapi.Init()
-# 等待程序结束
-input()
-# 释放接口对象
-xmdapi.Release()
+# # 打印接口版本号
+# print("XMDAPI版本号::"+xmdapi.CTORATstpXMdApi_GetApiVersion())
+# print("sys.argv",sys.argv)#系统文件参数，这里就一个，后面的方式应该是同时启动多个文件啥的，或者干脆就是想办法默认获取得到1
+# argc=len(sys.argv)#【参数1默认执行TCP访问】
+# print("argc",argc)
+# XMD_TCP_FrontAddress ="tcp://210.14.72.21:4402"#行情服务器接口
+# '''*************************创建实例 注册服务*****************'''
+# print("************* XMD TCP *************")
 
 
 
 
-#明天根据159302计算ETF溢价率，最大现金替代比例是1，也就是可以全现金申赎
+# #TCP订阅lv1行情，前置Front和FENS方式都用默认构造
+# thisxmdapi = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi()
+# thisxmdapi.RegisterFront(XMD_TCP_FrontAddress)
+# # 注册多个行情前置服务地址，用逗号隔开
+# # 例如:thisxmdapi.RegisterFront("tcp://10.0.1.101:6402,tcp://10.0.1.101:16402")
+# print("XMD_TCP_FrontAddress[TCP]::%s" % XMD_TCP_FrontAddress)
+# # 创建回调对象
+# spi = MdSpi(thisxmdapi)
+# # 注册回调接口
+# thisxmdapi.RegisterSpi(spi)
+# # 启动接口
+# thisxmdapi.Init()
+# # 等待程序结束
+# input()
+# # 释放接口对象
+# thisxmdapi.Release()
+
+
+
+
+# #明天根据159302计算ETF溢价率，最大现金替代比例是1，也就是可以全现金申赎
 
 # 【交易SDK】
 # 打印接口版本号
-print("TradeAPI Version:::"+traderapi.CTORATstpTraderApi_GetApiVersion())
+print("thistraderapi Version:::"+traderapi.CTORATstpTraderApi_GetApiVersion())
 # 创建接口对象
 # pszFlowPath为私有流和公有流文件存储路径，若订阅私有流和公有流且创建多个接口实例，每个接口实例应配置不同的路径
 # bEncrypt为网络数据是否加密传输，考虑数据安全性，建议以互联网方式接入的终端设置为加密传输
-tradeapi:traderapi.CTORATstpTraderApi = traderapi.CTORATstpTraderApi.CreateTstpTraderApi('./flow', False)
+thistraderapi:traderapi.CTORATstpTraderApi = traderapi.CTORATstpTraderApi.CreateTstpTraderApi('./flow', False)
 # 创建回调对象
-spi = TraderSpi(tradeapi)
+spi = TraderSpi(thistraderapi)
 # 注册回调接口
-tradeapi.RegisterSpi(spi)
+thistraderapi.RegisterSpi(spi)
 if 1:   #模拟环境，TCP 直连Front方式
     # 注册单个交易前置服务地址
     TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
     # TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
     # TD_TCP_FrontAddress="tcp://210.14.72.16:9500" #24小时环境B套
-    tradeapi.RegisterFront(TD_TCP_FrontAddress)
-    # 注册多个交易前置服务地址，用逗号隔开 形如: tradeapi.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
+    thistraderapi.RegisterFront(TD_TCP_FrontAddress)
+    # 注册多个交易前置服务地址，用逗号隔开 形如: thistraderapi.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
     print("TD_TCP_FensAddress[sim or 24H]::%s\n"%TD_TCP_FrontAddress)
 else:	#模拟环境，FENS名字服务器方式
     TD_TCP_FensAddress ="tcp://210.14.72.21:42370"; #模拟环境通用fens地址
@@ -663,23 +653,23 @@ else:	#模拟环境，FENS名字服务器方式
     fens_user_info_field.FensNodeID="sim"  #必填项，生产环境需按实际填写,仿真环境为sim
     fens_user_info_field.FensNodeID,="24a" #必填项，生产环境需按实际填写,24小时A套环境为24a
     # fens_user_info_field.FensNodeID="24b" #必填项，生产环境需按实际填写,24小时B套环境为24b
-    tradeapi.RegisterFensUserInfo(fens_user_info_field)
-    tradeapi.RegisterNameServer(TD_TCP_FensAddress)
-    # 注册名字服务器地址，支持多服务地址逗号隔开 形如:tradeapi.RegisterNameServer('tcp://10.0.1.101:52370,tcp://10.0.1.101:62370')
+    thistraderapi.RegisterFensUserInfo(fens_user_info_field)
+    thistraderapi.RegisterNameServer(TD_TCP_FensAddress)
+    # 注册名字服务器地址，支持多服务地址逗号隔开 形如:thistraderapi.RegisterNameServer('tcp://10.0.1.101:52370,tcp://10.0.1.101:62370')
     print("TD_TCP_FensAddress[%s]::%s\n"%(fens_user_info_field.FensNodeID,TD_TCP_FensAddress))
 #订阅私有流
-tradeapi.SubscribePrivateTopic(traderapi.TORA_TERT_QUICK)
+thistraderapi.SubscribePrivateTopic(traderapi.TORA_TERT_QUICK)
 #订阅公有流
-tradeapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
+thistraderapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
 '''**********************************
 *	TORA_TERT_RESTART, 从日初开始
 *	TORA_TERT_RESUME, 从断开时候开始
 *	TORA_TERT_QUICK, 从最新时刻开始
 *************************************'''
 # 启动接口
-tradeapi.Init()
-tradeapi.Join()
+thistraderapi.Init()
+thistraderapi.Join()
 # 等待程序结束
 input()
 # 释放接口对象
-tradeapi.Release()
+thistraderapi.Release()

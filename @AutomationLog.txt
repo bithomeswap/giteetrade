@@ -5,3 +5,6 @@
 =======
 2024-10-14 07:13:41.899 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
 >>>>>>> 4b9ad296446bf2e911115acc08575f881d8c31a9
+2024-10-16 08:29:57.694 微信自动化加好友.py[142] <module> -> Can not move cursor. ListItemControl's BoundingRectangle is (0,0,0,0)[0x0]. SearchProperties: {ControlType: ListItemControl}
+2024-10-16 08:30:17.493 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
+2024-10-16 08:35:34.728 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
