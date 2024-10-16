@@ -135,7 +135,8 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
             print("ETF清单信息输出完毕")
             # time.sleep(self.interval)
             # self.ETFFile=[]
-            # self.QryETFFileField()#这个是循环执行任务            
+            # self.QryETFFileField()#这个是循环执行任务
+
     def OnRspQryETFBasket(self, pETFBasketField: traderapi.CTORATstpETFBasketField, pRspInfoField: traderapi.CTORATstpRspInfoField, nRequestID: int, bIsLast: bool) -> "void":
         if pETFBasketField:#如果有数据则继续执行【如果不验证则会因为报错中断全部任务】
             self.ETFBasket.append(pETFBasketField.dict())
@@ -207,24 +208,24 @@ while True:
     time.sleep(2)
     try:
         #【验证ETF清单信息】
-        df=pd.read_csv(f"ETF清单信息{start_time}.csv")
-        df = df.drop('Unnamed: 0', axis=1)#去掉空白行
+        etfinfodf=pd.read_csv(f"ETF清单信息{start_time}.csv")
+        etfinfodf = etfinfodf.drop('Unnamed: 0', axis=1)#去掉空白行
         # 这里的前一交易日基金单位净值是四舍五入之后的数据，
         # 应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值。
-        df["前一交易日基金单位净值"]=df["前一交易日申赎基准单位净值"]/df["最小申购赎回单位份数"]
-        if len(df)>900:#平时900
-            print(df.columns.tolist(),type(df.columns.tolist()))
-            if df.columns.tolist()==['交易日','交易所代码','ETF交易代码','ETF申赎代码',
+        etfinfodf["前一交易日基金单位净值"]=etfinfodf["前一交易日申赎基准单位净值"]/etfinfodf["最小申购赎回单位份数"]
+        if len(etfinfodf)>900:#平时900
+            print(etfinfodf.columns.tolist(),type(etfinfodf.columns.tolist()))
+            if etfinfodf.columns.tolist()==['交易日','交易所代码','ETF交易代码','ETF申赎代码',
                             '最小申购赎回单位份数','最大现金替代比例','预估现金差额',
                             '前一交易日现金差额','前一交易日基金单位净值','前一交易日申赎基准单位净值',
                             '当日申购赎回基准单位的红利金额', 'ETF申赎类型', 'ETF证券名称']:
                 etffile=True
         #【验证ETF成分券信息】
-        df=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
-        df = df.drop('Unnamed: 0', axis=1)#去掉空白行
-        if len(df)>100000:#平时110000
-            print(df.columns.tolist(),type(df.columns.tolist()))
-            if df.columns.tolist()==['交易日','交易所代码','ETF交易代码','ETF成份证券代码',
+        etfstocksdf=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
+        etfstocksdf = etfstocksdf.drop('Unnamed: 0', axis=1)#去掉空白行
+        if len(etfstocksdf)>100000:#平时110000
+            print(etfstocksdf.columns.tolist(),type(etfstocksdf.columns.tolist()))
+            if etfstocksdf.columns.tolist()==['交易日','交易所代码','ETF交易代码','ETF成份证券代码',
                             '成分证券名称','成分证券数量','现金替代标志','溢价比例',
                             '申购替代金额','赎回替代金额','挂牌市场','ETF申赎类型']:
                 etfbasket=True
@@ -243,114 +244,116 @@ thistraderapi.Release()
 
 
 
-#[能够获取到IOPV数据,就是任务无法主动结束]
-# import sys
-# class MdSpi(xmdapi.CTORATstpXMdSpi):
-#     def __init__(self, api):
-#         xmdapi.CTORATstpXMdSpi.__init__(self)
-#         self.__api = api
-#     def OnFrontConnected(self):#不进行登录和订阅的话就会报错链接错误
-#         print("OnFrontConnected")
-#         #请求登录，目前未校验登录用户，请求域置空即可
-#         login_req = xmdapi.CTORATstpReqUserLoginField()
-#         self.__api.ReqUserLogin(login_req, 1)
-#     def OnRspUserLogin(self, pRspUserLoginField, pRspInfoField, nRequestID):#用户登录并且订阅600621华鑫股份
-#         # pass
-#         if pRspInfoField.ErrorID == 0:
-#             print('Login success! [%d]' % nRequestID)#登录成功
-#             '''
-#             订阅行情
-#             当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_SSE或TORA_TSTP_EXD_SZSE时，订阅单市场所有合约行情
-# 			当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_COMM时，订阅全市场所有合约行情
-# 			其它情况,订阅sub_arr集合中的合约行情
-#             '''
-#             sub_arr = [b'159302']
-#             ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
-#             if ret != 0:
-#                 print('SubscribeMarketData fail, ret[%d]' % ret)
-#             else:
-#                 print('SubscribeMarketData success, ret[%d]' % ret)
-#             # sub_arr = [b'000001']
-#             # ret = self.__api.SubscribeRapidMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)
-#             # if ret != 0:
-#             #     print('SubscribeRapidMarketData fail, ret[%d]' % ret)#订阅市场数据失败
-#             # else:
-#             #     print('SubscribeRapidMarketData success, ret[%d]' % ret)#订阅市场数据成功          
-#         else:
-#             print('Login fail!!! [%d] [%d] [%s]'
-#                 %(nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))#登录失败
-#     def OnRspSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收已订阅市场数据
-#         if pRspInfoField.ErrorID == 0:
-#             print('OnRspSubMarketData: OK!')#接收已订阅市场数据成功
-#         else:
-#             print('OnRspSubMarketData: Error! [%d] [%s]'
-#                 %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-#     def OnRspUnSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收未订阅市场数据
-#         if pRspInfoField.ErrorID == 0:
-#             print('OnRspUnSubMarketData: OK!')#接收未订阅市场数据成功
-#         else:
-#             print('OnRspUnSubMarketData: Error! [%d] [%s]'
-#                 %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-#     def OnRspSubRapidMarketData(self, pSpecificSecurityField, pRspInfoField):
-#         if pRspInfoField.ErrorID == 0:
-#             print('OnRspSubRapidMarketData: OK!')
-#         else:
-#             print('OnRspSubRapidMarketData: Error! [%d] [%s]'
-#                 %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
-#     def OnRtnMarketData(self, pMarketDataField):#返回市场数据详情
-#         print("pMarketDataField.SecurityID", pMarketDataField.SecurityID, 
-#             "pMarketDataField.SecurityName", pMarketDataField.LastPrice,
-#             "pMarketDataField.LastPrice", pMarketDataField.LastPrice,
-#             "pMarketDataField.Volume",pMarketDataField.Turnover,
-#             "pMarketDataField.Turnover", pMarketDataField.Turnover,
-#             # pMarketDataField.BidPrice1, 
-#             # pMarketDataField.BidVolume1, 
-#             # pMarketDataField.AskPrice1,
-#             # pMarketDataField.AskVolume1, 
-#             # pMarketDataField.UpperLimitPrice,
-#             # pMarketDataField.LowerLimitPrice,
-#             "pMarketDataField.IOPV",pMarketDataField.IOPV,#盘前IOPV数据为0
-#             )
-#     def OnRtnRapidMarketData(self, pRapidMarketDataField):
-#         print("SecurityID[%s] LastPrice[%.2f] TotalVolumeTrade[%d] TotalValueTrade[%.2f] BidPrice1[%.2f] BidVolume1[%d] BidCount1[%d] AskPrice1[%.2f] AskVolume1[%d] AskCount1[%d] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]"
-#             % (pRapidMarketDataField.SecurityID, pRapidMarketDataField.LastPrice, pRapidMarketDataField.TotalVolumeTrade,
-#                pRapidMarketDataField.TotalValueTrade, pRapidMarketDataField.BidPrice1, pRapidMarketDataField.BidVolume1, pRapidMarketDataField.BidCount1, pRapidMarketDataField.AskPrice1,
-#                pRapidMarketDataField.AskVolume1, pRapidMarketDataField.AskCount1, pRapidMarketDataField.UpperLimitPrice, pRapidMarketDataField.LowerLimitPrice))
+# [能够获取到IOPV数据,就是任务无法主动结束]
+import sys
+class MdSpi(xmdapi.CTORATstpXMdSpi):
+    def __init__(self, api):
+        xmdapi.CTORATstpXMdSpi.__init__(self)
+        self.__api = api
+    def OnFrontConnected(self):#不进行登录和订阅的话就会报错链接错误
+        print("OnFrontConnected")
+        #请求登录，目前未校验登录用户，请求域置空即可
+        login_req = xmdapi.CTORATstpReqUserLoginField()
+        self.__api.ReqUserLogin(login_req, 1)
+    def OnRspUserLogin(self, pRspUserLoginField, pRspInfoField, nRequestID):#用户登录并且订阅600621华鑫股份
+        # pass
+        if pRspInfoField.ErrorID == 0:
+            print('Login success! [%d]' % nRequestID)#登录成功
+            '''
+            订阅行情
+            当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_SSE或TORA_TSTP_EXD_SZSE时，订阅单市场所有合约行情
+			当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_COMM时，订阅全市场所有合约行情
+			其它情况,订阅sub_arr集合中的合约行情
+            '''
+            # for index in etfinfodf["ETF交易代码"].tolist():
 
 
+            
+            sub_arr = [b'159302']
+            ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
+            if ret != 0:
+                print('SubscribeMarketData fail, ret[%d]' % ret)
+            else:
+                print('SubscribeMarketData success, ret[%d]' % ret)
+
+
+
+            # sub_arr = [b'000001']
+            # ret = self.__api.SubscribeRapidMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)
+            # if ret != 0:
+            #     print('SubscribeRapidMarketData fail, ret[%d]' % ret)#订阅市场数据失败
+            # else:
+            #     print('SubscribeRapidMarketData success, ret[%d]' % ret)#订阅市场数据成功          
+        else:
+            print('Login fail!!! [%d] [%d] [%s]'
+                %(nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))#登录失败
+    def OnRspSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收已订阅市场数据
+        if pRspInfoField.ErrorID == 0:
+            print('OnRspSubMarketData: OK!')#接收已订阅市场数据成功
+        else:
+            print('OnRspSubMarketData: Error! [%d] [%s]'
+                %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
+    def OnRspUnSubMarketData(self, pSpecificSecurityField, pRspInfoField):#接收未订阅市场数据
+        if pRspInfoField.ErrorID == 0:
+            print('OnRspUnSubMarketData: OK!')#接收未订阅市场数据成功
+        else:
+            print('OnRspUnSubMarketData: Error! [%d] [%s]'
+                %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
+    def OnRspSubRapidMarketData(self, pSpecificSecurityField, pRspInfoField):
+        if pRspInfoField.ErrorID == 0:
+            print('OnRspSubRapidMarketData: OK!')
+        else:
+            print('OnRspSubRapidMarketData: Error! [%d] [%s]'
+                %(pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
+    def OnRtnMarketData(self, pMarketDataField):#返回市场数据详情
+        print("pMarketDataField.SecurityID", pMarketDataField.SecurityID, 
+            "pMarketDataField.SecurityName", pMarketDataField.LastPrice,
+            "pMarketDataField.LastPrice", pMarketDataField.LastPrice,
+            "pMarketDataField.Volume",pMarketDataField.Turnover,
+            "pMarketDataField.Turnover", pMarketDataField.Turnover,
+            # pMarketDataField.BidPrice1, 
+            # pMarketDataField.BidVolume1, 
+            # pMarketDataField.AskPrice1,
+            # pMarketDataField.AskVolume1, 
+            # pMarketDataField.UpperLimitPrice,
+            # pMarketDataField.LowerLimitPrice,
+            "pMarketDataField.IOPV",pMarketDataField.IOPV,#盘前IOPV数据为0
+            )
+    def OnRtnRapidMarketData(self, pRapidMarketDataField):
+        print("SecurityID[%s] LastPrice[%.2f] TotalVolumeTrade[%d] TotalValueTrade[%.2f] BidPrice1[%.2f] BidVolume1[%d] BidCount1[%d] AskPrice1[%.2f] AskVolume1[%d] AskCount1[%d] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]"
+            % (pRapidMarketDataField.SecurityID, pRapidMarketDataField.LastPrice, pRapidMarketDataField.TotalVolumeTrade,
+               pRapidMarketDataField.TotalValueTrade, pRapidMarketDataField.BidPrice1, pRapidMarketDataField.BidVolume1, pRapidMarketDataField.BidCount1, pRapidMarketDataField.AskPrice1,
+               pRapidMarketDataField.AskVolume1, pRapidMarketDataField.AskCount1, pRapidMarketDataField.UpperLimitPrice, pRapidMarketDataField.LowerLimitPrice))
+
+# 打印接口版本号
+print("XMDAPI版本号::"+xmdapi.CTORATstpXMdApi_GetApiVersion())
+print("sys.argv",sys.argv)#系统文件参数，这里就一个，后面的方式应该是同时启动多个文件啥的，或者干脆就是想办法默认获取得到1
+argc=len(sys.argv)#【参数1默认执行TCP访问】
+print("argc",argc)
+XMD_TCP_FrontAddress ="tcp://210.14.72.21:4402"#行情服务器接口
+'''*************************创建实例 注册服务*****************'''
+print("************* XMD TCP *************")
+
+#TCP订阅lv1行情，前置Front和FENS方式都用默认构造
+thisxmdapi = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi()
+thisxmdapi.RegisterFront(XMD_TCP_FrontAddress)
+# 注册多个行情前置服务地址，用逗号隔开
+# 例如:thisxmdapi.RegisterFront("tcp://10.0.1.101:6402,tcp://10.0.1.101:16402")
+print("XMD_TCP_FrontAddress[TCP]::%s" % XMD_TCP_FrontAddress)
+# 创建回调对象
+spi = MdSpi(thisxmdapi)
+# 注册回调接口
+thisxmdapi.RegisterSpi(spi)
+# 启动接口
+thisxmdapi.Init()
+# 等待程序结束
+input()
+# 释放接口对象
+thisxmdapi.Release()
 
 # # 1、ETF
 # # CTORATstpMarketDataField#包含行情数据IOPV
 # # # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
 # # # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
-
-# # 打印接口版本号
-# print("XMDAPI版本号::"+xmdapi.CTORATstpXMdApi_GetApiVersion())
-# print("sys.argv",sys.argv)#系统文件参数，这里就一个，后面的方式应该是同时启动多个文件啥的，或者干脆就是想办法默认获取得到1
-# argc=len(sys.argv)#【参数1默认执行TCP访问】
-# print("argc",argc)
-# XMD_TCP_FrontAddress ="tcp://210.14.72.21:4402"#行情服务器接口
-# '''*************************创建实例 注册服务*****************'''
-# print("************* XMD TCP *************")
-
-
-
-
-# #TCP订阅lv1行情，前置Front和FENS方式都用默认构造
-# thisxmdapi = xmdapi.CTORATstpXMdApi_CreateTstpXMdApi()
-# thisxmdapi.RegisterFront(XMD_TCP_FrontAddress)
-# # 注册多个行情前置服务地址，用逗号隔开
-# # 例如:thisxmdapi.RegisterFront("tcp://10.0.1.101:6402,tcp://10.0.1.101:16402")
-# print("XMD_TCP_FrontAddress[TCP]::%s" % XMD_TCP_FrontAddress)
-# # 创建回调对象
-# spi = MdSpi(thisxmdapi)
-# # 注册回调接口
-# thisxmdapi.RegisterSpi(spi)
-# # 启动接口
-# thisxmdapi.Init()
-# # 等待程序结束
-# input()
-# # 释放接口对象
-# thisxmdapi.Release()
 
 
