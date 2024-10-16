@@ -202,14 +202,28 @@ thistraderapi.Init()
 #[根据生成文件是否达标结束任务]
 etffile=False
 etfbasket=False
+import time
 while True:
+    time.sleep(2)
     try:
         df=pd.read_csv(f"ETF清单信息{start_time}.csv")
+        # 这里的前一交易日基金单位净值是四舍五入之后的数据，
+        # 应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值。
+        df["前一交易日基金单位净值"]=df["前一交易日申赎基准单位净值"]/df["最小申购赎回单位份数"]
         if len(df)>900:#平时900
-            etffile=True
+            print(df.columns)
+            if df.columns==['交易日','交易所代码','ETF交易代码','ETF申赎代码',
+                            '最小申购赎回单位份数','最大现金替代比例','预估现金差额',
+                            '前一交易日现金差额','前一交易日基金单位净值','前一交易日申赎基准单位净值',
+                            '当日申购赎回基准单位的红利金额', 'ETF申赎类型', 'ETF证券名称']:
+                etffile=True
         df=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
         if len(df)>100000:#平时110000
-            etfbasket=True
+            print(df.columns)
+            if df.columns==['交易日','交易所代码','ETF交易代码','ETF成份证券代码',
+                            '成分证券名称','成分证券数量','现金替代标志','溢价比例',
+                            '申购替代金额','赎回替代金额','挂牌市场','ETF申赎类型']:
+                etfbasket=True
     except Exception as e:
         print("数据不匹配",e)
     if (etffile==True)and(etfbasket==True):
