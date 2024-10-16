@@ -56,7 +56,7 @@ def initialize(context):
     #设置交易参数并且获取买卖计划
     g.bidrate=0.0025 #设置下单滑点为0.0025
     # g.timetickwait=2000 #设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快，3秒一根但是返回的速度不够快】
-    g.targetmoney=30000 #设置下单时对手盘挂单金额阈值（满足阈值之后g.targetmoney的单笔下单金额，因为下单股数需要是100的整数倍所以实际金额比这个值低）【开通免五功能之后这个值可以很小（未开通也不能太大避免验证下单失败无法下单）】
+    g.targetmoney=20000 #设置下单时对手盘挂单金额阈值（满足阈值之后g.targetmoney的单笔下单金额，因为下单股数需要是100的整数倍所以实际金额比这个值低）【开通免五功能之后这个值可以很小（未开通也不能太大避免验证下单失败无法下单）】
     g.traderate=2 #设置满足下单条件之后单次挂单金额是g.targetmoney的g.traderate倍以上时，按照g.targetmoney一笔进行下单，否则全部下单
     # g.cancellorder=False #取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
     g.cancellorder=True #设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
@@ -1042,8 +1042,8 @@ def handle_data(context,data):
             ordernum+=1#交易轮次计数，避免频繁撤单
             print("是否执行订单管理",g.cancellorder)
             if ordernum>1:
-                print("从第二轮开始每执行一轮休息15秒避免订单过度冲击市场","当前轮次",ordernum)
-                time.sleep(15)#休息一秒，避免空转
+                print("从第二轮开始每执行一轮休息30秒避免订单过度冲击市场","当前轮次",ordernum)
+                time.sleep(30)#休息一秒，避免空转
             if ordernum%10==0:
                 print("交易轮次达标，执行撤单任务")
                 if g.cancellorder:#执行订单管理功能的话则后面代码才起作用

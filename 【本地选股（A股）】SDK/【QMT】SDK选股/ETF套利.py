@@ -1,3 +1,16 @@
+import pandas as pd
+# 【需要额外判断交易日判断数据对不对，错了及时推送报错到微信或者钉钉】
+df=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF成份证券信息20241016.csv")
+# ,交易日,交易所代码,ETF交易代码,ETF成份证券代码,成分证券名称,成分证券数量,现金替代标志,溢价比例,申购替代金额,赎回替代金额,挂牌市场,ETF申赎类型
+
+
+#关键数据：最大现金替代比例【也就是说可以如果股票数量{实物申购}不足，最多可以使用多大比例的现金进行替代】
+df=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF清单信息20241016.csv")
+# ,交易日,交易所代码,ETF交易代码,ETF申赎代码,最小申购赎回单位份数,最大现金替代比例,预估现金差额,前一交易日现金差额,前一交易日基金单位净值,前一交易日申赎基准单位净值,当日申购赎回基准单位的红利金额,ETF申赎类型,ETF证券名称
+# df["前一交易日申赎基准单位净值"]=df["前一交易日基金单位净值"]*df["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
+df["前一交易日基金单位净值"]=df["前一交易日申赎基准单位净值"]/df["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
+
+
 # #当前使用同花顺SDK构建的数据跟supermind是一致的（这里是3.8版本）
 # xtdata提供和MiniQmt的交互接口,本质是和MiniQmt建立连接,由MiniQmt处理行情数据请求,再把结果回传返回到python层。使用的行情服务器以及能获取到的行情数据和MiniQmt是一致的,要检查数据或者切换连接时直接操作MiniQmt即可。
 # 对于数据获取接口,使用时需要先确保MiniQmt已有所需要的数据,如果不足可以通过补充数据接口补充,再调用数据获取接口获取。
@@ -8,83 +21,10 @@ import time
 import math
 # conda create -n my_env python=3.10
 import pandas as pd#conda install pandas
-import numpy as np#pip install numpy
-# pip install supermind
-from supermind.api import *
-from supermind.data.main import command
-from supermind.mod.mindgo.utils.recorder import log
-from supermind.mod.mindgo.research import (
-    bonus,
-    valuation,
-    balance,
-    cashflow,
-    income,
-    profit_report,
-    profit_forecast,
-    operating,
-    debtrepay,
-    profit,
-    growth,
-    cashflow_sq,
-    income_sq,
-    profit_sq,
-    growth_sq,
-    asharevalue,
-    ashareoperate,
-    asharedebt,
-    ashareprofit,
-)
-from supermind.mod.mindgo.research.research_api import (
-    pd_Panel,
-    normalize_symbol,
-    get_security_info,
-    get_price,
-    get_candle_stick,
-    get_all_trade_days,
-    get_trade_days,
-    get_last_trade_day,
-    query,
-    run_query,
-    get_fundamentals,
-    read_file,
-    write_file,
-    remove_file,
-    superreload,
-    notify_push,
-    set_log_level,
-    get_api_usage,
-    upload_file,
-    download_file,
-)
-from supermind.mod.stock.research_api import (
-    get_price_future,
-    get_candle_stick_future,
-    get_futures_dominate,
-    get_futures_info,
-    get_future_code,
-    get_all_securities,
-    get_dividend_information,
-    get_option_code,
-    get_tick,
-)
-from supermind.mod.analyser.research_api import research_strategy
-from supermind.mod.realtime.research_api import research_trade
-from supermind.mod.tradeapi.api import (
-    TradeAPI,
-    TradeCredit,
-    TradeFutures,
-)
+import numpy as np#pip install 
 
-# #获取历史期权信息【拿不到数据不清楚是不是因为收盘了】
-# from xtquant import xtdata
-# # 获取到期月份为202101的上交所510300ETF认购合约
-# data = xtdata.get_option_list('510300.SH','202101',"CALL")
-# # 获取20210104当天上交所510300ETF可交易的认购合约
-# #data=xtdata.get_option_list('510300.SH','20210104',"CALL",True)
-# #获取20210104当天上交所510300ETF已经上市的认购合约(包括退市)
-# #data=xtdata.get_option_list('510300.SH','20210104',"CALL",False)
-# logger.info(data)
-# time.sleep(100)
+
+
 
 # #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
 # 配置日志
