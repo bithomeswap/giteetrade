@@ -112,7 +112,7 @@ while True:
                     print("对方直接通过好友验证无需确认")#需要取消窗口
                     #点开具体某个群成员的信息对话框释放对话框
                     button = wechatWindow.ButtonControl(Name='聊天信息')
-                    button.RightClick()#默认左键
+                    button.RightClick()
                 else:
                     print("有隐私设置无法添加好友确认已进行下一步")
                     wechatWindow.ButtonControl(Name='确定').Click(simulateMove=False)
