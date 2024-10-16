@@ -33,11 +33,11 @@ import math
 
 #需要先打开群，才能进行好友添加
 # who="文件传输助手"
-# who="wxauto三群"
+# who="量化策略交流学习"#已经加完好友了
+who="QMT交易实战33群"
 # who="聚宽策略PTrade实盘"
-who="量化策略交流学习"
-# who="QMT交易实战33群"
 # who="国金吃肉聊天交流群"
+# who="wxauto三群"
 wx.ChatWith(who)#【默认点击左键{左键右键功能置换时使用下方代码}】打开群指定的聊天窗口{返回值为字符串}
 
 # 判断对话框是否是群聊{也可以使用获取群成员昵称的函数来判断【如果报错说明不是群聊】}
@@ -57,7 +57,7 @@ wechatWindow = auto.WindowControl(searchDepth=1, Name="微信", ClassName='WeCha
 num=0
 while True:
     num+=1
-    if num>=355:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
+    if num>=38:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
         button = wechatWindow.ButtonControl(Name='收起')
         if button.Exists():
             print("有收起按钮无需重新打开")
@@ -102,12 +102,18 @@ while True:
         if button.Exists():
             button.Click()#默认点击左键
             time.sleep(0.5+random.random())
-            
             #针对隐私设置用户进行处理
             warn = wechatWindow.ButtonControl(Name='取消')
             if not warn.Exists():
-                print("有隐私设置无法添加好友")
-                wechatWindow.ButtonControl(Name='确定').Click(simulateMove=False)
+                #验证是否能够直接添加
+                friendcard = wechatWindow.ButtonControl(Name='更多')
+                time.sleep(1)
+                if friendcard.Exists():
+                    print("对方直接通过好友验证无需确认")#需要取消窗口
+                    children.RightClick()#点开具体某个群成员的信息对话框释放对话框
+                else:
+                    print("有隐私设置无法添加好友确认已进行下一步")
+                    wechatWindow.ButtonControl(Name='确定').Click(simulateMove=False)
             else:#只申请非隐私设置的用户
                 addmsg=who#群聊名称（申请信息）
                 remark=f"{who}{children.Name}"#备注名
