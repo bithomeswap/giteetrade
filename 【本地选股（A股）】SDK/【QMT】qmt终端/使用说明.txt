@@ -1,0 +1,1 @@
+大qmt跟ptrade有些像，但比ptrade复杂一些，速度会慢一点，毕竟QMT终端内置的python3.6.8框架，版本有点旧。

@@ -195,12 +195,28 @@ thistraderapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
 # 启动接口
 thistraderapi.Init()
 
-import time
-time.sleep(60)# 等待程序结束[其中的一个文件在收盘之后就失效了]
+#[根据时间结束任务]
+# import time
+# time.sleep(60)# 等待程序结束[其中的一个文件在收盘之后就失效了]
+
+#[根据生成文件是否达标结束任务]
+etffile=False
+etfbasket=False
 while True:
     try:
         df=pd.read_csv("ETF清单信息20241016.csv")
+        if len(df)>900:#平时900
+            etffile=True
         df=pd.read_csv("ETF成份证券信息20241016.csv")
+        if len(df)>100000:#平时110000
+            etfbasket=True
+    except Exception as e:
+        print("数据不匹配",e)
+    if (etffile==True)and(etfbasket==True):
+        print("数据已经获取成功任务结束")
+        break
+    
+#[根据input结束任务](半天结束不了有点慢)
 # thistraderapi.Join()
 # input()# 等待程序结束[不确定几分钟结束]一直没结束
 # 释放接口对象

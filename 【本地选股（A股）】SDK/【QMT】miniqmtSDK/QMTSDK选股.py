@@ -16,7 +16,7 @@ from xtquant import xtdata
 
 # #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
 # 配置日志
-basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】SDK选股"
+basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】miniqmtSDK"
 # pip install loguru # 这个框架可以解决中文不显示的问题
 from loguru import logger
 logger.add(
