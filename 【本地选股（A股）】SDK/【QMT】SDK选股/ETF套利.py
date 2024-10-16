@@ -1,14 +1,14 @@
 import pandas as pd
 # 【需要额外判断交易日判断数据对不对，错了及时推送报错到微信或者钉钉】
-df=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF成份证券信息20241016.csv")
+dfstock=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF成份证券信息20241016.csv")
 # ,交易日,交易所代码,ETF交易代码,ETF成份证券代码,成分证券名称,成分证券数量,现金替代标志,溢价比例,申购替代金额,赎回替代金额,挂牌市场,ETF申赎类型
 
 
 #关键数据：最大现金替代比例【也就是说可以如果股票数量{实物申购}不足，最多可以使用多大比例的现金进行替代】
-df=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF清单信息20241016.csv")
+dfetf=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF清单信息20241016.csv")
 # ,交易日,交易所代码,ETF交易代码,ETF申赎代码,最小申购赎回单位份数,最大现金替代比例,预估现金差额,前一交易日现金差额,前一交易日基金单位净值,前一交易日申赎基准单位净值,当日申购赎回基准单位的红利金额,ETF申赎类型,ETF证券名称
-# df["前一交易日申赎基准单位净值"]=df["前一交易日基金单位净值"]*df["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
-df["前一交易日基金单位净值"]=df["前一交易日申赎基准单位净值"]/df["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
+# dfetf["前一交易日申赎基准单位净值"]=dfetf["前一交易日基金单位净值"]*dfetf["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
+dfetf["前一交易日基金单位净值"]=dfetf["前一交易日申赎基准单位净值"]/dfetf["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
 
 
 # #当前使用同花顺SDK构建的数据跟supermind是一致的（这里是3.8版本）
@@ -188,9 +188,6 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
                 except Exception as e:#报索引越界一般是tick数据没出来
                     logger.info(e)
             logger.info(f"过滤完ST和停牌标的之后,{len(stocks)}")
-            
-
-
             #使用问财python库获取数据【同花顺利润口径不同,普遍是ttm的归母净利润】
             #问财获取数据【需要提前安装node.js进行页面解析,接口获取到的最新价列就是实时最新价】
             # pip install pywencai
@@ -303,6 +300,13 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
             buylistone=dfone["代码"].values
             logger.info(f"******,{buylistone},{buylisttwo}")
     if choosename=="ETF申赎":#A股ETF申赎套利策略
+        dfetf["ETF交易代码"].tolist()#ETF详情
+        etfiopv=xtdata.get_etf_iopv("510050.SH")
+        print(etfiopv)
+        # #实时申赎数据[VIP权限数据]
+        # from xtquant import xtdata
+        # xtdata.download_history_data(stock, 'etfstatistics', start_time, end_time, incrementally = True)
+        # data = xtdata.get_market_data_ex([], stock_list, period = 'etfstatistics', start_time = "", end_time = "")
         pass
 
 now=datetime.datetime.now()
@@ -380,10 +384,11 @@ if choosename=="ETF申赎":
     logger.info(f"******"+"可用资金"+str(available_cash)+"证券市值"+str(market_value)+"冻结资金"+str(frozen_cash)+"总资产"+str(total_value))
     premoney=(total_value)/targetnum#确定每只股票的交易金额（根据目标持仓数量制定）
     #下载所有ETF数据（需要VIP，通过合格投资者认证后才可以使用，否则程序会报错需要升级客户端或者使用投研版）
-    xtdata.download_etf_info()
-    etfinfo=xtdata.get_etf_info()#获取ETF基金代码为511050的全部ETF申赎清单数据【需要升级成投研版或者升级客户端】
-    print(etfinfo)
-    # etfiopv=xtdata.get_etf_iopv()
+    # xtdata.download_etf_info()
+    # etfinfo=xtdata.get_etf_info()#获取ETF基金代码为511050的全部ETF申赎清单数据【需要升级成投研版或者升级客户端】
+    # print(etfinfo)
+    # etfiopv=xtdata.get_etf_iopv("510050.SH")
+    # print(etfiopv)
 else:
     #设置交易参数并且获取买卖计划
     bidrate=0.005#设置盘口价差为0.004

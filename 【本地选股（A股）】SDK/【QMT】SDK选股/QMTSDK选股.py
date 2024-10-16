@@ -1,90 +1,17 @@
-# #当前使用同花顺SDK构建的数据跟supermind是一致的（这里是3.8版本）
+import datetime
+import time
+import math
+import pandas as pd#conda install pandas
+import numpy as np#pip install numpy
+
+# supermind的SDK作废了拿不到数据，尽量使用pywencai库直接从问财接口获取
+# conda create -n my_env8 python=3.8#创建环境
+# conda env remove -n my_env8#删除环境
+
 # xtdata提供和MiniQmt的交互接口,本质是和MiniQmt建立连接,由MiniQmt处理行情数据请求,再把结果回传返回到python层。使用的行情服务器以及能获取到的行情数据和MiniQmt是一致的,要检查数据或者切换连接时直接操作MiniQmt即可。
 # 对于数据获取接口,使用时需要先确保MiniQmt已有所需要的数据,如果不足可以通过补充数据接口补充,再调用数据获取接口获取。
 # 对于订阅接口,直接设置数据回调,数据到来时会由回调返回。订阅接收到的数据一般会保存下来,同种数据不需要再单独补充。
 from xtquant import xtdata
-import datetime
-import time
-import math
-# conda create -n my_env python=3.10
-import pandas as pd#conda install pandas
-import numpy as np#pip install numpy
-# pip install supermind
-from supermind.api import *
-from supermind.data.main import command
-from supermind.mod.mindgo.utils.recorder import log
-from supermind.mod.mindgo.research import (
-    bonus,
-    valuation,
-    balance,
-    cashflow,
-    income,
-    profit_report,
-    profit_forecast,
-    operating,
-    debtrepay,
-    profit,
-    growth,
-    cashflow_sq,
-    income_sq,
-    profit_sq,
-    growth_sq,
-    asharevalue,
-    ashareoperate,
-    asharedebt,
-    ashareprofit,
-)
-from supermind.mod.mindgo.research.research_api import (
-    pd_Panel,
-    normalize_symbol,
-    get_security_info,
-    get_price,
-    get_candle_stick,
-    get_all_trade_days,
-    get_trade_days,
-    get_last_trade_day,
-    query,
-    run_query,
-    get_fundamentals,
-    read_file,
-    write_file,
-    remove_file,
-    superreload,
-    notify_push,
-    set_log_level,
-    get_api_usage,
-    upload_file,
-    download_file,
-)
-from supermind.mod.stock.research_api import (
-    get_price_future,
-    get_candle_stick_future,
-    get_futures_dominate,
-    get_futures_info,
-    get_future_code,
-    get_all_securities,
-    get_dividend_information,
-    get_option_code,
-    get_tick,
-)
-from supermind.mod.analyser.research_api import research_strategy
-from supermind.mod.realtime.research_api import research_trade
-from supermind.mod.tradeapi.api import (
-    TradeAPI,
-    TradeCredit,
-    TradeFutures,
-)
-
-# #获取历史期权信息【拿不到数据不清楚是不是因为收盘了】
-# from xtquant import xtdata
-# # 获取到期月份为202101的上交所510300ETF认购合约
-# data = xtdata.get_option_list('510300.SH','202101',"CALL")
-# # 获取20210104当天上交所510300ETF可交易的认购合约
-# #data=xtdata.get_option_list('510300.SH','20210104',"CALL",True)
-# #获取20210104当天上交所510300ETF已经上市的认购合约(包括退市)
-# #data=xtdata.get_option_list('510300.SH','20210104',"CALL",False)
-# logger.info(data)
-# time.sleep(100)
 
 # #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
 # 配置日志
@@ -126,8 +53,6 @@ def filter_kcb_stock(stocks):#过滤科创北交股票
     return stocks
 
 def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
-    import datetime#解决函数内引用问题
-
     if choosename=="可转债":#A股可转债策略
         try:
             pd.read_csv(str(basepath)+str(start_date)+choosename+"买入.csv")
@@ -218,7 +143,7 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
             buylisttwo=dftwo["代码"].values
             buylistone=dfone["代码"].values
             logger.info(f"******,{buylistone},{buylisttwo}")
-    if choosename=="微盘股":#A股中小板策略
+    if (choosename=="中小板")or(choosename=="微盘股"):#A股中小板策略
         try:
             pd.read_csv(str(basepath)+str(start_date)+choosename+"买入.csv")
             logger.info(f"******"+str(basepath)+str(start_date)+choosename+"买入.csv"+"文件存在")
@@ -248,9 +173,7 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
                 except Exception as e:#报索引越界一般是tick数据没出来
                     logger.info(e)
             logger.info(f"过滤完ST和停牌标的之后,{len(stocks)}")
-            
-
-
+        
             #使用问财python库获取数据【同花顺利润口径不同,普遍是ttm的归母净利润】
             #问财获取数据【需要提前安装node.js进行页面解析,接口获取到的最新价列就是实时最新价】
             # pip install pywencai
@@ -288,71 +211,15 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
             olddf["最新价"]=olddf["最新价"].astype(float)
             olddf=olddf[olddf["最新价"]>4]#只要大于4元的
             logger.info(f"{olddf}")#如果不修改数据格式,那么很可能数据大小越界
-
-
-
-            # # #使用同花顺SDK获取数据
-            # logger.info("同花顺下载财务数据")
-            # #获取基本面数据
-            # olddf=get_fundamentals(query(
-            #     asharevalue.symbol,
-            #     asharevalue.total_shares,
-            #     asharevalue.float_shares,#流通股本
-            #     income.profit_before_tax,#利润总额【当计提历史亏损的时候利润总额大于当年净利润】
-            #     income.net_profit,#净利润
-            #     income.np_atsopc,#归母净利润
-            #     income.overall_income,#营业总收入
-            #     balance.undistributed_profits,#未分配利润
-            #     balance.total_liabilities,#负债合计
-            #     balance.total_liab_and_holders_equity,#负债和股东权益总计
-            #     asharevalue.pb_mrq,#市净率MRQ
-            #     ),date=yesterday)
-            # olddf=olddf.rename(columns={
-            #         "asharevalue_symbol":"代码",
-            #         "asharevalue_total_shares": "总股本",
-            #         # "asharevalue_float_shares": "流通股本",
-            #         "income_profit_before_tax":"利润总额",
-            #         "income_net_profit":"净利润",
-            #         "income_np_atsopc":"归母净利润",
-            #         "income_overall_income":"营业总收入",
-            #         "balance_undistributed_profits":"未分配利润",
-            #         # "income_overall_income":"营业总收入",
-            #         "balance_total_liabilities":"负债合计",
-            #         "balance_total_liab_and_holders_equity":"负债和股东权益总计",
-            #         "asharevalue_pb_mrq":"市净率",
-            #     })
-            # olddf["资产负债率"]=olddf["负债合计"]/olddf["负债和股东权益总计"]
-            # olddf=olddf[olddf["资产负债率"]<1]#存在资产负债率大于1（资不抵债）的标的,跟历史数据一致
-            # olddf=olddf[olddf["利润总额"]>0]
-            # olddf=olddf[olddf["净利润"]>0]
-            # olddf=olddf[olddf["归母净利润"]>0]
-            # olddf=olddf[olddf["未分配利润"]>0]
-            # # olddf=olddf[olddf["营业总收入"]>100000000]
-            # olddf.to_csv("基本面数据.csv")
-            # stocks=olddf["代码"].tolist()
-            # logger.info(f"{stocks}")
-            # #计算价格
-            # thisdf=xtdata.get_full_tick(stocks)
-            # thisdf=pd.DataFrame(thisdf).T
-            # thisdf=thisdf.reset_index(drop=False)
-            # thisdf=thisdf.rename(columns={
-            #             "index":"代码",
-            #             "lastPrice":"最新价",#这里拿不到数据可能是因为模拟盘拿不到tick
-            #             })
-            # logger.info(f"{thisdf}")
-            # thisdf=thisdf[thisdf["最新价"]>4]
-            # thisdf=thisdf[["代码","最新价"]]
-            # stocks=thisdf["代码"].tolist()
-            # logger.info(f"{datetime.datetime.now()},{thisdf}")
-            # olddf=olddf.merge(thisdf,on="代码",how='inner')
-            
-
-
+        
             #股本数据结合价格合成市值数据
             olddf["总市值"]=olddf["总股本"]*olddf["最新价"]
             olddf["排名"]=olddf["总市值"].rank(method="max",ascending=True,na_option='bottom')
             olddf['代码']=olddf['代码'].str.replace(r'\D','',regex=True).astype(str)
-            numbuystock=30#设置持仓数量
+            if (choosename=="中小板"):
+                numbuystock=10#设置持仓数量
+            if (choosename=="微盘股"):
+                numbuystock=30#设置持仓数量
             dfone=olddf.nsmallest(math.ceil(numbuystock),"排名")
             dftwo=olddf.nsmallest(math.ceil(1.5*numbuystock),"排名")
             dftwo.to_csv(str(basepath)+str(start_date)+choosename+"卖出.csv")
@@ -362,8 +229,6 @@ def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
             buylisttwo=dftwo["代码"].values
             buylistone=dfone["代码"].values
             logger.info(f"******,{buylistone},{buylisttwo}")
-    if choosename=="ETF申赎":#A股ETF申赎套利策略
-        pass
 
 now=datetime.datetime.now()
 
@@ -406,8 +271,7 @@ mini_qmt_path = r"C:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路�
 account_id = "55013189"
 if (account_id=='55013189')or(account_id=='2011506')or(account_id=="2011908"):#密码:wth000
     # choosename="可转债"
-    # choosename="微盘股"
-    choosename="ETF申赎"
+    choosename="微盘股"
     tradeway="taker"#设置主动吃单
     # tradeway="maker"#设置被动吃单
 else:
@@ -428,87 +292,50 @@ while True:
         time.sleep(1)
 acc = StockAccount(account_id)# 创建账号对象
 trade_api.subscribe(acc)# 订阅账号
-if choosename=="ETF申赎":
-    targetnum=2
-    #查询资产
-    portfolio=trade_api.query_stock_asset(account=acc)
-    logger.info(f"查询资产,portfolio")#收盘之后估计会返回空值
-    available_cash=portfolio.cash#available_cash可用资金
-    market_value=portfolio.market_value#market_value证券市值
-    frozen_cash=portfolio.frozen_cash#frozen_cash冻结资金
-    total_value=portfolio.total_asset#total_asset总资产
-    logger.info(f"******"+"可用资金"+str(available_cash)+"证券市值"+str(market_value)+"冻结资金"+str(frozen_cash)+"总资产"+str(total_value))
-    premoney=(total_value)/targetnum#确定每只股票的交易金额（根据目标持仓数量制定）
-    #下载所有ETF数据（需要VIP，通过合格投资者认证后才可以使用，否则程序会报错需要升级客户端或者使用投研版）
-    xtdata.download_etf_info()
-    etfinfo=xtdata.get_etf_info()#获取ETF基金代码为511050的全部ETF申赎清单数据【需要升级成投研版或者升级客户端】
-    print(etfinfo)
-    # etfiopv=xtdata.get_etf_iopv()
-else:
-    #设置交易参数并且获取买卖计划
-    bidrate=0.005#设置盘口价差为0.004
-    timecancellwait=60#设置撤单函数筛选订单的确认时间
-    timetickwait=2000#设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快,3秒一根但是返回的速度不够快】
-    timeseconds=60#设置获取tick的函数的时间长度【避免没有数据】
-    targetmoney=10000#设置下单时对手盘需要达到的厚度（即单笔目标下单金额,因为手数需要向下取整,所以实际金额比这个值低）
-    traderate=2#设置单次挂单金额是targetmoney的traderate倍
-    # cancellorder=False#取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
-    cancellorder=True#设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
+#设置交易参数并且获取买卖计划
+bidrate=0.005#设置盘口价差为0.004
+timecancellwait=60#设置撤单函数筛选订单的确认时间
+timetickwait=2000#设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快,3秒一根但是返回的速度不够快】
+timeseconds=60#设置获取tick的函数的时间长度【避免没有数据】
+targetmoney=10000#设置下单时对手盘需要达到的厚度（即单笔目标下单金额,因为手数需要向下取整,所以实际金额比这个值低）
+traderate=2#设置单次挂单金额是targetmoney的traderate倍
+# cancellorder=False#取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
+cancellorder=True#设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
 
-    logger.info(f"{now},{choosename},{account_id},{start_date},{last_date},{today},{yesterday}")
-    choose_stocks(choosename,now,start_date,last_date,today,yesterday)#使用特定函数根据策略名称配置相应参数
+logger.info(f"{now},{choosename},{account_id},{start_date},{last_date},{today},{yesterday}")
+choose_stocks(choosename,now,start_date,last_date,today,yesterday)#使用特定函数根据策略名称配置相应参数
 
-    buyfilename=choosename+"买入.csv"
-    sellfilename=choosename+"卖出.csv"
-    logger.info(f"{buyfilename},{sellfilename}")
-    buydf=pd.read_csv(str(basepath)+str(start_date)+buyfilename)
-    selldf=pd.read_csv(str(basepath)+str(start_date)+sellfilename)
-    #确认买入数量【即持仓数量】
-    targetnum=len(buydf)#一般是30
-    logger.info(f"预计持仓只数,{targetnum}")
+buyfilename=choosename+"买入.csv"
+sellfilename=choosename+"卖出.csv"
+logger.info(f"{buyfilename},{sellfilename}")
+buydf=pd.read_csv(str(basepath)+str(start_date)+buyfilename)
+selldf=pd.read_csv(str(basepath)+str(start_date)+sellfilename)
+#确认买入数量【即持仓数量】
+targetnum=len(buydf)#一般是30
+logger.info(f"预计持仓只数,{targetnum}")
 
-    #查询资产
-    portfolio=trade_api.query_stock_asset(account=acc)
-    logger.info(f"查询资产,portfolio")#收盘之后估计会返回空值
-    available_cash=portfolio.cash#available_cash可用资金
-    market_value=portfolio.market_value#market_value证券市值
-    frozen_cash=portfolio.frozen_cash#frozen_cash冻结资金
-    total_value=portfolio.total_asset#total_asset总资产
-    logger.info(f"******"+"可用资金"+str(available_cash)+"证券市值"+str(market_value)+"冻结资金"+str(frozen_cash)+"总资产"+str(total_value))
-    premoney=(total_value)/targetnum#确定每只股票的交易金额（根据目标持仓数量制定）
+#查询资产
+portfolio=trade_api.query_stock_asset(account=acc)
+logger.info(f"查询资产,portfolio")#收盘之后估计会返回空值
+available_cash=portfolio.cash#available_cash可用资金
+market_value=portfolio.market_value#market_value证券市值
+frozen_cash=portfolio.frozen_cash#frozen_cash冻结资金
+total_value=portfolio.total_asset#total_asset总资产
+logger.info(f"******"+"可用资金"+str(available_cash)+"证券市值"+str(market_value)+"冻结资金"+str(frozen_cash)+"总资产"+str(total_value))
+premoney=(total_value)/targetnum#确定每只股票的交易金额（根据目标持仓数量制定）
 
-    #同花顺内打出来的数据（字符串数据）
-    buydf["代码"]=buydf["代码"].astype(str).str.zfill(6).apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
-    selldf["代码"]=selldf["代码"].astype(str).str.zfill(6).apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
-    logger.info(f"buydf,{buydf}")
+#同花顺内打出来的数据（字符串数据）
+buydf["代码"]=buydf["代码"].astype(str).str.zfill(6).apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
+selldf["代码"]=selldf["代码"].astype(str).str.zfill(6).apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
+logger.info(f"buydf,{buydf}")
 
-    logger.info(f"针对涨停标的不进行卖出处理之前selldf,{len(selldf)}")
-    positions=trade_api.query_stock_positions(account=acc)
-    for position in positions:
-        symbol=position.stock_code
-        logger.info(symbol)
-        if position.volume>0:
-            logger.info(position.volume)
-            thisnow=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
-            try:
-                #返回五档数据
-                tick=xtdata.get_full_tick([symbol])
-                tick=tick[symbol]
-                ask_price_1=tick["askPrice"][0]
-                ask_volume_1=tick["askVol"][0]
-                ask_price_2=tick["askPrice"][1]
-                ask_volume_2=tick["askVol"][1]
-                logger.info(f"{ask_price_1},{ask_volume_1},{ask_price_2},{ask_volume_2}")
-                if (ask_price_2==0)and(ask_price_1==0):
-                    logger.info(f"{symbol},涨停不进行卖出")
-                    if symbol not in selldf["代码"].tolist():
-                        selldf=pd.concat([selldf,pd.DataFrame({"代码":[symbol],"排名":[0]})])
-            except Exception as e:#报索引越界一般是tick数据没出来
-                logger.info(f"******,发生bug:,{symbol},{e}")
-    logger.info(f"针对涨停标的不进行卖出处理之后selldf,{len(selldf)}")
-
-    logger.info(f"针对跌停标的不进行买入处理之前buydf,{len(buydf)}")
-    for symbol in buydf["代码"].tolist():
+logger.info(f"针对涨停标的不进行卖出处理之前selldf,{len(selldf)}")
+positions=trade_api.query_stock_positions(account=acc)
+for position in positions:
+    symbol=position.stock_code
+    logger.info(symbol)
+    if position.volume>0:
+        logger.info(position.volume)
         thisnow=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
         try:
             #返回五档数据
@@ -520,31 +347,318 @@ else:
             ask_volume_2=tick["askVol"][1]
             logger.info(f"{ask_price_1},{ask_volume_1},{ask_price_2},{ask_volume_2}")
             if (ask_price_2==0)and(ask_price_1==0):
-                logger.info(symbol,"涨停不进行买入")
-                buydf=pd.concat([buydf,pd.DataFrame({"代码":[symbol],"排名":[0]})])
-            bid_price_1=tick["bidPrice"][0]
-            bid_volume_1=tick["bidVol"][0]
-            bid_price_2=tick["bidPrice"][1]
-            bid_volume_2=tick["bidVol"][1]
-            logger.info(f"{bid_price_1},{ask_volume_1},{bid_price_2},{bid_volume_2}")
-            if (bid_price_2==0)and(bid_price_1==0):
-                logger.info(symbol,"跌停不进行买入")
-                buydf=buydf[~(buydf["代码"]==symbol)]
+                logger.info(f"{symbol},涨停不进行卖出")
+                if symbol not in selldf["代码"].tolist():
+                    selldf=pd.concat([selldf,pd.DataFrame({"代码":[symbol],"排名":[0]})])
         except Exception as e:#报索引越界一般是tick数据没出来
-            logger.info("******","发生bug:",symbol,e)
-    logger.info("针对跌停标的不进行买入处理之后buydf",len(buydf))
-    logger.info("注意事项【停牌标的也算作涨跌停标的了】")
-                
-    targetcolumn="排名"
-    dfone=buydf.copy()
-    dftwo=selldf.copy()
-    buydf=buydf[["代码",targetcolumn]]
-    selldf=selldf[["代码",targetcolumn]]
-    buydf["moneymanage"]=premoney
-    moneymanage=buydf[["代码","moneymanage"]]
-    ordernum=0#初始化当前交易轮次为0
-    logger.info(f"策略启动,account_id,{account_id},premoney,{premoney}")
+            logger.info(f"******,发生bug:,{symbol},{e}")
+logger.info(f"针对涨停标的不进行卖出处理之后selldf,{len(selldf)}")
 
+logger.info(f"针对跌停标的不进行买入处理之前buydf,{len(buydf)}")
+for symbol in buydf["代码"].tolist():
+    thisnow=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
+    try:
+        #返回五档数据
+        tick=xtdata.get_full_tick([symbol])
+        tick=tick[symbol]
+        ask_price_1=tick["askPrice"][0]
+        ask_volume_1=tick["askVol"][0]
+        ask_price_2=tick["askPrice"][1]
+        ask_volume_2=tick["askVol"][1]
+        logger.info(f"{ask_price_1},{ask_volume_1},{ask_price_2},{ask_volume_2}")
+        if (ask_price_2==0)and(ask_price_1==0):
+            logger.info(symbol,"涨停不进行买入")
+            buydf=pd.concat([buydf,pd.DataFrame({"代码":[symbol],"排名":[0]})])
+        bid_price_1=tick["bidPrice"][0]
+        bid_volume_1=tick["bidVol"][0]
+        bid_price_2=tick["bidPrice"][1]
+        bid_volume_2=tick["bidVol"][1]
+        logger.info(f"{bid_price_1},{ask_volume_1},{bid_price_2},{bid_volume_2}")
+        if (bid_price_2==0)and(bid_price_1==0):
+            logger.info(symbol,"跌停不进行买入")
+            buydf=buydf[~(buydf["代码"]==symbol)]
+    except Exception as e:#报索引越界一般是tick数据没出来
+        logger.info("******","发生bug:",symbol,e)
+logger.info("针对跌停标的不进行买入处理之后buydf",len(buydf))
+logger.info("注意事项【停牌标的也算作涨跌停标的了】")
+            
+targetcolumn="排名"
+dfone=buydf.copy()
+dftwo=selldf.copy()
+buydf=buydf[["代码",targetcolumn]]
+selldf=selldf[["代码",targetcolumn]]
+buydf["moneymanage"]=premoney
+moneymanage=buydf[["代码","moneymanage"]]
+ordernum=0#初始化当前交易轮次为0
+logger.info(f"策略启动,account_id,{account_id},premoney,{premoney}")
+
+dfposition=pd.DataFrame([])
+positions=trade_api.query_stock_positions(account=acc)
+for position in positions:
+    symbol=position.stock_code
+    logger.info(symbol,position.volume)
+    if position.volume>0:
+        dfposition=pd.concat([dfposition,pd.DataFrame({"symbol":[symbol],
+                                                        "volume":[position.volume],
+                                                        "can_use_volume":[position.can_use_volume],
+                                                        "frozen_volume":[position.frozen_volume],
+                                                        "market_value":[position.market_value],
+                                                        })],ignore_index=True)
+logger.info(f"******,本轮持仓,{dfposition}")
+dfposition.to_csv(str(basepath)+"_dfposition.csv")
+#判断交易计划
+selldflist=dftwo["代码"].tolist()
+buydflist=dfone["代码"].tolist()
+
+# 获取当前时间
+thistime=datetime.datetime.now()
+
+# #【设置1、4月空仓】
+# if ((thistime.month==4)or(thistime.month==1)):
+#     logger.info(thistime.month,"当前月份空仓")
+#     selldflist=[]
+#     buydflist=[]
+
+if not dfposition.empty:#持仓不为空值
+    positionsymbols=dfposition["symbol"].tolist()
+    falsesymbol=[x for x in positionsymbols if x not in selldflist]
+    truesymbol=[x for x in positionsymbols if x in selldflist]
+    havesymbol=[x for x in buydflist if x in positionsymbols]
+    nothavesymbol=[x for x in buydflist if x not in positionsymbols]
+    logger.info("******"+
+        "不在卖出观察池的需卖出标的"+
+        f"{falsesymbol}"+
+        "在卖出观察池的正确持仓标的"+
+        f"{truesymbol}"+
+        "在买入观察池的已持仓标的"+
+        f"{havesymbol}"+
+        "在买入观察池的未持仓标的"+
+        f"{nothavesymbol}"+
+        "持仓标的"+
+        f"{positionsymbols}"
+    )
+    selldf=dfposition.copy()#只针对持仓当中的标的筛选应卖出标的
+    buydf=dfone.copy()
+    selldf=selldf[~(selldf["symbol"].isin(dftwo["代码"].tolist()))]
+    logger.info(f"实际应卖出股票,去掉应持有标的后,{len(selldf)}")
+    # selldf=selldf[~(selldf["symbol"].isin(upstocks))]
+    logger.info(f"实际应卖出股票,去掉涨停标的后,{len(selldf)}")
+    if len(selldf)>0:
+        #应买入股票处理
+        buydf=buydf[~(buydf["代码"].isin(selldf["symbol"].tolist()))]
+        buydf=buydf[~(buydf["代码"].isin(dfposition["symbol"].tolist()))]
+        logger.info(f"实际应买入股票,去除应卖出标的后,{len(buydf)}")
+        #计算卖出后剩余持仓数量
+        hodlstocks=len(dfposition["symbol"].tolist())-len(selldf["symbol"].tolist())
+        logger.info(f"卖出后剩余持仓数量,{hodlstocks}")
+        if hodlstocks!=0:
+            buydf=buydf.sort_values(by=targetcolumn)
+            buydf=buydf[:(targetnum-hodlstocks)]#这里减去的是持仓股票数量,然后在持仓标的中选择金额不足的向上拼接
+            logger.info(f"对买入计划重新配置之后,{len(buydf)}")
+    else:
+        logger.info("应卖出股票只数小于0,直接去除掉当前的持仓标的计算买入计划")
+        #应买入股票处理
+        buydf=buydf[~(buydf["代码"].isin(dfposition["symbol"].tolist()))]
+        logger.info(f"实际应买入股票,去除应卖出标的后,{len(buydf)}")
+        #计算卖出后剩余持仓数量
+        hodlstocks=len(dfposition["symbol"].tolist())-len(selldf["symbol"].tolist())
+        logger.info(f"全部卖出后剩余持仓数量,{hodlstocks}")
+        if hodlstocks!=0:
+            buydf=buydf.sort_values(by=targetcolumn)
+            buydf=buydf[:(targetnum-hodlstocks)]#这里减去的是持仓股票数量,然后在持仓标的中选择金额不足的向上拼接
+            logger.info(f"对买入计划重新配置之后,{len(buydf)}")
+else:
+    if (len(selldflist)==0)and(len(buydflist)==0):
+        logger.info(f"{thistime.month},当月空仓")
+        selldf=pd.DataFrame({"代码":[],"总市值":[]})
+        buydf=pd.DataFrame({"代码":[],"总市值":[]})
+    else:
+        logger.info(f"{thistime.month},正常交易")
+        selldf=dftwo.copy()
+        buydf=dfone.copy()
+    logger.info(f"实际应卖出股票,{len(selldf)}")
+    logger.info(f"实际应买入股票,{len(buydf)}")
+selldf=selldf.reset_index(drop=True)
+selldf.to_csv(str(basepath)+"selldf.csv")
+buydf=buydf.reset_index(drop=True)
+buydf.to_csv(str(basepath)+"buydf.csv")
+logger.info(f"实际卖出计划,{selldf},实际买入计划,{buydf}")
+
+#进行交易计划之前的资金管理机制【计算需要对哪些进行买入对哪些进行卖出】
+premoney=(total_value)/targetnum#每股理论应持仓金额
+#注意这个金额还得补之前超跌的股票的部分的差额
+buydf["moneymanage"]=premoney
+moneymanage=buydf[["代码","moneymanage"]]
+logger.info("单股金额"+str(premoney)+"moneymanage"+str(moneymanage))
+if not dfposition.empty:
+    holddf=dfposition.copy()
+    holddf=holddf[~(holddf["symbol"].isin(selldf["symbol"].tolist()))]
+    for index,thisposition in holddf.iterrows():#余额不为零才进行下一步免得浪费时间
+        logger.info(f"{index},{thisposition}")
+        symbol=thisposition["symbol"]
+        # logger.info("symbol",symbol)
+        if thisposition["volume"]>0:#只对当前持仓大于0的标的进行处理
+            thispositionmoney=thisposition["market_value"]
+            # if (premoney-thispositionmoney)>float(0.0000001)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
+            if (premoney-thispositionmoney)>float(0.1)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
+                logger.info(f"{symbol},thispositionmoney,{thispositionmoney},premoney,{premoney},持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上执行补仓操作")
+                if symbol not in moneymanage["代码"].tolist():
+                    newdata=pd.DataFrame([{"代码":symbol,"moneymanage":(premoney-thispositionmoney)}])
+                    moneymanage=pd.concat([moneymanage,newdata],ignore_index=True)
+                    logger.info(f"******,拼接上之前应买入未买全的股票,之后最新的下单金额计划,{moneymanage}")
+                elif symbol in moneymanage["代码"].tolist():
+                    moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]=(premoney-thispositionmoney)
+                    logger.info(f"******,更新完之前应买入未买全的股票,之后最新的下单金额计划,{moneymanage}")
+    moneymanage=moneymanage[moneymanage["moneymanage"]>=targetmoney]#只保留应下单金额大于targetmoney的标的
+else:
+    logger.info("当前没有持仓,无需对下单计划进行调整")
+logger.info(moneymanage)
+
+#初始化存储已经撤销订单的列表【只初始化一次,不要重置】
+dfordercancelled=pd.DataFrame({})
+while True:
+    dforderalls=pd.DataFrame({})#初始化存储全部订单的列表【每一轮都可以重置】
+    ordernum+=1#交易轮次计数,避免频繁撤单
+    if ordernum>1:
+        logger.info(f"{datetime.datetime.now()},从第二轮开始每执行一轮休息5秒避免订单过度冲击市场,当前轮次,{ordernum}")
+        # time.sleep(5)#休息一秒,避免空转
+        time.sleep(1)#休息一秒,避免空转
+    # # 成交XtTrade
+    # trades = trade_api.query_stock_trades(account=acc)#成交记录
+    # logger.info(trades)
+    # # 属性	类型	注释
+    # # account_type	int	账号类型,参见数据字典
+    # # account_id	str	资金账号
+    # # stock_code	str	证券代码
+    # # order_type	int	委托类型,参见数据字典
+    # # traded_id	str	成交编号
+    # # traded_time	int	成交时间
+    # # traded_price	float	成交均价
+    # # traded_volume	int	成交数量
+    # # traded_amount	float	成交金额
+    # # order_id	int	订单编号
+    # # order_sysid	str	柜台合同编号
+    # # strategy_name	str	策略名称
+    # # order_remark	str	委托备注
+    # # direction	int	多空方向,股票不需要；参见数据字典
+    # # offset_flag	int	交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
+    # 委托XtOrder
+    # 属性	类型	注释
+    # account_type	int	账号类型,参见数据字典
+    # account_id	str	资金账号
+    # stock_code	str	证券代码,例如"600000.SH"
+    # order_id	int	订单编号
+    # order_sysid	str	柜台合同编号
+    # order_time	int	报单时间
+    # order_type	int	委托类型,参见数据字典
+    # order_volume	int	委托数量
+    # price_type	int	报价类型,参见数据字典
+    # price	float	委托价格
+    # traded_volume	int	成交数量
+    # traded_price	float	成交均价
+    # order_status	int	委托状态,参见数据字典
+    # status_msg	str	委托状态描述,如废单原因
+    # strategy_name	str	策略名称
+    # order_remark	str	委托备注
+    # direction	int	多空方向,股票不需要；参见数据字典
+    # offset_flag	int	交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
+    if ordernum%10==0:
+    # if ordernum%2==0:
+        logger.info("交易轮次达标,执行撤单任务")
+        if cancellorder:#如果cancellorder设置为true则执行以下撤单流程【最低撤单金额一万元】
+            orderalls = trade_api.query_stock_orders(account=acc,cancelable_only=False)#仅查询可撤委托
+            for orderall in orderalls:
+                # #模拟盘下午无法识别到撤单（orderall.status_msg无数据）把这块拿出来单独研究
+                # logger.info(f"{orderall},{type(orderall.offset_flag)},{orderall.direction},{orderall.price_type},{orderall.status_msg},{type(orderall.status_msg)},{orderall.order_id}")
+                # 账号状态(account_status)
+                # xtconstant.ORDER_UNREPORTED	48	未报
+                # xtconstant.ORDER_WAIT_REPORTING	49	待报
+                # xtconstant.ORDER_REPORTED	50	已报
+                # xtconstant.ORDER_REPORTED_CANCEL	51	已报待撤
+                # xtconstant.ORDER_PARTSUCC_CANCEL	52	部成待撤
+                # xtconstant.ORDER_PART_CANCEL	53	部撤
+                # xtconstant.ORDER_CANCELED	54	已撤
+                # xtconstant.ORDER_PART_SUCC	55	部成
+                # xtconstant.ORDER_SUCCEEDED	56	已成
+                # xtconstant.ORDER_JUNK	57	废单
+                # xtconstant.ORDER_UNKNOWN	255	未知
+                #拼接orderall的数据【不对已成、待报、未报订单进行处理】
+                # if ((orderall.status_msg!="56")and(orderall.status_msg!="49")and(orderall.status_msg!="48")):
+                    dforderall=pd.DataFrame({
+                        "status_msg":[orderall.status_msg],
+                        "order_id":[orderall.order_id],
+                        "status":[orderall.status_msg],
+                        "symbol":[orderall.stock_code],
+                        "amount":[orderall.order_volume],
+                        "trade_amount":[orderall.traded_volume],
+                        "trade_price":[orderall.traded_price],
+                        "order_type":[orderall.order_type],#int,24卖出,23买入
+                        "direction":[orderall.direction],#int,多空方向,股票不需要；参见数据字典
+                        "offset_flag":[orderall.offset_flag],#int,交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
+                        "price":[orderall.price],
+                        "price_type":[orderall.price_type],
+                        "datetime":[datetime.datetime.fromtimestamp(orderall.order_time).strftime("%Y%m%d %H:%M:%S")],
+                        "secondary_order_id":[orderall.order_id]})
+                    dforderalls=pd.concat([dforderalls,dforderall],ignore_index=True)
+                    if ((orderall.status_msg=="55")or(orderall.status_msg=="50")):
+                        logger.info(f"******,不是已成交订单,{orderall.order_id}")
+                        #60秒内不成交就撤单【这个是要小于当前时间,否则就一直无法执行】
+                        if (orderall.datetime+datetime.timedelta(seconds=timecancellwait))<datetime.datetime.now():#成交额还得超过targetmoney才可以最终撤单
+                            if (orderall.traded_volume*orderall.price>targetmoney):
+                                try:
+                                    cancel_result = trade_api.cancel_order_stock(account=acc,order_id=orderall.order_id)
+                                    # .cancel_order(orderall.order_id)
+                                    logger.info(f"******,已成交金额达标执行撤单,{orderall.order_id,cancel_result}")
+                                except:
+                                    logger.info(f"******","已完成或取消中的条件单不允许取消")
+                            elif orderall.traded_volume==0:#未成交撤单
+                                try:#如果该委托已成交或者已撤单则会报错
+                                    cancel_result = trade_api.cancel_order_stock(account=acc,order_id=orderall.order_id)
+                                    # .cancel_order(orderall.order_id)
+                                    logger.info(f"******,执行撤单,{orderall.order_id},cancel_result,{cancel_result}")
+                                except:
+                                    logger.info(f"******,已完成或取消中的条件单不允许取消")
+                    else:#撤单或者废单之后的金额回补
+                        # 交易操作(offset_flag)
+                        # 枚举变量名	值	含义
+                        # xtconstant.OFFSET_FLAG_OPEN	48	买入,开仓
+                        # xtconstant.OFFSET_FLAG_CLOSE	49	卖出,平仓
+                        # xtconstant.OFFSET_FLAG_FORCECLOSE	50	强平
+                        # xtconstant.OFFSET_FLAG_CLOSETODAY	51	平今
+                        # xtconstant.OFFSET_FLAG_ClOSEYESTERDAY	52	平昨
+                        # xtconstant.OFFSET_FLAG_FORCEOFF	53	强减
+                        # xtconstant.OFFSET_FLAG_LOCALFORCECLOSE	54	本地强平
+                        if (orderall.order_type==int(23)):#这里只计算BUY方向的订单,24是卖23是买
+                            # logger.info("该订单是买入")
+                            # time.sleep(10)
+                            if (orderall.status_msg=="54"):
+                                orderall.cancel_amount=orderall.order_volume-orderall.traded_volume
+                                logger.info(f"{orderall}")
+                                logger.info(f"******,撤单成功,{orderall},{orderall.status_msg},{orderall.cancel_amount}")
+                                if dfordercancelled.empty:#dfordercancelled一开始是个空值,这里主要是确认一下之前有没有数据,有数据才需要检验之前是否撤销过
+                                    dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
+                                    cancel_money=orderall.cancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
+                                    moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
+                                else:
+                                    if orderall.order_id not in dfordercancelled["order_id"].tolist():
+                                        dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
+                                        cancel_money=orderall.cancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
+                                        moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
+                            elif (orderall.status_msg=="57"):
+                                logger.info(f"******,废单处理,{orderall},{orderall.status_msg},{orderall.order_volume}")
+                                if dfordercancelled.empty:#dfordercancelled一开始是个空值,这里主要是确认一下之前有没有数据,有数据才需要检验之前是否撤销过
+                                    dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
+                                    cancel_money=orderall.order_volume*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
+                                    moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
+                                if orderall.order_id not in dfordercancelled["order_id"].tolist():
+                                    dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
+                                    cancel_money=orderall.order_volume*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
+                                    moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
+            dforderalls.to_csv(str(basepath)+"_dforderalls.csv")#输出所有未全部成交的订单【针对所有订单】
+            dfordercancelled.to_csv(str(basepath)+"_dfordercancelled.csv")#输出已经撤销或者作废的订单【只针对的买入订单】
+            logger.info("******","资金管理","premoney",premoney,"moneymanage",moneymanage)
+    moneymanage.to_csv(str(basepath)+"_dfmoneymanage.csv")
+    #重置并获取持仓信息【这里的目的是重新获取最新持仓以避免执行卖出成功后数据没有更新导致的持仓数量不对的情况】
     dfposition=pd.DataFrame([])
     positions=trade_api.query_stock_positions(account=acc)
     for position in positions:
@@ -559,565 +673,298 @@ else:
                                                             })],ignore_index=True)
     logger.info(f"******,本轮持仓,{dfposition}")
     dfposition.to_csv(str(basepath)+"_dfposition.csv")
-    #判断交易计划
-    selldflist=dftwo["代码"].tolist()
-    buydflist=dfone["代码"].tolist()
-
-    # 获取当前时间
-    thistime=datetime.datetime.now()
-
-    # #【设置1、4月空仓】
-    # if ((thistime.month==4)or(thistime.month==1)):
-    #     logger.info(thistime.month,"当前月份空仓")
-    #     selldflist=[]
-    #     buydflist=[]
-
-    if not dfposition.empty:#持仓不为空值
-        positionsymbols=dfposition["symbol"].tolist()
-        falsesymbol=[x for x in positionsymbols if x not in selldflist]
-        truesymbol=[x for x in positionsymbols if x in selldflist]
-        havesymbol=[x for x in buydflist if x in positionsymbols]
-        nothavesymbol=[x for x in buydflist if x not in positionsymbols]
-        logger.info("******"+
-            "不在卖出观察池的需卖出标的"+
-            f"{falsesymbol}"+
-            "在卖出观察池的正确持仓标的"+
-            f"{truesymbol}"+
-            "在买入观察池的已持仓标的"+
-            f"{havesymbol}"+
-            "在买入观察池的未持仓标的"+
-            f"{nothavesymbol}"+
-            "持仓标的"+
-            f"{positionsymbols}"
-        )
-        selldf=dfposition.copy()#只针对持仓当中的标的筛选应卖出标的
-        buydf=dfone.copy()
-        selldf=selldf[~(selldf["symbol"].isin(dftwo["代码"].tolist()))]
-        logger.info(f"实际应卖出股票,去掉应持有标的后,{len(selldf)}")
-        # selldf=selldf[~(selldf["symbol"].isin(upstocks))]
-        logger.info(f"实际应卖出股票,去掉涨停标的后,{len(selldf)}")
-        if len(selldf)>0:
-            #应买入股票处理
-            buydf=buydf[~(buydf["代码"].isin(selldf["symbol"].tolist()))]
-            buydf=buydf[~(buydf["代码"].isin(dfposition["symbol"].tolist()))]
-            logger.info(f"实际应买入股票,去除应卖出标的后,{len(buydf)}")
-            #计算卖出后剩余持仓数量
-            hodlstocks=len(dfposition["symbol"].tolist())-len(selldf["symbol"].tolist())
-            logger.info(f"卖出后剩余持仓数量,{hodlstocks}")
-            if hodlstocks!=0:
-                buydf=buydf.sort_values(by=targetcolumn)
-                buydf=buydf[:(targetnum-hodlstocks)]#这里减去的是持仓股票数量,然后在持仓标的中选择金额不足的向上拼接
-                logger.info(f"对买入计划重新配置之后,{len(buydf)}")
-        else:
-            logger.info("应卖出股票只数小于0,直接去除掉当前的持仓标的计算买入计划")
-            #应买入股票处理
-            buydf=buydf[~(buydf["代码"].isin(dfposition["symbol"].tolist()))]
-            logger.info(f"实际应买入股票,去除应卖出标的后,{len(buydf)}")
-            #计算卖出后剩余持仓数量
-            hodlstocks=len(dfposition["symbol"].tolist())-len(selldf["symbol"].tolist())
-            logger.info(f"全部卖出后剩余持仓数量,{hodlstocks}")
-            if hodlstocks!=0:
-                buydf=buydf.sort_values(by=targetcolumn)
-                buydf=buydf[:(targetnum-hodlstocks)]#这里减去的是持仓股票数量,然后在持仓标的中选择金额不足的向上拼接
-                logger.info(f"对买入计划重新配置之后,{len(buydf)}")
-    else:
-        if (len(selldflist)==0)and(len(buydflist)==0):
-            logger.info(f"{thistime.month},当月空仓")
-            selldf=pd.DataFrame({"代码":[],"总市值":[]})
-            buydf=pd.DataFrame({"代码":[],"总市值":[]})
-        else:
-            logger.info(f"{thistime.month},正常交易")
-            selldf=dftwo.copy()
-            buydf=dfone.copy()
-        logger.info(f"实际应卖出股票,{len(selldf)}")
-        logger.info(f"实际应买入股票,{len(buydf)}")
-    selldf=selldf.reset_index(drop=True)
-    selldf.to_csv(str(basepath)+"selldf.csv")
-    buydf=buydf.reset_index(drop=True)
-    buydf.to_csv(str(basepath)+"buydf.csv")
-    logger.info(f"实际卖出计划,{selldf},实际买入计划,{buydf}")
-
-    #进行交易计划之前的资金管理机制【计算需要对哪些进行买入对哪些进行卖出】
-    premoney=(total_value)/targetnum#每股理论应持仓金额
-    #注意这个金额还得补之前超跌的股票的部分的差额
-    buydf["moneymanage"]=premoney
-    moneymanage=buydf[["代码","moneymanage"]]
-    logger.info("单股金额"+str(premoney)+"moneymanage"+str(moneymanage))
-    if not dfposition.empty:
-        holddf=dfposition.copy()
-        holddf=holddf[~(holddf["symbol"].isin(selldf["symbol"].tolist()))]
-        for index,thisposition in holddf.iterrows():#余额不为零才进行下一步免得浪费时间
-            logger.info(f"{index},{thisposition}")
-            symbol=thisposition["symbol"]
-            # logger.info("symbol",symbol)
-            if thisposition["volume"]>0:#只对当前持仓大于0的标的进行处理
-                thispositionmoney=thisposition["market_value"]
-                # if (premoney-thispositionmoney)>float(0.0000001)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
-                if (premoney-thispositionmoney)>float(0.1)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
-                    logger.info(f"{symbol},thispositionmoney,{thispositionmoney},premoney,{premoney},持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上执行补仓操作")
-                    if symbol not in moneymanage["代码"].tolist():
-                        newdata=pd.DataFrame([{"代码":symbol,"moneymanage":(premoney-thispositionmoney)}])
-                        moneymanage=pd.concat([moneymanage,newdata],ignore_index=True)
-                        logger.info(f"******,拼接上之前应买入未买全的股票,之后最新的下单金额计划,{moneymanage}")
-                    elif symbol in moneymanage["代码"].tolist():
-                        moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]=(premoney-thispositionmoney)
-                        logger.info(f"******,更新完之前应买入未买全的股票,之后最新的下单金额计划,{moneymanage}")
-        moneymanage=moneymanage[moneymanage["moneymanage"]>=targetmoney]#只保留应下单金额大于targetmoney的标的
-    else:
-        logger.info("当前没有持仓,无需对下单计划进行调整")
-    logger.info(moneymanage)
-
-    #初始化存储已经撤销订单的列表【只初始化一次,不要重置】
-    dfordercancelled=pd.DataFrame({})
-    while True:
-        dforderalls=pd.DataFrame({})#初始化存储全部订单的列表【每一轮都可以重置】
-        ordernum+=1#交易轮次计数,避免频繁撤单
-        if ordernum>1:
-            logger.info(f"{datetime.datetime.now()},从第二轮开始每执行一轮休息5秒避免订单过度冲击市场,当前轮次,{ordernum}")
-            # time.sleep(5)#休息一秒,避免空转
-            time.sleep(1)#休息一秒,避免空转
-        # # 成交XtTrade
-        # trades = trade_api.query_stock_trades(account=acc)#成交记录
-        # logger.info(trades)
-        # # 属性	类型	注释
-        # # account_type	int	账号类型,参见数据字典
-        # # account_id	str	资金账号
-        # # stock_code	str	证券代码
-        # # order_type	int	委托类型,参见数据字典
-        # # traded_id	str	成交编号
-        # # traded_time	int	成交时间
-        # # traded_price	float	成交均价
-        # # traded_volume	int	成交数量
-        # # traded_amount	float	成交金额
-        # # order_id	int	订单编号
-        # # order_sysid	str	柜台合同编号
-        # # strategy_name	str	策略名称
-        # # order_remark	str	委托备注
-        # # direction	int	多空方向,股票不需要；参见数据字典
-        # # offset_flag	int	交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
-        # 委托XtOrder
-        # 属性	类型	注释
-        # account_type	int	账号类型,参见数据字典
-        # account_id	str	资金账号
-        # stock_code	str	证券代码,例如"600000.SH"
-        # order_id	int	订单编号
-        # order_sysid	str	柜台合同编号
-        # order_time	int	报单时间
-        # order_type	int	委托类型,参见数据字典
-        # order_volume	int	委托数量
-        # price_type	int	报价类型,参见数据字典
-        # price	float	委托价格
-        # traded_volume	int	成交数量
-        # traded_price	float	成交均价
-        # order_status	int	委托状态,参见数据字典
-        # status_msg	str	委托状态描述,如废单原因
-        # strategy_name	str	策略名称
-        # order_remark	str	委托备注
-        # direction	int	多空方向,股票不需要；参见数据字典
-        # offset_flag	int	交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
-        if ordernum%10==0:
-        # if ordernum%2==0:
-            logger.info("交易轮次达标,执行撤单任务")
-            if cancellorder:#如果cancellorder设置为true则执行以下撤单流程【最低撤单金额一万元】
-                orderalls = trade_api.query_stock_orders(account=acc,cancelable_only=False)#仅查询可撤委托
-                for orderall in orderalls:
-                    # #模拟盘下午无法识别到撤单（orderall.status_msg无数据）把这块拿出来单独研究
-                    # logger.info(f"{orderall},{type(orderall.offset_flag)},{orderall.direction},{orderall.price_type},{orderall.status_msg},{type(orderall.status_msg)},{orderall.order_id}")
-                    # 账号状态(account_status)
-                    # xtconstant.ORDER_UNREPORTED	48	未报
-                    # xtconstant.ORDER_WAIT_REPORTING	49	待报
-                    # xtconstant.ORDER_REPORTED	50	已报
-                    # xtconstant.ORDER_REPORTED_CANCEL	51	已报待撤
-                    # xtconstant.ORDER_PARTSUCC_CANCEL	52	部成待撤
-                    # xtconstant.ORDER_PART_CANCEL	53	部撤
-                    # xtconstant.ORDER_CANCELED	54	已撤
-                    # xtconstant.ORDER_PART_SUCC	55	部成
-                    # xtconstant.ORDER_SUCCEEDED	56	已成
-                    # xtconstant.ORDER_JUNK	57	废单
-                    # xtconstant.ORDER_UNKNOWN	255	未知
-                    #拼接orderall的数据【不对已成、待报、未报订单进行处理】
-                    # if ((orderall.status_msg!="56")and(orderall.status_msg!="49")and(orderall.status_msg!="48")):
-                        dforderall=pd.DataFrame({
-                            "status_msg":[orderall.status_msg],
-                            "order_id":[orderall.order_id],
-                            "status":[orderall.status_msg],
-                            "symbol":[orderall.stock_code],
-                            "amount":[orderall.order_volume],
-                            "trade_amount":[orderall.traded_volume],
-                            "trade_price":[orderall.traded_price],
-                            "order_type":[orderall.order_type],#int,24卖出,23买入
-                            "direction":[orderall.direction],#int,多空方向,股票不需要；参见数据字典
-                            "offset_flag":[orderall.offset_flag],#int,交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
-                            "price":[orderall.price],
-                            "price_type":[orderall.price_type],
-                            "datetime":[datetime.datetime.fromtimestamp(orderall.order_time).strftime("%Y%m%d %H:%M:%S")],
-                            "secondary_order_id":[orderall.order_id]})
-                        dforderalls=pd.concat([dforderalls,dforderall],ignore_index=True)
-                        if ((orderall.status_msg=="55")or(orderall.status_msg=="50")):
-                            logger.info(f"******,不是已成交订单,{orderall.order_id}")
-                            #60秒内不成交就撤单【这个是要小于当前时间,否则就一直无法执行】
-                            if (orderall.datetime+datetime.timedelta(seconds=timecancellwait))<datetime.datetime.now():#成交额还得超过targetmoney才可以最终撤单
-                                if (orderall.traded_volume*orderall.price>targetmoney):
-                                    try:
-                                        cancel_result = trade_api.cancel_order_stock(account=acc,order_id=orderall.order_id)
-                                        # .cancel_order(orderall.order_id)
-                                        logger.info(f"******,已成交金额达标执行撤单,{orderall.order_id,cancel_result}")
-                                    except:
-                                        logger.info(f"******","已完成或取消中的条件单不允许取消")
-                                elif orderall.traded_volume==0:#未成交撤单
-                                    try:#如果该委托已成交或者已撤单则会报错
-                                        cancel_result = trade_api.cancel_order_stock(account=acc,order_id=orderall.order_id)
-                                        # .cancel_order(orderall.order_id)
-                                        logger.info(f"******,执行撤单,{orderall.order_id},cancel_result,{cancel_result}")
-                                    except:
-                                        logger.info(f"******,已完成或取消中的条件单不允许取消")
-                        else:#撤单或者废单之后的金额回补
-                            # 交易操作(offset_flag)
-                            # 枚举变量名	值	含义
-                            # xtconstant.OFFSET_FLAG_OPEN	48	买入,开仓
-                            # xtconstant.OFFSET_FLAG_CLOSE	49	卖出,平仓
-                            # xtconstant.OFFSET_FLAG_FORCECLOSE	50	强平
-                            # xtconstant.OFFSET_FLAG_CLOSETODAY	51	平今
-                            # xtconstant.OFFSET_FLAG_ClOSEYESTERDAY	52	平昨
-                            # xtconstant.OFFSET_FLAG_FORCEOFF	53	强减
-                            # xtconstant.OFFSET_FLAG_LOCALFORCECLOSE	54	本地强平
-                            if (orderall.order_type==int(23)):#这里只计算BUY方向的订单,24是卖23是买
-                                # logger.info("该订单是买入")
-                                # time.sleep(10)
-                                if (orderall.status_msg=="54"):
-                                    orderall.cancel_amount=orderall.order_volume-orderall.traded_volume
-                                    logger.info(f"{orderall}")
-                                    logger.info(f"******,撤单成功,{orderall},{orderall.status_msg},{orderall.cancel_amount}")
-                                    if dfordercancelled.empty:#dfordercancelled一开始是个空值,这里主要是确认一下之前有没有数据,有数据才需要检验之前是否撤销过
-                                        dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
-                                        cancel_money=orderall.cancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                        moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
-                                    else:
-                                        if orderall.order_id not in dfordercancelled["order_id"].tolist():
-                                            dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
-                                            cancel_money=orderall.cancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                            moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
-                                elif (orderall.status_msg=="57"):
-                                    logger.info(f"******,废单处理,{orderall},{orderall.status_msg},{orderall.order_volume}")
-                                    if dfordercancelled.empty:#dfordercancelled一开始是个空值,这里主要是确认一下之前有没有数据,有数据才需要检验之前是否撤销过
-                                        dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
-                                        cancel_money=orderall.order_volume*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                        moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
-                                    if orderall.order_id not in dfordercancelled["order_id"].tolist():
-                                        dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
-                                        cancel_money=orderall.order_volume*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                        moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
-                dforderalls.to_csv(str(basepath)+"_dforderalls.csv")#输出所有未全部成交的订单【针对所有订单】
-                dfordercancelled.to_csv(str(basepath)+"_dfordercancelled.csv")#输出已经撤销或者作废的订单【只针对的买入订单】
-                logger.info("******","资金管理","premoney",premoney,"moneymanage",moneymanage)
-        moneymanage.to_csv(str(basepath)+"_dfmoneymanage.csv")
-        #重置并获取持仓信息【这里的目的是重新获取最新持仓以避免执行卖出成功后数据没有更新导致的持仓数量不对的情况】
-        dfposition=pd.DataFrame([])
-        positions=trade_api.query_stock_positions(account=acc)
-        for position in positions:
-            symbol=position.stock_code
-            logger.info(symbol,position.volume)
-            if position.volume>0:
-                dfposition=pd.concat([dfposition,pd.DataFrame({"symbol":[symbol],
-                                                                "volume":[position.volume],
-                                                                "can_use_volume":[position.can_use_volume],
-                                                                "frozen_volume":[position.frozen_volume],
-                                                                "market_value":[position.market_value],
-                                                                })],ignore_index=True)
-        logger.info(f"******,本轮持仓,{dfposition}")
-        dfposition.to_csv(str(basepath)+"_dfposition.csv")
-        logger.info(f"******,卖出")
-        if not dfposition.empty:#有持仓则验证是否卖出
-            for symbol in dfposition["symbol"].tolist():
-                if symbol in selldf["symbol"].tolist():
-                    thisposition=dfposition[dfposition["symbol"]==symbol]
-                    logger.info(f"{thisposition},{thisposition.can_use_volume.values[0]}")
-                    if (thisposition.can_use_volume.values[0]>0):#余额及可用余额都要大于0才执行卖出动作
-                        logger.info(f"******,{symbol},持仓数量,{thisposition}")
-                        #历史tick数据（包含时间戳）
-                        start_date=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
-                        end_date="now"
-                        try:
-                            #返回五档数据
-                            tick=xtdata.get_full_tick([symbol])
-                            tick=tick[symbol]
-                            logger.info(f"{tick}")
-                            ask_price_1=tick["askPrice"][0]
-                            ask_volume_1=tick["askVol"][0]
-                            bid_price_1=tick["bidPrice"][0]
-                            bid_volume_1=tick["bidVol"][0]
-                            ask_price_2=tick["askPrice"][1]
-                            ask_volume_2=tick["askVol"][1]
-                            bid_price_2=tick["bidPrice"][1]
-                            bid_volume_2=tick["bidVol"][1]
-                            lastPrice=tick["lastPrice"]
-                            timetag= datetime.datetime.strptime(tick["timetag"],"%Y%m%d %H:%M:%S")
-                            logger.info(f"{lastPrice},{type(lastPrice)},{timetag},{type(timetag)}")
-                            if (timetag+datetime.timedelta(seconds=timetickwait)>datetime.datetime.now()):
-                                logger.info(f"******,确认是最新tick,执行交易")
-                                if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
-                                    logger.info(f"******,盘口价差适宜,适合执行交易")
-                                    if ((symbol.startswith("12")) or (symbol.startswith("11"))):#针对11开头或者12开头的转债单独处理
-                                        ask_volume_1*=10
-                                        bid_volume_1*=10
-                                        if tradeway=="maker":#maker下单【不需要考虑深度问题】
-                                            if (thisposition.can_use_volume.values[0]*ask_price_1)<(traderate*targetmoney):
-                                                logger.info("******","剩余全部卖出")
+    logger.info(f"******,卖出")
+    if not dfposition.empty:#有持仓则验证是否卖出
+        for symbol in dfposition["symbol"].tolist():
+            if symbol in selldf["symbol"].tolist():
+                thisposition=dfposition[dfposition["symbol"]==symbol]
+                logger.info(f"{thisposition},{thisposition.can_use_volume.values[0]}")
+                if (thisposition.can_use_volume.values[0]>0):#余额及可用余额都要大于0才执行卖出动作
+                    logger.info(f"******,{symbol},持仓数量,{thisposition}")
+                    #历史tick数据（包含时间戳）
+                    start_date=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
+                    end_date="now"
+                    try:
+                        #返回五档数据
+                        tick=xtdata.get_full_tick([symbol])
+                        tick=tick[symbol]
+                        logger.info(f"{tick}")
+                        ask_price_1=tick["askPrice"][0]
+                        ask_volume_1=tick["askVol"][0]
+                        bid_price_1=tick["bidPrice"][0]
+                        bid_volume_1=tick["bidVol"][0]
+                        ask_price_2=tick["askPrice"][1]
+                        ask_volume_2=tick["askVol"][1]
+                        bid_price_2=tick["bidPrice"][1]
+                        bid_volume_2=tick["bidVol"][1]
+                        lastPrice=tick["lastPrice"]
+                        timetag= datetime.datetime.strptime(tick["timetag"],"%Y%m%d %H:%M:%S")
+                        logger.info(f"{lastPrice},{type(lastPrice)},{timetag},{type(timetag)}")
+                        if (timetag+datetime.timedelta(seconds=timetickwait)>datetime.datetime.now()):
+                            logger.info(f"******,确认是最新tick,执行交易")
+                            if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
+                                logger.info(f"******,盘口价差适宜,适合执行交易")
+                                if ((symbol.startswith("12")) or (symbol.startswith("11"))):#针对11开头或者12开头的转债单独处理
+                                    ask_volume_1*=10
+                                    bid_volume_1*=10
+                                    if tradeway=="maker":#maker下单【不需要考虑深度问题】
+                                        if (thisposition.can_use_volume.values[0]*ask_price_1)<(traderate*targetmoney):
+                                            logger.info("******","剩余全部卖出")
+                                            sellvolume =(math.floor(thisposition.can_use_volume.values[0]/10)*10)
+                                            sellorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=ask_price_1)
+                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                        else:#限价卖出最小下单金额
+                                            logger.info(f"******,卖出目标金额")
+                                            sellvolume=(math.floor((targetmoney/ask_price_1)/10)*10)
+                                            if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
+                                                sellvolume*=10
+                                            logger.info(f"{sellvolume},{sellvolume*ask_price_1}")
+                                            sellorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=ask_price_1)
+                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                        time.sleep(1)
+                                    if tradeway=="taker":#maker下单【需要考虑深度问题】
+                                        if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【己方一档买入】（转债价格较高,一档深度相对小一些）                                 
+                                            if (thisposition.can_use_volume.values[0]*bid_price_1)<(traderate*targetmoney):
+                                                logger.info(f"******,剩余全部卖出")
                                                 sellvolume =(math.floor(thisposition.can_use_volume.values[0]/10)*10)
                                                 sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
-                                                                                price_type=xtconstant.FIX_PRICE,#限价
-                                                                                strategy_name=choosename,#策略名称
-                                                                                price=ask_price_1)
-                                                logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=bid_price_1)
+                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
                                             else:#限价卖出最小下单金额
                                                 logger.info(f"******,卖出目标金额")
-                                                sellvolume=(math.floor((targetmoney/ask_price_1)/10)*10)
+                                                sellvolume=(math.floor((targetmoney/bid_price_1)/10)*10)
                                                 if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
                                                     sellvolume*=10
-                                                logger.info(f"{sellvolume},{sellvolume*ask_price_1}")
+                                                logger.info(f"{sellvolume},{sellvolume*bid_price_1}")
                                                 sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
-                                                                                price_type=xtconstant.FIX_PRICE,#限价
-                                                                                strategy_name=choosename,#策略名称
-                                                                                price=ask_price_1)
-                                                logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
-                                            time.sleep(1)
-                                        if tradeway=="taker":#maker下单【需要考虑深度问题】
-                                            if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【己方一档买入】（转债价格较高,一档深度相对小一些）                                 
-                                                if (thisposition.can_use_volume.values[0]*bid_price_1)<(traderate*targetmoney):
-                                                    logger.info(f"******,剩余全部卖出")
-                                                    sellvolume =(math.floor(thisposition.can_use_volume.values[0]/10)*10)
-                                                    sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
-                                                                                price_type=xtconstant.FIX_PRICE,#限价
-                                                                                strategy_name=choosename,#策略名称
-                                                                                price=bid_price_1)
-                                                    logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
-                                                else:#限价卖出最小下单金额
-                                                    logger.info(f"******,卖出目标金额")
-                                                    sellvolume=(math.floor((targetmoney/bid_price_1)/10)*10)
-                                                    if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
-                                                        sellvolume*=10
-                                                    logger.info(f"{sellvolume},{sellvolume*bid_price_1}")
-                                                    sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
-                                                                                price_type=xtconstant.FIX_PRICE,#限价
-                                                                                strategy_name=choosename,#策略名称
-                                                                                price=bid_price_1)
-                                                    logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
-                                    else:#非可转债交易方式
-                                        ask_volume_1*=100
-                                        bid_volume_1*=100
-                                        if tradeway=="maker":#maker下单【不需要考虑深度问题】
-                                            if (thisposition.can_use_volume.values[0]*ask_price_1)<(traderate*targetmoney):
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=bid_price_1)
+                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
+                                else:#非可转债交易方式
+                                    ask_volume_1*=100
+                                    bid_volume_1*=100
+                                    if tradeway=="maker":#maker下单【不需要考虑深度问题】
+                                        if (thisposition.can_use_volume.values[0]*ask_price_1)<(traderate*targetmoney):
+                                            logger.info(f"******,剩余全部卖出")
+                                            sellvolume =(math.floor(thisposition.can_use_volume.values[0]/100)*100)
+                                            sellorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=ask_price_1)
+                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                        else:#限价卖出最小下单金额
+                                            logger.info("******","卖出目标金额")
+                                            sellvolume=(math.floor((targetmoney/ask_price_1)/100)*100)
+                                            if (thisposition.can_use_volume.values[0]*ask_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
+                                                sellvolume*=10
+                                            logger.info(f"{sellvolume},{sellvolume*ask_price_1}")
+                                            sellorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=ask_price_1)
+                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                    if tradeway=="taker":#maker下单【需要考虑深度问题】
+                                        if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【对手盘一档买入】                                            
+                                            if (thisposition.can_use_volume.values[0]*bid_price_1)<(traderate*targetmoney):
                                                 logger.info(f"******,剩余全部卖出")
                                                 sellvolume =(math.floor(thisposition.can_use_volume.values[0]/100)*100)
                                                 sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
-                                                                                price_type=xtconstant.FIX_PRICE,#限价
-                                                                                strategy_name=choosename,#策略名称
-                                                                                price=ask_price_1)
-                                                logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=bid_price_1)
+                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
                                             else:#限价卖出最小下单金额
-                                                logger.info("******","卖出目标金额")
-                                                sellvolume=(math.floor((targetmoney/ask_price_1)/100)*100)
-                                                if (thisposition.can_use_volume.values[0]*ask_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
+                                                logger.info(f"******,卖出目标金额")
+                                                sellvolume=(math.floor((targetmoney/bid_price_1)/100)*100)
+                                                if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
                                                     sellvolume*=10
-                                                logger.info(f"{sellvolume},{sellvolume*ask_price_1}")
+                                                logger.info(sellvolume,sellvolume*bid_price_1)
                                                 sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
+                                                                            order_type=xtconstant.STOCK_SELL,
+                                                                            order_volume=sellvolume,
+                                                                            price_type=xtconstant.FIX_PRICE,#限价
+                                                                            strategy_name=choosename,#策略名称
+                                                                            price=bid_price_1)
+                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
+                    except Exception as e:#报索引越界一般是tick数据没出来
+                        logger.info("******","发生bug:",symbol,e)
+    logger.info("******","买入")
+    moneymanage=moneymanage.sort_values(by="moneymanage",ascending=False)#这里是由大到小排序,默认由小到大
+    for symbol in moneymanage["代码"].tolist():#如果恰好是三十只以上股票,且没有需要卖出的股票时,moneymanage为空会导致报错
+        buymoney=moneymanage[moneymanage["代码"]==str(symbol)]["moneymanage"].iloc[0]
+        if buymoney>targetmoney:#只针对待买入金额超过targetmoney的标的进行买入,否则直接掠过
+                #查询资产
+                portfolio=trade_api.query_stock_asset(account=acc)
+                portfolio_available_cash=portfolio.cash#available_cash可用资金
+                logger.info(f"当前余额,{portfolio_available_cash}")
+                if portfolio_available_cash>targetmoney:
+                    logger.info(f"******,买入余额充足,{symbol},{buymoney}")
+                    #历史tick数据（包含时间戳）
+                    start_date=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
+                    end_date="now"
+                    try:
+                        #返回五档数据
+                        tick=xtdata.get_full_tick([symbol])
+                        tick=tick[symbol]
+                        logger.info(f"{tick}")
+                        ask_price_1=tick["askPrice"][0]
+                        ask_volume_1=tick["askVol"][0]
+                        bid_price_1=tick["bidPrice"][0]
+                        bid_volume_1=tick["bidVol"][0]
+                        ask_price_2=tick["askPrice"][1]
+                        ask_volume_2=tick["askVol"][1]
+                        bid_price_2=tick["bidPrice"][1]
+                        bid_volume_2=tick["bidVol"][1]
+                        lastPrice=tick["lastPrice"]
+                        timetag= datetime.datetime.strptime(tick["timetag"],"%Y%m%d %H:%M:%S")
+                        logger.info(f"{lastPrice},{type(lastPrice)},{timetag},{type(timetag)}")
+                        if (timetag+datetime.timedelta(seconds=timetickwait)>datetime.datetime.now()):
+                            logger.info(f"******,确认是最新tick,执行交易")
+                            if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
+                                logger.info(f"******,盘口价差适宜,适合执行交易")        
+                                if ((symbol.startswith("12")) or (symbol.startswith("11"))):#针对11开头或者12开头的转债单独处理
+                                    ask_volume_1*=10
+                                    bid_volume_1*=10
+                                    if tradeway=="maker":#maker下单【不需要考虑深度问题】
+                                        if buymoney<(traderate*targetmoney):
+                                            logger.info(f"******,剩余全部买入")
+                                            buyvolume=(math.floor((buymoney/bid_price_1)/10)*10)
+                                            buyorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
+                                                                                price_type=xtconstant.FIX_PRICE,#限价
+                                                                                strategy_name=choosename,#策略名称
+                                                                                price=bid_price_1)
+                                            logger.info(f"{buyorder}")
+                                            bidmoney=float(bid_price_1)*buyvolume
+                                            moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
+                                        else:
+                                            logger.info(f"******,买入目标金额")
+                                            buyvolume=(math.floor((targetmoney/bid_price_1)/10)*10)
+                                            if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
+                                                buyvolume*=10
+                                            buyorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
+                                                                                price_type=xtconstant.FIX_PRICE,#限价
+                                                                                strategy_name=choosename,#策略名称
+                                                                                price=bid_price_1)
+                                            logger.info(f"{buyorder}")
+                                            bidmoney=float(bid_price_1)*buyvolume
+                                            moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
+                                        time.sleep(1)
+                                    if tradeway=="taker":#taker下单【跟其他地方一样需要考虑深度】
+                                        if (ask_price_1*ask_volume_1)>targetmoney:#盘口深度【己方一档买入】（转债价格较高,一档深度相对小一些） 
+                                            if buymoney<(traderate*targetmoney):
+                                                logger.info(f"******,剩余全部买入")
+                                                buyvolume=(math.floor((buymoney/ask_price_1)/10)*10)
+                                                buyorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=ask_price_1)
-                                                logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
-                                        if tradeway=="taker":#maker下单【需要考虑深度问题】
-                                            if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【对手盘一档买入】                                            
-                                                if (thisposition.can_use_volume.values[0]*bid_price_1)<(traderate*targetmoney):
-                                                    logger.info(f"******,剩余全部卖出")
-                                                    sellvolume =(math.floor(thisposition.can_use_volume.values[0]/100)*100)
-                                                    sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
-                                                                                price_type=xtconstant.FIX_PRICE,#限价
-                                                                                strategy_name=choosename,#策略名称
-                                                                                price=bid_price_1)
-                                                    logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
-                                                else:#限价卖出最小下单金额
-                                                    logger.info(f"******,卖出目标金额")
-                                                    sellvolume=(math.floor((targetmoney/bid_price_1)/100)*100)
-                                                    if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
-                                                        sellvolume*=10
-                                                    logger.info(sellvolume,sellvolume*bid_price_1)
-                                                    sellorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                order_type=xtconstant.STOCK_SELL,
-                                                                                order_volume=sellvolume,
-                                                                                price_type=xtconstant.FIX_PRICE,#限价
-                                                                                strategy_name=choosename,#策略名称
-                                                                                price=bid_price_1)
-                                                    logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
-                        except Exception as e:#报索引越界一般是tick数据没出来
-                            logger.info("******","发生bug:",symbol,e)
-        logger.info("******","买入")
-        moneymanage=moneymanage.sort_values(by="moneymanage",ascending=False)#这里是由大到小排序,默认由小到大
-        for symbol in moneymanage["代码"].tolist():#如果恰好是三十只以上股票,且没有需要卖出的股票时,moneymanage为空会导致报错
-            buymoney=moneymanage[moneymanage["代码"]==str(symbol)]["moneymanage"].iloc[0]
-            if buymoney>targetmoney:#只针对待买入金额超过targetmoney的标的进行买入,否则直接掠过
-                    #查询资产
-                    portfolio=trade_api.query_stock_asset(account=acc)
-                    portfolio_available_cash=portfolio.cash#available_cash可用资金
-                    logger.info(f"当前余额,{portfolio_available_cash}")
-                    if portfolio_available_cash>targetmoney:
-                        logger.info(f"******,买入余额充足,{symbol},{buymoney}")
-                        #历史tick数据（包含时间戳）
-                        start_date=datetime.datetime.now()-datetime.timedelta(seconds=timeseconds)
-                        end_date="now"
-                        try:
-                            #返回五档数据
-                            tick=xtdata.get_full_tick([symbol])
-                            tick=tick[symbol]
-                            logger.info(f"{tick}")
-                            ask_price_1=tick["askPrice"][0]
-                            ask_volume_1=tick["askVol"][0]
-                            bid_price_1=tick["bidPrice"][0]
-                            bid_volume_1=tick["bidVol"][0]
-                            ask_price_2=tick["askPrice"][1]
-                            ask_volume_2=tick["askVol"][1]
-                            bid_price_2=tick["bidPrice"][1]
-                            bid_volume_2=tick["bidVol"][1]
-                            lastPrice=tick["lastPrice"]
-                            timetag= datetime.datetime.strptime(tick["timetag"],"%Y%m%d %H:%M:%S")
-                            logger.info(f"{lastPrice},{type(lastPrice)},{timetag},{type(timetag)}")
-                            if (timetag+datetime.timedelta(seconds=timetickwait)>datetime.datetime.now()):
-                                logger.info(f"******,确认是最新tick,执行交易")
-                                if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
-                                    logger.info(f"******,盘口价差适宜,适合执行交易")        
-                                    if ((symbol.startswith("12")) or (symbol.startswith("11"))):#针对11开头或者12开头的转债单独处理
-                                        ask_volume_1*=10
-                                        bid_volume_1*=10
-                                        if tradeway=="maker":#maker下单【不需要考虑深度问题】
-                                            if buymoney<(traderate*targetmoney):
-                                                logger.info(f"******,剩余全部买入")
-                                                buyvolume=(math.floor((buymoney/bid_price_1)/10)*10)
-                                                buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=bid_price_1)
-                                                logger.info(f"{buyorder}")
-                                                bidmoney=float(bid_price_1)*buyvolume
+                                                logger.info(buyorder)
+                                                bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                             else:
                                                 logger.info(f"******,买入目标金额")
-                                                buyvolume=(math.floor((targetmoney/bid_price_1)/10)*10)
+                                                buyvolume=(math.floor((targetmoney/ask_price_1)/10)*10)
                                                 if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
                                                     buyvolume*=10
                                                 buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=bid_price_1)
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
+                                                                                price_type=xtconstant.FIX_PRICE,#限价
+                                                                                strategy_name=choosename,#策略名称
+                                                                                price=ask_price_1)
                                                 logger.info(f"{buyorder}")
-                                                bidmoney=float(bid_price_1)*buyvolume
+                                                bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
-                                            time.sleep(1)
-                                        if tradeway=="taker":#taker下单【跟其他地方一样需要考虑深度】
-                                            if (ask_price_1*ask_volume_1)>targetmoney:#盘口深度【己方一档买入】（转债价格较高,一档深度相对小一些） 
-                                                if buymoney<(traderate*targetmoney):
-                                                    logger.info(f"******,剩余全部买入")
-                                                    buyvolume=(math.floor((buymoney/ask_price_1)/10)*10)
-                                                    buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=ask_price_1)
-                                                    logger.info(buyorder)
-                                                    bidmoney=float(ask_price_1)*buyvolume
-                                                    moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
-                                                else:
-                                                    logger.info(f"******,买入目标金额")
-                                                    buyvolume=(math.floor((targetmoney/ask_price_1)/10)*10)
-                                                    if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
-                                                        buyvolume*=10
-                                                    buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=ask_price_1)
-                                                    logger.info(f"{buyorder}")
-                                                    bidmoney=float(ask_price_1)*buyvolume
-                                                    moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
-                                    else:#其他交易情况
-                                        ask_volume_1*=100
-                                        bid_volume_1*=100
-                                        if tradeway=="maker":#maker下单【不需要考虑深度问题】
+                                else:#其他交易情况
+                                    ask_volume_1*=100
+                                    bid_volume_1*=100
+                                    if tradeway=="maker":#maker下单【不需要考虑深度问题】
+                                        if buymoney<(traderate*targetmoney):
+                                            logger.info(f"******,剩余全部买入")
+                                            buyvolume=(math.floor((buymoney/bid_price_1)/100)*100)
+                                            buyorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
+                                                                                price_type=xtconstant.FIX_PRICE,#限价
+                                                                                strategy_name=choosename,#策略名称
+                                                                                price=bid_price_1)
+                                            logger.info(f"{buyorder}")
+                                            bidmoney=float(bid_price_1)*buyvolume
+                                            moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
+                                        else:
+                                            logger.info(f"******,买入目标金额")
+                                            buyvolume=(math.floor((targetmoney/bid_price_1)/100)*100)
+                                            if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
+                                                buyvolume*=10
+                                            buyorder=trade_api.order_stock(acc, stock_code=symbol,
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
+                                                                                price_type=xtconstant.FIX_PRICE,#限价
+                                                                                strategy_name=choosename,#策略名称
+                                                                                price=bid_price_1)
+                                            logger.info(f"{buyorder}")
+                                            bidmoney=float(bid_price_1)*buyvolume
+                                            moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
+                                    if tradeway=="taker":#taker下单【跟其他地方一样需要考虑深度】
+                                        if (ask_price_1*ask_volume_1)>targetmoney:#盘口深度【对手盘一档买入】
                                             if buymoney<(traderate*targetmoney):
                                                 logger.info(f"******,剩余全部买入")
-                                                buyvolume=(math.floor((buymoney/bid_price_1)/100)*100)
+                                                buyvolume=(math.floor((buymoney/ask_price_1)/100)*100)
                                                 buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=bid_price_1)
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
+                                                                                price_type=xtconstant.FIX_PRICE,#限价
+                                                                                strategy_name=choosename,#策略名称
+                                                                                price=ask_price_1)
                                                 logger.info(f"{buyorder}")
-                                                bidmoney=float(bid_price_1)*buyvolume
+                                                bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                             else:
                                                 logger.info(f"******,买入目标金额")
-                                                buyvolume=(math.floor((targetmoney/bid_price_1)/100)*100)
+                                                buyvolume=(math.floor((targetmoney/ask_price_1)/100)*100)
                                                 if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
                                                     buyvolume*=10
                                                 buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=bid_price_1)
+                                                                                order_type=xtconstant.STOCK_BUY,
+                                                                                order_volume=buyvolume,
+                                                                                price_type=xtconstant.FIX_PRICE,#限价
+                                                                                strategy_name=choosename,#策略名称
+                                                                                price=ask_price_1)
                                                 logger.info(f"{buyorder}")
-                                                bidmoney=float(bid_price_1)*buyvolume
+                                                bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
-                                        if tradeway=="taker":#taker下单【跟其他地方一样需要考虑深度】
-                                            if (ask_price_1*ask_volume_1)>targetmoney:#盘口深度【对手盘一档买入】
-                                                if buymoney<(traderate*targetmoney):
-                                                    logger.info(f"******,剩余全部买入")
-                                                    buyvolume=(math.floor((buymoney/ask_price_1)/100)*100)
-                                                    buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=ask_price_1)
-                                                    logger.info(f"{buyorder}")
-                                                    bidmoney=float(ask_price_1)*buyvolume
-                                                    moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
-                                                else:
-                                                    logger.info(f"******,买入目标金额")
-                                                    buyvolume=(math.floor((targetmoney/ask_price_1)/100)*100)
-                                                    if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
-                                                        buyvolume*=10
-                                                    buyorder=trade_api.order_stock(acc, stock_code=symbol,
-                                                                                    order_type=xtconstant.STOCK_BUY,
-                                                                                    order_volume=buyvolume,
-                                                                                    price_type=xtconstant.FIX_PRICE,#限价
-                                                                                    strategy_name=choosename,#策略名称
-                                                                                    price=ask_price_1)
-                                                    logger.info(f"{buyorder}")
-                                                    bidmoney=float(ask_price_1)*buyvolume
-                                                    moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
-                        except Exception as e:#报索引越界一般是tick数据没出来
-                            logger.info(f"******,发生bug:,{symbol},{e}")
-        logger.info(f"******,任务结束")
+                    except Exception as e:#报索引越界一般是tick数据没出来
+                        logger.info(f"******,发生bug:,{symbol},{e}")
+    logger.info(f"******,任务结束")
 
     # ETF申赎
     # 申购 - xtconstant.ETF_PURCHASE

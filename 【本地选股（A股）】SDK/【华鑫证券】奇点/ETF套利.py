@@ -551,9 +551,12 @@ thistraderapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
 *************************************'''
 # 启动接口
 thistraderapi.Init()
-thistraderapi.Join()
-# # 等待程序结束[不确定几分钟结束]一直没结束
-# input()
+import time
+# 等待程序结束
+while spi.running:
+    time.sleep(10)
+# thistraderapi.Join()
+# input()# 等待程序结束[不确定几分钟结束]一直没结束
 # 释放接口对象
 thistraderapi.Release()
 
