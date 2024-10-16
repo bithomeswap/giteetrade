@@ -1,6 +1,6 @@
 数据文件
 # *.zip
-*.log
+# *.log
 # *.csv
 pwd.txt
 # *.png

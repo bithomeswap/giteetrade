@@ -20,6 +20,7 @@ basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】S
 from loguru import logger
 logger.add(
     sink=f"{basepath}/log.log",#sink: 创建日志文件的路径。
+    # sink=f"log.log",#sink: 创建日志文件的路径。
     level="INFO",#level: 记录日志的等级,低于这个等级的日志不会被记录。等级顺序为 debug < info < warning < error。设置 INFO 会让 logger.debug 的输出信息不被写入磁盘。
     rotation="00:00",#rotation: 轮换策略,此处代表每天凌晨创建新的日志文件进行日志 IO；也可以通过设置 "2 MB" 来指定 日志文件达到 2 MB 时进行轮换。   
     retention="7 days",#retention: 只保留 7 天。 
@@ -290,6 +291,28 @@ while True:
     else:
         logger.info("重新链接")
         time.sleep(1)
+
+# import pandas as pd
+# # 【需要额外判断交易日判断数据对不对，错了及时推送报错到微信或者钉钉】
+# dfstock=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF成份证券信息20241016.csv")
+# # ,交易日,交易所代码,ETF交易代码,ETF成份证券代码,成分证券名称,成分证券数量,现金替代标志,溢价比例,申购替代金额,赎回替代金额,挂牌市场,ETF申赎类型
+# #关键数据：最大现金替代比例【也就是说可以如果股票数量{实物申购}不足，最多可以使用多大比例的现金进行替代】
+# dfetf=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF清单信息20241016.csv")
+# # ,交易日,交易所代码,ETF交易代码,ETF申赎代码,最小申购赎回单位份数,最大现金替代比例,预估现金差额,前一交易日现金差额,前一交易日基金单位净值,前一交易日申赎基准单位净值,当日申购赎回基准单位的红利金额,ETF申赎类型,ETF证券名称
+# # dfetf["前一交易日申赎基准单位净值"]=dfetf["前一交易日基金单位净值"]*dfetf["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
+# dfetf["前一交易日基金单位净值"]=dfetf["前一交易日申赎基准单位净值"]/dfetf["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
+# # dfetf["ETF交易代码"].tolist()#ETF详情
+#[获取IOPV数据]（不适合miniqmt）
+# etfiopv=xtdata.get_etf_iopv("510050.SH")
+# print(etfiopv)
+# #下载所有ETF数据[VIP权限数据]（否则程序会报错需要升级客户端或者使用投研版）
+# # xtdata.download_etf_info()
+# # etfinfo=xtdata.get_etf_info()#获取ETF基金代码为511050的全部ETF申赎清单数据【需要升级成投研版或者升级客户端】
+# # #实时申赎数据[VIP权限数据]
+# # from xtquant import xtdata
+# # xtdata.download_history_data(stock, 'etfstatistics', start_time, end_time, incrementally = True)
+# # data = xtdata.get_market_data_ex([], stock_list, period = 'etfstatistics', start_time = "", end_time = "")
+
 acc = StockAccount(account_id)# 创建账号对象
 trade_api.subscribe(acc)# 订阅账号
 #设置交易参数并且获取买卖计划
@@ -562,7 +585,7 @@ while True:
     # order_remark	str	委托备注
     # direction	int	多空方向,股票不需要；参见数据字典
     # offset_flag	int	交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
-    if ordernum%10==0:
+    if ordernum%20==0:
     # if ordernum%2==0:
         logger.info("交易轮次达标,执行撤单任务")
         if cancellorder:#如果cancellorder设置为true则执行以下撤单流程【最低撤单金额一万元】
@@ -717,20 +740,20 @@ while True:
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=ask_price_1)
-                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                            logger.info(f"下单成功{sellorder},{ask_price_1},{sellvolume}")
                                         else:#限价卖出最小下单金额
                                             logger.info(f"******,卖出目标金额")
                                             sellvolume=(math.floor((targetmoney/ask_price_1)/10)*10)
                                             if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
                                                 sellvolume*=10
-                                            logger.info(f"{sellvolume},{sellvolume*ask_price_1}")
+                                            logger.info(f"sellvolume{sellvolume},{sellvolume*ask_price_1}")
                                             sellorder=trade_api.order_stock(acc, stock_code=symbol,
                                                                             order_type=xtconstant.STOCK_SELL,
                                                                             order_volume=sellvolume,
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=ask_price_1)
-                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                            logger.info(f"下单成功{sellorder},{ask_price_1},{sellvolume}")
                                         time.sleep(1)
                                     if tradeway=="taker":#maker下单【需要考虑深度问题】
                                         if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【己方一档买入】（转债价格较高,一档深度相对小一些）                                 
@@ -743,20 +766,20 @@ while True:
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=bid_price_1)
-                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
+                                                logger.info(f"下单成功{sellorder},{bid_price_1},{sellvolume}")
                                             else:#限价卖出最小下单金额
                                                 logger.info(f"******,卖出目标金额")
                                                 sellvolume=(math.floor((targetmoney/bid_price_1)/10)*10)
                                                 if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
                                                     sellvolume*=10
-                                                logger.info(f"{sellvolume},{sellvolume*bid_price_1}")
+                                                logger.info(f"sellvolume{sellvolume},{sellvolume*bid_price_1}")
                                                 sellorder=trade_api.order_stock(acc, stock_code=symbol,
                                                                             order_type=xtconstant.STOCK_SELL,
                                                                             order_volume=sellvolume,
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=bid_price_1)
-                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
+                                                logger.info(f"下单成功{sellorder},{bid_price_1},{sellvolume}")
                                 else:#非可转债交易方式
                                     ask_volume_1*=100
                                     bid_volume_1*=100
@@ -770,20 +793,20 @@ while True:
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=ask_price_1)
-                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                            logger.info(f"下单成功{sellorder},{ask_price_1},{sellvolume}")
                                         else:#限价卖出最小下单金额
                                             logger.info("******","卖出目标金额")
                                             sellvolume=(math.floor((targetmoney/ask_price_1)/100)*100)
                                             if (thisposition.can_use_volume.values[0]*ask_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
                                                 sellvolume*=10
-                                            logger.info(f"{sellvolume},{sellvolume*ask_price_1}")
+                                            logger.info(f"sellvolume{sellvolume},{sellvolume*ask_price_1}")
                                             sellorder=trade_api.order_stock(acc, stock_code=symbol,
                                                                             order_type=xtconstant.STOCK_SELL,
                                                                             order_volume=sellvolume,
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=ask_price_1)
-                                            logger.info(f"{sellorder},{ask_price_1},{sellvolume}")
+                                            logger.info(f"下单成功{sellorder},{ask_price_1},{sellvolume}")
                                     if tradeway=="taker":#maker下单【需要考虑深度问题】
                                         if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【对手盘一档买入】                                            
                                             if (thisposition.can_use_volume.values[0]*bid_price_1)<(traderate*targetmoney):
@@ -795,20 +818,20 @@ while True:
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=bid_price_1)
-                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
+                                                logger.info(f"下单成功{sellorder},{bid_price_1},{sellvolume}")
                                             else:#限价卖出最小下单金额
                                                 logger.info(f"******,卖出目标金额")
                                                 sellvolume=(math.floor((targetmoney/bid_price_1)/100)*100)
                                                 if (thisposition.can_use_volume.values[0]*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
                                                     sellvolume*=10
-                                                logger.info(sellvolume,sellvolume*bid_price_1)
+                                                logger.info(f"sellvolume{sellvolume},{sellvolume*bid_price_1}")
                                                 sellorder=trade_api.order_stock(acc, stock_code=symbol,
                                                                             order_type=xtconstant.STOCK_SELL,
                                                                             order_volume=sellvolume,
                                                                             price_type=xtconstant.FIX_PRICE,#限价
                                                                             strategy_name=choosename,#策略名称
                                                                             price=bid_price_1)
-                                                logger.info(f"{sellorder},{bid_price_1},{sellvolume}")
+                                                logger.info(f"下单成功{sellorder},{bid_price_1},{sellvolume}")
                     except Exception as e:#报索引越界一般是tick数据没出来
                         logger.info("******","发生bug:",symbol,e)
     logger.info("******","买入")
@@ -858,7 +881,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=bid_price_1)
-                                            logger.info(f"{buyorder}")
+                                            logger.info(f"下单成功{buyorder}")
                                             bidmoney=float(bid_price_1)*buyvolume
                                             moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                         else:
@@ -872,7 +895,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=bid_price_1)
-                                            logger.info(f"{buyorder}")
+                                            logger.info(f"下单成功{buyorder}")
                                             bidmoney=float(bid_price_1)*buyvolume
                                             moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                         time.sleep(1)
@@ -887,7 +910,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=ask_price_1)
-                                                logger.info(buyorder)
+                                                logger.info(f"下单成功{buyorder}")
                                                 bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                             else:
@@ -901,7 +924,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=ask_price_1)
-                                                logger.info(f"{buyorder}")
+                                                logger.info(f"下单成功{buyorder}")
                                                 bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                 else:#其他交易情况
@@ -917,7 +940,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=bid_price_1)
-                                            logger.info(f"{buyorder}")
+                                            logger.info(f"下单成功{buyorder}")
                                             bidmoney=float(bid_price_1)*buyvolume
                                             moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                         else:
@@ -931,7 +954,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=bid_price_1)
-                                            logger.info(f"{buyorder}")
+                                            logger.info(f"下单成功{buyorder}")
                                             bidmoney=float(bid_price_1)*buyvolume
                                             moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                     if tradeway=="taker":#taker下单【跟其他地方一样需要考虑深度】
@@ -945,7 +968,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=ask_price_1)
-                                                logger.info(f"{buyorder}")
+                                                logger.info(f"下单成功{buyorder}")
                                                 bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                                             else:
@@ -959,7 +982,7 @@ while True:
                                                                                 price_type=xtconstant.FIX_PRICE,#限价
                                                                                 strategy_name=choosename,#策略名称
                                                                                 price=ask_price_1)
-                                                logger.info(f"{buyorder}")
+                                                logger.info(f"下单成功{buyorder}")
                                                 bidmoney=float(ask_price_1)*buyvolume
                                                 moneymanage.loc[moneymanage["代码"]==str(symbol),"moneymanage"]-=bidmoney
                     except Exception as e:#报索引越界一般是tick数据没出来
