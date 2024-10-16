@@ -140,7 +140,7 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
             # time.sleep(self.interval)
             # self.QryETFFileField()#这个是循环执行任务
             # thistraderapi.Release()
-
+            
     def OnRspQryETFBasket(self, pETFBasketField: traderapi.CTORATstpETFBasketField, pRspInfoField: traderapi.CTORATstpRspInfoField, nRequestID: int, bIsLast: bool) -> "void":
         if pETFBasketField:#如果有数据则继续执行【如果不验证则会因为报错中断全部任务】
             self.ETFBasket.append(pETFBasketField.dict())
@@ -152,14 +152,6 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
             # time.sleep(self.interval)
             # self.QryETFBasketField()#这个是循环执行任务
             # thistraderapi.Release()
-
-    def write_to_csv(self,data,path):
-        print(f'[write_to_csv] {path}')
-        df = pd.DataFrame(data)
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(path.as_posix())
-
 
     def OnRspUserLogin(self, pRspUserLoginField: "traderapi.CTORATstpRspUserLoginField", pRspInfoField: "CTORATstpRspInfoField", nRequestID: "int") -> "void":
         if pRspInfoField.ErrorID == 0:
@@ -511,6 +503,65 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     #         print('查询持仓结束[%d] ErrorID[%d] ErrorMsg[%s]'
     #             % (nRequestID, pRspInfoField.ErrorID, pRspInfoField.ErrorMsg))
 
+
+# #明天根据159302计算ETF溢价率，最大现金替代比例是1，也就是可以全现金申赎
+
+# 【交易SDK】
+# 打印接口版本号
+print("thistraderapi Version:::"+traderapi.CTORATstpTraderApi_GetApiVersion())
+# 创建接口对象
+# pszFlowPath为私有流和公有流文件存储路径，若订阅私有流和公有流且创建多个接口实例，每个接口实例应配置不同的路径
+# bEncrypt为网络数据是否加密传输，考虑数据安全性，建议以互联网方式接入的终端设置为加密传输
+thistraderapi:traderapi.CTORATstpTraderApi = traderapi.CTORATstpTraderApi.CreateTstpTraderApi('./flow', False)
+# 创建回调对象
+spi = TraderSpi(thistraderapi)
+# 注册回调接口
+thistraderapi.RegisterSpi(spi)
+if 1:   #模拟环境，TCP 直连Front方式
+    # 注册单个交易前置服务地址
+    TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
+    # TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
+    # TD_TCP_FrontAddress="tcp://210.14.72.16:9500" #24小时环境B套
+    thistraderapi.RegisterFront(TD_TCP_FrontAddress)
+    # 注册多个交易前置服务地址，用逗号隔开 形如: thistraderapi.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
+    print("TD_TCP_FensAddress[sim or 24H]::%s\n"%TD_TCP_FrontAddress)
+else:	#模拟环境，FENS名字服务器方式
+    TD_TCP_FensAddress ="tcp://210.14.72.21:42370"; #模拟环境通用fens地址
+    '''********************************************************************************
+    * 注册 fens 地址前还需注册 fens 用户信息，包括环境编号、节点编号、Fens 用户代码等信息
+    * 使用名字服务器的好处是当券商系统部署方式发生调整时外围终端无需做任何前置地址修改
+    * *****************************************************************************'''
+    fens_user_info_field = traderapi.CTORATstpFensUserInfoField()
+    fens_user_info_field.FensEnvID="stock" #必填项，暂时固定为“stock”表示普通现货柜台
+    fens_user_info_field.FensNodeID="sim"  #必填项，生产环境需按实际填写,仿真环境为sim
+    # fens_user_info_field.FensNodeID="24a" #必填项，生产环境需按实际填写,24小时A套环境为24a
+    # fens_user_info_field.FensNodeID="24b" #必填项，生产环境需按实际填写,24小时B套环境为24b
+    thistraderapi.RegisterFensUserInfo(fens_user_info_field)
+    thistraderapi.RegisterNameServer(TD_TCP_FensAddress)
+    # 注册名字服务器地址，支持多服务地址逗号隔开 形如:thistraderapi.RegisterNameServer('tcp://10.0.1.101:52370,tcp://10.0.1.101:62370')
+    print("TD_TCP_FensAddress[%s]::%s\n"%(fens_user_info_field.FensNodeID,TD_TCP_FensAddress))
+#订阅私有流
+thistraderapi.SubscribePrivateTopic(traderapi.TORA_TERT_QUICK)
+#订阅公有流
+thistraderapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
+'''**********************************
+*	TORA_TERT_RESTART, 从日初开始
+*	TORA_TERT_RESUME, 从断开时候开始
+*	TORA_TERT_QUICK, 从最新时刻开始
+*************************************'''
+# 启动接口
+thistraderapi.Init()
+thistraderapi.Join()
+# # 等待程序结束[不确定几分钟结束]一直没结束
+# input()
+# 释放接口对象
+thistraderapi.Release()
+
+
+
+
+
+#[能够获取到IOPV数据,就是任务无法主动结束]
 # import sys
 # class MdSpi(xmdapi.CTORATstpXMdSpi):
 #     def __init__(self, api):
@@ -621,57 +672,3 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
 # thisxmdapi.Release()
 
 
-
-
-# #明天根据159302计算ETF溢价率，最大现金替代比例是1，也就是可以全现金申赎
-
-# 【交易SDK】
-# 打印接口版本号
-print("thistraderapi Version:::"+traderapi.CTORATstpTraderApi_GetApiVersion())
-# 创建接口对象
-# pszFlowPath为私有流和公有流文件存储路径，若订阅私有流和公有流且创建多个接口实例，每个接口实例应配置不同的路径
-# bEncrypt为网络数据是否加密传输，考虑数据安全性，建议以互联网方式接入的终端设置为加密传输
-thistraderapi:traderapi.CTORATstpTraderApi = traderapi.CTORATstpTraderApi.CreateTstpTraderApi('./flow', False)
-# 创建回调对象
-spi = TraderSpi(thistraderapi)
-# 注册回调接口
-thistraderapi.RegisterSpi(spi)
-if 1:   #模拟环境，TCP 直连Front方式
-    # 注册单个交易前置服务地址
-    TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
-    # TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
-    # TD_TCP_FrontAddress="tcp://210.14.72.16:9500" #24小时环境B套
-    thistraderapi.RegisterFront(TD_TCP_FrontAddress)
-    # 注册多个交易前置服务地址，用逗号隔开 形如: thistraderapi.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
-    print("TD_TCP_FensAddress[sim or 24H]::%s\n"%TD_TCP_FrontAddress)
-else:	#模拟环境，FENS名字服务器方式
-    TD_TCP_FensAddress ="tcp://210.14.72.21:42370"; #模拟环境通用fens地址
-    '''********************************************************************************
-    * 注册 fens 地址前还需注册 fens 用户信息，包括环境编号、节点编号、Fens 用户代码等信息
-    * 使用名字服务器的好处是当券商系统部署方式发生调整时外围终端无需做任何前置地址修改
-    * *****************************************************************************'''
-    fens_user_info_field = traderapi.CTORATstpFensUserInfoField()
-    fens_user_info_field.FensEnvID="stock" #必填项，暂时固定为“stock”表示普通现货柜台
-    fens_user_info_field.FensNodeID="sim"  #必填项，生产环境需按实际填写,仿真环境为sim
-    fens_user_info_field.FensNodeID,="24a" #必填项，生产环境需按实际填写,24小时A套环境为24a
-    # fens_user_info_field.FensNodeID="24b" #必填项，生产环境需按实际填写,24小时B套环境为24b
-    thistraderapi.RegisterFensUserInfo(fens_user_info_field)
-    thistraderapi.RegisterNameServer(TD_TCP_FensAddress)
-    # 注册名字服务器地址，支持多服务地址逗号隔开 形如:thistraderapi.RegisterNameServer('tcp://10.0.1.101:52370,tcp://10.0.1.101:62370')
-    print("TD_TCP_FensAddress[%s]::%s\n"%(fens_user_info_field.FensNodeID,TD_TCP_FensAddress))
-#订阅私有流
-thistraderapi.SubscribePrivateTopic(traderapi.TORA_TERT_QUICK)
-#订阅公有流
-thistraderapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
-'''**********************************
-*	TORA_TERT_RESTART, 从日初开始
-*	TORA_TERT_RESUME, 从断开时候开始
-*	TORA_TERT_QUICK, 从最新时刻开始
-*************************************'''
-# 启动接口
-thistraderapi.Init()
-thistraderapi.Join()
-# 等待程序结束
-input()
-# 释放接口对象
-thistraderapi.Release()
