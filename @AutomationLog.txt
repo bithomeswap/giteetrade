@@ -14,4 +14,5 @@
 2024-10-16 17:52:34.695 微信自动化加好友.py[147] <module> -> 2024-10-16 18:02:51.522 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
 2024-10-16 22:31:10.543 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
 2024-10-17 08:34:22.126 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
-2024-10-17 08:37:36.825 微信自动化加好友.py[155] <module> -> 
+2024-10-17 08:37:36.825 微信自动化加好友.py[155] <module> -> 2024-10-17 08:52:06.034 微信自动化加好友.py[70] <module> -> Find Control Timeout(10s): {Name: '查看更多', ControlType: ButtonControl}
+2024-10-17 09:05:40.932 微信自动化加好友.py[156] <module> -> 
