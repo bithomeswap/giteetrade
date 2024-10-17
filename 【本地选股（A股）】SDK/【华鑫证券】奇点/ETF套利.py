@@ -256,7 +256,6 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
         login_req = xmdapi.CTORATstpReqUserLoginField()
         self.__api.ReqUserLogin(login_req, 1)
     def OnRspUserLogin(self, pRspUserLoginField, pRspInfoField, nRequestID):#用户登录并且订阅600621华鑫股份
-        # pass
         if pRspInfoField.ErrorID == 0:
             print('Login success! [%d]' % nRequestID)#登录成功
             '''
@@ -265,16 +264,22 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
 			当sub_arr中只有一个"00000000"的合约且ExchangeID填TORA_TSTP_EXD_COMM时，订阅全市场所有合约行情
 			其它情况,订阅sub_arr集合中的合约行情
             '''
-            # for index in etfinfodf["ETF交易代码"].tolist():
+
+
+
+            for index in etfinfodf["ETF交易代码"].tolist():
+                sub_arr=[index]
+                ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
 
 
             
-            sub_arr = [b'159302']
-            ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
-            if ret != 0:
-                print('SubscribeMarketData fail, ret[%d]' % ret)
-            else:
-                print('SubscribeMarketData success, ret[%d]' % ret)
+
+            # sub_arr = [b'159302']
+            # ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
+            # if ret != 0:
+            #     print('SubscribeMarketData fail, ret[%d]' % ret)
+            # else:
+            #     print('SubscribeMarketData success, ret[%d]' % ret)
 
 
 
