@@ -520,7 +520,7 @@ if not dfposition.empty:
         logger.info(f"{index},{thisposition}")
         symbol=thisposition["symbol"]
         # logger.info("symbol",symbol)
-        if thisposition["volume"]>0:#只对当前持仓大于0的标的进行处理
+        if thisposition["volume"]>0:#只对当前持仓大于0的标的进行处理，如果第一次执行就是volume，如果二次执行需要使用can_use_volume
             thispositionmoney=thisposition["market_value"]
             # if (premoney-thispositionmoney)>float(0.0000001)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
             if (premoney-thispositionmoney)>float(0.1)*premoney:#持仓标的与其总资产平均后的理论应持仓市值的偏差在百分之十以上才执行
@@ -585,8 +585,8 @@ while True:
     # order_remark	str	委托备注
     # direction	int	多空方向,股票不需要；参见数据字典
     # offset_flag	int	交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
-    # if ordernum%20==0:
-    if ordernum%2==0:
+    if ordernum%20==0:
+    # if ordernum%2==0:
         logger.info("交易轮次达标,执行撤单任务")
         if cancellorder:#如果cancellorder设置为true则执行以下撤单流程【最低撤单金额一万元】
             orderalls = trade_api.query_stock_orders(account=acc,cancelable_only=False)#仅查询可撤委托
@@ -603,10 +603,10 @@ while True:
                 # xtconstant.ORDER_CANCELED	54	已撤
                 # xtconstant.ORDER_PART_SUCC	55	部成
                 # xtconstant.ORDER_SUCCEEDED	56	已成
-                # xtconstant.ORDER_JUNK	57	废单
+                # xtconstant.ORDER_JUNK	57	废单【这个也得算金额】
                 # xtconstant.ORDER_UNKNOWN	255	未知
-                #拼接orderall的数据【不对已成、待报、未报订单进行处理】
-                # if ((orderall.order_status!=int(56))and(orderall.order_status!=int(49))and(orderall.order_status!=int(48))):
+                #拼接orderall的数据【不对已成（56）、待报（49）、未报（48）订单进行处理】大部分是54已撤、55部成、56已成、57废单
+                if ((orderall.order_status!=int(56))and(orderall.order_status!=int(49))and(orderall.order_status!=int(48))):
                     dforderall=pd.DataFrame({
                         "order_status":[orderall.order_status],
                         "order_id":[orderall.order_id],
