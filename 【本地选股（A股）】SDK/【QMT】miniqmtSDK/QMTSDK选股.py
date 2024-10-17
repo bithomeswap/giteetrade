@@ -1,3 +1,4 @@
+#勾选独立交易之后，行情、交易、交易+行情选项一个都不要选择，才能启动miniqmt成功，否则无法执行订单
 import datetime
 import time
 import math
@@ -319,7 +320,7 @@ trade_api.subscribe(acc)# 订阅账号
 #设置交易参数并且获取买卖计划
 bidrate=0.005#设置盘口价差为0.004
 timecancellwait=60#设置撤单函数筛选订单的确认时间
-timetickwait=60#设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快,3秒一根但是返回的速度不够快】
+timetickwait=600#设置每次下单时确认是否是最新tick的确认时间【3秒一根，但是模拟盘的tick滞后五分钟左右】
 timeseconds=60#设置获取tick的函数的时间长度【避免没有数据】
 targetmoney=20000#设置下单时对手盘需要达到的厚度（即单笔目标下单金额,因为手数需要向下取整,所以实际金额比这个值低）
 traderate=2#设置单次挂单金额是targetmoney的traderate倍
@@ -578,20 +579,20 @@ while True:
     # price	float	委托价格
     # traded_volume	int	成交数量
     # traded_price	float	成交均价
-    # order_status	int	委托状态,参见数据字典
+    # order_status	int	委托状态,参见数据字典【决定是否撤单用这个】
     # status_msg	str	委托状态描述,如废单原因
     # strategy_name	str	策略名称
     # order_remark	str	委托备注
     # direction	int	多空方向,股票不需要；参见数据字典
     # offset_flag	int	交易操作,用此字段区分股票买卖,期货开、平仓,期权买卖等；参见数据字典
-    if ordernum%20==0:
-    # if ordernum%2==0:
+    # if ordernum%20==0:
+    if ordernum%2==0:
         logger.info("交易轮次达标,执行撤单任务")
         if cancellorder:#如果cancellorder设置为true则执行以下撤单流程【最低撤单金额一万元】
             orderalls = trade_api.query_stock_orders(account=acc,cancelable_only=False)#仅查询可撤委托
             for orderall in orderalls:
                 # #模拟盘下午无法识别到撤单（orderall.status_msg无数据）把这块拿出来单独研究
-                # logger.info(f"{orderall},{type(orderall.offset_flag)},{orderall.direction},{orderall.price_type},{orderall.status_msg},{type(orderall.status_msg)},{orderall.order_id}")
+                # logger.info(f"{orderall},{type(orderall.offset_flag)},{orderall.direction},{orderall.price_type},{orderall.order_id}")
                 # 账号状态(account_status)
                 # xtconstant.ORDER_UNREPORTED	48	未报
                 # xtconstant.ORDER_WAIT_REPORTING	49	待报
@@ -605,11 +606,11 @@ while True:
                 # xtconstant.ORDER_JUNK	57	废单
                 # xtconstant.ORDER_UNKNOWN	255	未知
                 #拼接orderall的数据【不对已成、待报、未报订单进行处理】
-                # if ((orderall.status_msg!="56")and(orderall.status_msg!="49")and(orderall.status_msg!="48")):
+                # if ((orderall.order_status!=int(56))and(orderall.order_status!=int(49))and(orderall.order_status!=int(48))):
                     dforderall=pd.DataFrame({
-                        "status_msg":[orderall.status_msg],
+                        "order_status":[orderall.order_status],
                         "order_id":[orderall.order_id],
-                        "status":[orderall.status_msg],
+                        "status_msg":[orderall.status_msg],
                         "symbol":[orderall.stock_code],
                         "amount":[orderall.order_volume],
                         "trade_amount":[orderall.traded_volume],
@@ -622,10 +623,10 @@ while True:
                         "datetime":[datetime.datetime.fromtimestamp(orderall.order_time).strftime("%Y%m%d %H:%M:%S")],
                         "secondary_order_id":[orderall.order_id]})
                     dforderalls=pd.concat([dforderalls,dforderall],ignore_index=True)
-                    if ((orderall.status_msg=="55")or(orderall.status_msg=="50")):
+                    if ((orderall.order_status==int(55))or(orderall.order_status==int(50))):
                         logger.info(f"******,不是已成交订单,{orderall.order_id}")
                         #60秒内不成交就撤单【这个是要小于当前时间,否则就一直无法执行】
-                        if (orderall.datetime+datetime.timedelta(seconds=timecancellwait))<datetime.datetime.now():#成交额还得超过targetmoney才可以最终撤单
+                        if (datetime.datetime.fromtimestamp(orderall.order_time)+datetime.timedelta(seconds=timecancellwait))<datetime.datetime.now():#成交额还得超过targetmoney才可以最终撤单
                             if (orderall.traded_volume*orderall.price>targetmoney):
                                 try:
                                     cancel_result = trade_api.cancel_order_stock(account=acc,order_id=orderall.order_id)
@@ -653,29 +654,29 @@ while True:
                         if (orderall.order_type==int(23)):#这里只计算BUY方向的订单,24是卖23是买
                             # logger.info("该订单是买入")
                             # time.sleep(10)
-                            if (orderall.status_msg=="54"):
-                                orderall.cancel_amount=orderall.order_volume-orderall.traded_volume
+                            if (orderall.order_status==int(54)):
+                                thiscancel_amount=orderall.order_volume-orderall.traded_volume
                                 logger.info(f"{orderall}")
-                                logger.info(f"******,撤单成功,{orderall},{orderall.status_msg},{orderall.cancel_amount}")
+                                logger.info(f"******,撤单成功,{orderall},{orderall.order_status},{thiscancel_amount}")
                                 if dfordercancelled.empty:#dfordercancelled一开始是个空值,这里主要是确认一下之前有没有数据,有数据才需要检验之前是否撤销过
                                     dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
-                                    cancel_money=orderall.cancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                    moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
+                                    cancel_money=thiscancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
+                                    moneymanage.loc[moneymanage["代码"]==str(orderall.stock_code),"moneymanage"]+=cancel_money
                                 else:
                                     if orderall.order_id not in dfordercancelled["order_id"].tolist():
                                         dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
-                                        cancel_money=orderall.cancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                        moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
-                            elif (orderall.status_msg=="57"):
-                                logger.info(f"******,废单处理,{orderall},{orderall.status_msg},{orderall.order_volume}")
+                                        cancel_money=thiscancel_amount*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
+                                        moneymanage.loc[moneymanage["代码"]==str(orderall.stock_code),"moneymanage"]+=cancel_money
+                            elif (orderall.order_status==int(57)):
+                                logger.info(f"******,废单处理,{orderall},{orderall.order_status},{orderall.order_volume}")
                                 if dfordercancelled.empty:#dfordercancelled一开始是个空值,这里主要是确认一下之前有没有数据,有数据才需要检验之前是否撤销过
                                     dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
                                     cancel_money=orderall.order_volume*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                    moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
+                                    moneymanage.loc[moneymanage["代码"]==str(orderall.stock_code),"moneymanage"]+=cancel_money
                                 if orderall.order_id not in dfordercancelled["order_id"].tolist():
                                     dfordercancelled=pd.concat([dfordercancelled,dforderall],ignore_index=True)
                                     cancel_money=orderall.order_volume*orderall.price#然后就是计算撤销了的订单的未完成金额,加给下单金额当中
-                                    moneymanage.loc[moneymanage["代码"]==str(orderall.symbol),"moneymanage"]+=cancel_money
+                                    moneymanage.loc[moneymanage["代码"]==str(orderall.stock_code),"moneymanage"]+=cancel_money
             dforderalls.to_csv(str(basepath)+"_dforderalls.csv")#输出所有未全部成交的订单【针对所有订单】
             dfordercancelled.to_csv(str(basepath)+"_dfordercancelled.csv")#输出已经撤销或者作废的订单【只针对的买入订单】
             logger.info("******","资金管理","premoney",premoney,"moneymanage",moneymanage)
@@ -718,7 +719,7 @@ while True:
                         bid_volume_2=tick["bidVol"][1]
                         lastPrice=tick["lastPrice"]
                         timetag= datetime.datetime.strptime(tick["timetag"],"%Y%m%d %H:%M:%S")
-                        logger.info(f"{lastPrice},{type(lastPrice)},{timetag},{type(timetag)}")
+                        logger.info(f"{lastPrice},{type(lastPrice)},timetag:{timetag},{type(timetag)}")
                         if (timetag+datetime.timedelta(seconds=timetickwait)>datetime.datetime.now()):
                             logger.info(f"******,确认是最新tick,执行交易")
                             if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
@@ -856,7 +857,7 @@ while True:
                         bid_volume_2=tick["bidVol"][1]
                         lastPrice=tick["lastPrice"]
                         timetag= datetime.datetime.strptime(tick["timetag"],"%Y%m%d %H:%M:%S")
-                        logger.info(f"{lastPrice},{type(lastPrice)},{timetag},{type(timetag)}")
+                        logger.info(f"{lastPrice},{type(lastPrice)},timetag:{timetag},{type(timetag)}")
                         if (timetag+datetime.timedelta(seconds=timetickwait)>datetime.datetime.now()):
                             logger.info(f"******,确认是最新tick,执行交易")
                             if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
