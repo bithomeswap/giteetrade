@@ -267,14 +267,14 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
 
 
 
-            for index in etfinfodf["ETF交易代码"].tolist():
-                sub_arr=[index]
+            for id in etfinfodf["ETF交易代码"].tolist():
+                sub_arr=[str(id).encode()]#
                 ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
 
 
             
 
-            # sub_arr = [b'159302']
+            # sub_arr = [b'159302']#b""前缀表示这是一个字节字符串（bytes literal）
             # ret = self.__api.SubscribeMarketData(sub_arr, xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
             # if ret != 0:
             #     print('SubscribeMarketData fail, ret[%d]' % ret)
