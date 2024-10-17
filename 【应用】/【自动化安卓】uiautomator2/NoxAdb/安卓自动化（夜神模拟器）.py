@@ -1,4 +1,4 @@
-#【具体元素的定位需要和uiautomator2结合】
+#【具体元素的定位需要和uiautomator2结合】模拟器太卡安卓自动化必须在物理机上进行
 # pip install -U uiautomator2
 import os
 import re
