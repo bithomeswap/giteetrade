@@ -1,13 +1,14 @@
-# coding:gbk[失灵时不利的]
+# coding:gbk
+#非交易时间无法使用
 import datetime
 def init(C):
+	C.trade=True
 	pass
 	
 def handlebar(C):
-	trade=True
 	while True:
-		if trade==True:
+		if C.trade==True:
 			thisnow = datetime.datetime.now().strftime("%Y%m%d")
 			print("当前时间",thisnow)
 			print(get_etf_iopv("510050.SH"))
-			trade=False
+			C.trade=False
