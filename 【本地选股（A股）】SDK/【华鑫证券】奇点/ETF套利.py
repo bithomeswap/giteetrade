@@ -329,20 +329,20 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
             for symbol in etfinfodf["ETF交易代码"].tolist():
                 # symbol=str(index).zfill(6)#前面已经处理了
                 # print(symbol,type(symbol))
-                if str(symbol).startswith("5"):#上交所
+                if str(symbol).startswith("5"):#上交所ETF
                     sub_arr=[str(symbol).encode()]#
                     ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SSE)#TORA_TSTP_EXD_SSE上交所
-                elif str(symbol).startswith("1"):#深交所
+                elif str(symbol).startswith("159"):#深交所ETF
                     sub_arr=[str(symbol).encode()]#
                     ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所
                     
             for symbol in etfstocksdf["ETF成份证券代码"].tolist():
                 # symbol=str(index).zfill(6)#前面已经处理了
                 # print(symbol,type(symbol))
-                if str(symbol).startswith("5"):#上交所
+                if str(symbol).startswith(("60","68","11")):#上交所"60","68","11"分别是上交所主板、上交所科创板、上交所可转债
                     sub_arr=[str(symbol).encode()]#
                     ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SSE)#TORA_TSTP_EXD_SSE上交所
-                elif str(symbol).startswith("1"):#深交所
+                elif str(symbol).startswith(("00","30","12")):#深交所"00","30","12"分别是深交所主板、深交所创业板、深交所可转债
                     sub_arr=[str(symbol).encode()]#
                     ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所
             # 【订阅单个标的】
