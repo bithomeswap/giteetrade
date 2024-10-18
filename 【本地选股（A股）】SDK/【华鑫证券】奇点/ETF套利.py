@@ -444,6 +444,7 @@ while True:
 
 
 
+# 计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股
         #             etffile=True
         # #【验证ETF成分券信息】
         # etfstocksdf=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
@@ -457,8 +458,9 @@ while True:
         #         etfbasket=True
 
 
-        
-计算每一个标的的成分股组合之后的价格和实际价格的换算关系
+
+
+
 
 # thistraderapi.Join()# 加入任务
 # input()# 等待程序结束[不确定几分钟结束]一直没结束
