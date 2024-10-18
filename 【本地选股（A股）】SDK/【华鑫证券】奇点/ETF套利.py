@@ -204,8 +204,8 @@ spi=TraderSpi(thistraderapi)
 # 注册回调接口
 thistraderapi.RegisterSpi(spi)
 # 注册单个交易前置服务地址
-# TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
-TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
+TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
+# TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
 # TD_TCP_FrontAddress="tcp://210.14.72.16:9500" #24小时环境B套
 thistraderapi.RegisterFront(TD_TCP_FrontAddress)
 # 注册多个交易前置服务地址，用逗号隔开 形如:thistraderapi.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
@@ -349,7 +349,7 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                 "BidVolume1":pMarketDataField.BidVolume1,
                 "AskPrice1":pMarketDataField.AskPrice1,
                 "AskVolume1":pMarketDataField.AskVolume1,
-                "UpperLimitPrice":pMarketDataField.AskVolume1,#涨停价
+                "UpperLimitPrice":pMarketDataField.UpperLimitPrice,#涨停价
                 "LowerLimitPrice":pMarketDataField.LowerLimitPrice,#跌停价
                 "PreCloseIOPV":pMarketDataField.PreCloseIOPV,
                 "IOPV":pMarketDataField.IOPV,#盘前IOPV数据为0
@@ -441,6 +441,24 @@ while True:
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来
     print(iopvdf)
     iopvdf.to_csv('iopvdf.csv')
+
+
+
+        #             etffile=True
+        # #【验证ETF成分券信息】
+        # etfstocksdf=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
+        # etfstocksdf=etfstocksdf.iloc[:, 1:]#这样一样可以去掉第一行避免空数据干扰
+        # # etfstocksdf=etfstocksdf.drop('Unnamed: 0',axis=1)#去掉空白行【:不能错，不能多空格】
+        # if len(etfstocksdf)>100000:#平时110000
+        #     print(etfstocksdf.columns.tolist(),type(etfstocksdf.columns.tolist()))
+        #     if etfstocksdf.columns.tolist()==['交易日','交易所代码','ETF交易代码','ETF成份证券代码',
+        #                     '成分证券名称','成分证券数量','现金替代标志','溢价比例',
+        #                     '申购替代金额','赎回替代金额','挂牌市场','ETF申赎类型']:
+        #         etfbasket=True
+
+
+        
+计算每一个标的的成分股组合之后的价格和实际价格的换算关系
 
 # thistraderapi.Join()# 加入任务
 # input()# 等待程序结束[不确定几分钟结束]一直没结束
