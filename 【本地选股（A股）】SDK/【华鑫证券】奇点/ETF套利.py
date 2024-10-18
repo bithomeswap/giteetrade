@@ -323,7 +323,7 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
             # 【订阅列表】
             for index in etfinfodf["ETF交易代码"].tolist():
                 symbol=str(index).zfill(6)
-                print(symbol,type(symbol))
+                # print(symbol,type(symbol))
                 if str(symbol).startswith("5"):#上交所
                     sub_arr=[str(symbol).encode()]#
                     ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SSE)#TORA_TSTP_EXD_SSE上交所
@@ -467,9 +467,10 @@ thisxmdapi.Init()
 while True:
     time.sleep(10)
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来
-    # SecurityID
-    print(iopvdf)
     iopvdf.to_csv('iopvdf.csv')
+    iopvdf=iopvdf.groupby('SecurityID').last().reset_index()
+    print(iopvdf)
+    iopvdf.to_csv('iopvdf处理后.csv')
 
 
 #【把所有股票都订阅了】
