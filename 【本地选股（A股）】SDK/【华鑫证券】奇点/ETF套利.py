@@ -468,7 +468,7 @@ while True:
     time.sleep(10)
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来
     iopvdf.to_csv('iopvdf.csv')
-    iopvdf=iopvdf.groupby('SecurityID').last().reset_index()
+    iopvdf=iopvdf.groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行
     print(iopvdf)
     iopvdf.to_csv('iopvdf处理后.csv')
 
