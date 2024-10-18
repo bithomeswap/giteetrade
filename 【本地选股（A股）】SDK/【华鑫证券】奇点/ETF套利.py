@@ -428,10 +428,10 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                 # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
                 # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
             }
-            if len(self.iopv)<=10000:#ETF的IOPV数据少于5000条时直接添加
+            if len(self.iopv)<=5000:#ETF的IOPV数据少于5000条时直接添加【超过6000条会因为内存原因导致任务终止】
                 self.iopv.append(thisiopv)
             else:
-                self.iopv=self.iopv[1:]#去掉第一行
+                self.iopv=self.iopv[1:]#去掉第一行【按说第一行是最早进来的】
                 self.iopv.append(thisiopv)
             # print(self.iopv)
     def OnRtnRapidMarketData(self,pRapidMarketDataField):
@@ -470,7 +470,7 @@ while True:
     iopvdf.to_csv('iopvdf.csv')
     # nowdf=iopvdf.copy().groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行【下面另外两种方式也可以】
     # nowdf=iopvdf.copy().groupby('SecurityID').last().reset_index()
-    nowdf=iopvdf.copy().drop_duplicates(subset='SecurityID',keep='last')
+    nowdf=iopvdf.copy().drop_duplicates(subset='SecurityID',keep='last')#怼到10000条之后数据就出来的快了
     print(nowdf)
     nowdf.to_csv('iopvdf处理后.csv')
 
