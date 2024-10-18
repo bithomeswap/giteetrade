@@ -264,6 +264,8 @@ while True:
     try:
         #【验证ETF清单信息】
         etfinfodf=pd.read_csv(f"ETF清单信息{start_time}.csv")
+        etfinfodf['ETF交易代码']=etfinfodf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
+        etfinfodf['ETF申赎代码']=etfinfodf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
         print(etfinfodf)
         etfinfodf=etfinfodf.iloc[:, 1:]#这样一样可以去掉第一行避免空数据干扰
         # etfinfodf=etfinfodf.drop('Unnamed: 0',axis=1)#去掉空白行【:不能错，不能多空格】
@@ -279,6 +281,8 @@ while True:
                 etffile=True
         #【验证ETF成分券信息】
         etfstocksdf=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
+        etfstocksdf['ETF交易代码']=etfstocksdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
+        etfstocksdf['ETF成份证券代码']=etfstocksdf['ETF成份证券代码'].apply(lambda x:str(x).zfill(6))
         etfstocksdf=etfstocksdf.iloc[:, 1:]#这样一样可以去掉第一行避免空数据干扰
         # etfstocksdf=etfstocksdf.drop('Unnamed: 0',axis=1)#去掉空白行【:不能错，不能多空格】
         if len(etfstocksdf)>100000:#平时110000
@@ -311,6 +315,7 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
         login_req=xmdapi.CTORATstpReqUserLoginField()
         self.__api.ReqUserLogin(login_req,1)
         self.iopv=[]#初始化iopv存储字典
+        self.stocks=[]#初始化stocks存储字典
     def OnRspUserLogin(self,pRspUserLoginField,pRspInfoField,nRequestID):#用户登录并且订阅600621华鑫股份
         if pRspInfoField.ErrorID==0:
             print('Login success! [%d]' % nRequestID)#登录成功
@@ -321,8 +326,18 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
 			其它情况,订阅sub_arr集合中的合约行情
             '''
             # 【订阅列表】
-            for index in etfinfodf["ETF交易代码"].tolist():
-                symbol=str(index).zfill(6)
+            for symbol in etfinfodf["ETF交易代码"].tolist():
+                # symbol=str(index).zfill(6)#前面已经处理了
+                # print(symbol,type(symbol))
+                if str(symbol).startswith("5"):#上交所
+                    sub_arr=[str(symbol).encode()]#
+                    ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SSE)#TORA_TSTP_EXD_SSE上交所
+                elif str(symbol).startswith("1"):#深交所
+                    sub_arr=[str(symbol).encode()]#
+                    ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所
+                    
+            for symbol in etfstocksdf["ETF成份证券代码"].tolist():
+                # symbol=str(index).zfill(6)#前面已经处理了
                 # print(symbol,type(symbol))
                 if str(symbol).startswith("5"):#上交所
                     sub_arr=[str(symbol).encode()]#
@@ -361,79 +376,108 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                 %(pRspInfoField.ErrorID,pRspInfoField.ErrorMsg))
     def OnRtnMarketData(self,pMarketDataField):#返回市场数据详情
         if pMarketDataField:#如果有数据则继续执行【如果不验证则会因为报错中断全部任务】
-            thisiopv={
-                "TradingDay":pMarketDataField.TradingDay,#交易时间
-                "SecurityID":pMarketDataField.SecurityID,
-                "ExchangeID":pMarketDataField.ExchangeID,
-                "SecurityName":pMarketDataField.SecurityName,#中文名
-                "PreClosePrice":pMarketDataField.PreClosePrice,
-                "OpenPrice":pMarketDataField.OpenPrice,
-                "Volume":pMarketDataField.Volume,
-                "Turnover":pMarketDataField.Turnover,
-                "TradingCount":pMarketDataField.TradingCount,
-                "LastPrice":pMarketDataField.LastPrice,
-                "BidPrice1":pMarketDataField.BidPrice1,
-                "BidVolume1":pMarketDataField.BidVolume1,
-                "AskPrice1":pMarketDataField.AskPrice1,
-                "AskVolume1":pMarketDataField.AskVolume1,
-                "UpperLimitPrice":pMarketDataField.UpperLimitPrice,#涨停价
-                "LowerLimitPrice":pMarketDataField.LowerLimitPrice,#跌停价
-                "PreCloseIOPV":pMarketDataField.PreCloseIOPV,
-                "IOPV":pMarketDataField.IOPV,#盘前IOPV数据为0
-                # TradingDay = property(_xmdapi.CTORATstpMarketDataField_TradingDay_get, _xmdapi.CTORATstpMarketDataField_TradingDay_set)
-                # SecurityID = property(_xmdapi.CTORATstpMarketDataField_SecurityID_get, _xmdapi.CTORATstpMarketDataField_SecurityID_set)
-                # ExchangeID = property(_xmdapi.CTORATstpMarketDataField_ExchangeID_get, _xmdapi.CTORATstpMarketDataField_ExchangeID_set)
-                # SecurityName = property(_xmdapi.CTORATstpMarketDataField_SecurityName_get, _xmdapi.CTORATstpMarketDataField_SecurityName_set)
-                # PreClosePrice = property(_xmdapi.CTORATstpMarketDataField_PreClosePrice_get, _xmdapi.CTORATstpMarketDataField_PreClosePrice_set)
-                # OpenPrice = property(_xmdapi.CTORATstpMarketDataField_OpenPrice_get, _xmdapi.CTORATstpMarketDataField_OpenPrice_set)
-                # Volume = property(_xmdapi.CTORATstpMarketDataField_Volume_get, _xmdapi.CTORATstpMarketDataField_Volume_set)
-                # Turnover = property(_xmdapi.CTORATstpMarketDataField_Turnover_get, _xmdapi.CTORATstpMarketDataField_Turnover_set)
-                # TradingCount = property(_xmdapi.CTORATstpMarketDataField_TradingCount_get, _xmdapi.CTORATstpMarketDataField_TradingCount_set)
-                # LastPrice = property(_xmdapi.CTORATstpMarketDataField_LastPrice_get, _xmdapi.CTORATstpMarketDataField_LastPrice_set)
-                # HighestPrice = property(_xmdapi.CTORATstpMarketDataField_HighestPrice_get, _xmdapi.CTORATstpMarketDataField_HighestPrice_set)
-                # LowestPrice = property(_xmdapi.CTORATstpMarketDataField_LowestPrice_get, _xmdapi.CTORATstpMarketDataField_LowestPrice_set)
-                # BidPrice1 = property(_xmdapi.CTORATstpMarketDataField_BidPrice1_get, _xmdapi.CTORATstpMarketDataField_BidPrice1_set)
-                # AskPrice1 = property(_xmdapi.CTORATstpMarketDataField_AskPrice1_get, _xmdapi.CTORATstpMarketDataField_AskPrice1_set)
-                # UpperLimitPrice = property(_xmdapi.CTORATstpMarketDataField_UpperLimitPrice_get, _xmdapi.CTORATstpMarketDataField_UpperLimitPrice_set)
-                # LowerLimitPrice = property(_xmdapi.CTORATstpMarketDataField_LowerLimitPrice_get, _xmdapi.CTORATstpMarketDataField_LowerLimitPrice_set)
-                # PERatio1 = property(_xmdapi.CTORATstpMarketDataField_PERatio1_get, _xmdapi.CTORATstpMarketDataField_PERatio1_set)
-                # PERatio2 = property(_xmdapi.CTORATstpMarketDataField_PERatio2_get, _xmdapi.CTORATstpMarketDataField_PERatio2_set)
-                # PriceUpDown1 = property(_xmdapi.CTORATstpMarketDataField_PriceUpDown1_get, _xmdapi.CTORATstpMarketDataField_PriceUpDown1_set)
-                # PriceUpDown2 = property(_xmdapi.CTORATstpMarketDataField_PriceUpDown2_get, _xmdapi.CTORATstpMarketDataField_PriceUpDown2_set)
-                # OpenInterest = property(_xmdapi.CTORATstpMarketDataField_OpenInterest_get, _xmdapi.CTORATstpMarketDataField_OpenInterest_set)
-                # BidVolume1 = property(_xmdapi.CTORATstpMarketDataField_BidVolume1_get, _xmdapi.CTORATstpMarketDataField_BidVolume1_set)
-                # AskVolume1 = property(_xmdapi.CTORATstpMarketDataField_AskVolume1_get, _xmdapi.CTORATstpMarketDataField_AskVolume1_set)
-                # BidPrice2 = property(_xmdapi.CTORATstpMarketDataField_BidPrice2_get, _xmdapi.CTORATstpMarketDataField_BidPrice2_set)
-                # BidVolume2 = property(_xmdapi.CTORATstpMarketDataField_BidVolume2_get, _xmdapi.CTORATstpMarketDataField_BidVolume2_set)
-                # AskPrice2 = property(_xmdapi.CTORATstpMarketDataField_AskPrice2_get, _xmdapi.CTORATstpMarketDataField_AskPrice2_set)
-                # AskVolume2 = property(_xmdapi.CTORATstpMarketDataField_AskVolume2_get, _xmdapi.CTORATstpMarketDataField_AskVolume2_set)
-                # BidPrice3 = property(_xmdapi.CTORATstpMarketDataField_BidPrice3_get, _xmdapi.CTORATstpMarketDataField_BidPrice3_set)
-                # BidVolume3 = property(_xmdapi.CTORATstpMarketDataField_BidVolume3_get, _xmdapi.CTORATstpMarketDataField_BidVolume3_set)
-                # AskPrice3 = property(_xmdapi.CTORATstpMarketDataField_AskPrice3_get, _xmdapi.CTORATstpMarketDataField_AskPrice3_set)
-                # AskVolume3 = property(_xmdapi.CTORATstpMarketDataField_AskVolume3_get, _xmdapi.CTORATstpMarketDataField_AskVolume3_set)
-                # BidPrice4 = property(_xmdapi.CTORATstpMarketDataField_BidPrice4_get, _xmdapi.CTORATstpMarketDataField_BidPrice4_set)
-                # BidVolume4 = property(_xmdapi.CTORATstpMarketDataField_BidVolume4_get, _xmdapi.CTORATstpMarketDataField_BidVolume4_set)
-                # AskPrice4 = property(_xmdapi.CTORATstpMarketDataField_AskPrice4_get, _xmdapi.CTORATstpMarketDataField_AskPrice4_set)
-                # AskVolume4 = property(_xmdapi.CTORATstpMarketDataField_AskVolume4_get, _xmdapi.CTORATstpMarketDataField_AskVolume4_set)
-                # BidPrice5 = property(_xmdapi.CTORATstpMarketDataField_BidPrice5_get, _xmdapi.CTORATstpMarketDataField_BidPrice5_set)
-                # BidVolume5 = property(_xmdapi.CTORATstpMarketDataField_BidVolume5_get, _xmdapi.CTORATstpMarketDataField_BidVolume5_set)
-                # AskPrice5 = property(_xmdapi.CTORATstpMarketDataField_AskPrice5_get, _xmdapi.CTORATstpMarketDataField_AskPrice5_set)
-                # AskVolume5 = property(_xmdapi.CTORATstpMarketDataField_AskVolume5_get, _xmdapi.CTORATstpMarketDataField_AskVolume5_set)
-                # UpdateTime = property(_xmdapi.CTORATstpMarketDataField_UpdateTime_get, _xmdapi.CTORATstpMarketDataField_UpdateTime_set)
-                # UpdateMillisec = property(_xmdapi.CTORATstpMarketDataField_UpdateMillisec_get, _xmdapi.CTORATstpMarketDataField_UpdateMillisec_set)
-                # ClosePrice = property(_xmdapi.CTORATstpMarketDataField_ClosePrice_get, _xmdapi.CTORATstpMarketDataField_ClosePrice_set)
-                # SettlementPrice = property(_xmdapi.CTORATstpMarketDataField_SettlementPrice_get, _xmdapi.CTORATstpMarketDataField_SettlementPrice_set)
-                # MDSecurityStat = property(_xmdapi.CTORATstpMarketDataField_MDSecurityStat_get, _xmdapi.CTORATstpMarketDataField_MDSecurityStat_set)
-                # HWLevel = property(_xmdapi.CTORATstpMarketDataField_HWLevel_get, _xmdapi.CTORATstpMarketDataField_HWLevel_set)
-                # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
-                # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
-            }
-            if len(self.iopv)<=5000:#ETF的IOPV数据少于5000条时直接添加【超过6000条会因为内存原因导致任务终止】
+            # print(pMarketDataField.SecurityID,type(pMarketDataField.SecurityID))
+            if str(pMarketDataField.SecurityID).zfill(6).startswith(("159","5")):#验证是否以159{深证基金}或者5{上证基金}开头
+                # print(pMarketDataField.SecurityID,type(pMarketDataField.SecurityID))
+                thisiopv={
+                    "TradingDay":pMarketDataField.TradingDay,#交易时间
+                    "SecurityID":pMarketDataField.SecurityID,
+                    "ExchangeID":pMarketDataField.ExchangeID,
+                    "SecurityName":pMarketDataField.SecurityName,#中文名
+                    "PreClosePrice":pMarketDataField.PreClosePrice,
+                    "OpenPrice":pMarketDataField.OpenPrice,
+                    "Volume":pMarketDataField.Volume,
+                    "Turnover":pMarketDataField.Turnover,
+                    "TradingCount":pMarketDataField.TradingCount,
+                    "LastPrice":pMarketDataField.LastPrice,
+                    "BidPrice1":pMarketDataField.BidPrice1,
+                    "BidVolume1":pMarketDataField.BidVolume1,
+                    "AskPrice1":pMarketDataField.AskPrice1,
+                    "AskVolume1":pMarketDataField.AskVolume1,
+                    "UpperLimitPrice":pMarketDataField.UpperLimitPrice,#涨停价
+                    "LowerLimitPrice":pMarketDataField.LowerLimitPrice,#跌停价
+                    "PreCloseIOPV":pMarketDataField.PreCloseIOPV,
+                    "IOPV":pMarketDataField.IOPV,#盘前IOPV数据为0
+                    # TradingDay = property(_xmdapi.CTORATstpMarketDataField_TradingDay_get, _xmdapi.CTORATstpMarketDataField_TradingDay_set)
+                    # SecurityID = property(_xmdapi.CTORATstpMarketDataField_SecurityID_get, _xmdapi.CTORATstpMarketDataField_SecurityID_set)
+                    # ExchangeID = property(_xmdapi.CTORATstpMarketDataField_ExchangeID_get, _xmdapi.CTORATstpMarketDataField_ExchangeID_set)
+                    # SecurityName = property(_xmdapi.CTORATstpMarketDataField_SecurityName_get, _xmdapi.CTORATstpMarketDataField_SecurityName_set)
+                    # PreClosePrice = property(_xmdapi.CTORATstpMarketDataField_PreClosePrice_get, _xmdapi.CTORATstpMarketDataField_PreClosePrice_set)
+                    # OpenPrice = property(_xmdapi.CTORATstpMarketDataField_OpenPrice_get, _xmdapi.CTORATstpMarketDataField_OpenPrice_set)
+                    # Volume = property(_xmdapi.CTORATstpMarketDataField_Volume_get, _xmdapi.CTORATstpMarketDataField_Volume_set)
+                    # Turnover = property(_xmdapi.CTORATstpMarketDataField_Turnover_get, _xmdapi.CTORATstpMarketDataField_Turnover_set)
+                    # TradingCount = property(_xmdapi.CTORATstpMarketDataField_TradingCount_get, _xmdapi.CTORATstpMarketDataField_TradingCount_set)
+                    # LastPrice = property(_xmdapi.CTORATstpMarketDataField_LastPrice_get, _xmdapi.CTORATstpMarketDataField_LastPrice_set)
+                    # HighestPrice = property(_xmdapi.CTORATstpMarketDataField_HighestPrice_get, _xmdapi.CTORATstpMarketDataField_HighestPrice_set)
+                    # LowestPrice = property(_xmdapi.CTORATstpMarketDataField_LowestPrice_get, _xmdapi.CTORATstpMarketDataField_LowestPrice_set)
+                    # BidPrice1 = property(_xmdapi.CTORATstpMarketDataField_BidPrice1_get, _xmdapi.CTORATstpMarketDataField_BidPrice1_set)
+                    # AskPrice1 = property(_xmdapi.CTORATstpMarketDataField_AskPrice1_get, _xmdapi.CTORATstpMarketDataField_AskPrice1_set)
+                    # UpperLimitPrice = property(_xmdapi.CTORATstpMarketDataField_UpperLimitPrice_get, _xmdapi.CTORATstpMarketDataField_UpperLimitPrice_set)
+                    # LowerLimitPrice = property(_xmdapi.CTORATstpMarketDataField_LowerLimitPrice_get, _xmdapi.CTORATstpMarketDataField_LowerLimitPrice_set)
+                    # PERatio1 = property(_xmdapi.CTORATstpMarketDataField_PERatio1_get, _xmdapi.CTORATstpMarketDataField_PERatio1_set)
+                    # PERatio2 = property(_xmdapi.CTORATstpMarketDataField_PERatio2_get, _xmdapi.CTORATstpMarketDataField_PERatio2_set)
+                    # PriceUpDown1 = property(_xmdapi.CTORATstpMarketDataField_PriceUpDown1_get, _xmdapi.CTORATstpMarketDataField_PriceUpDown1_set)
+                    # PriceUpDown2 = property(_xmdapi.CTORATstpMarketDataField_PriceUpDown2_get, _xmdapi.CTORATstpMarketDataField_PriceUpDown2_set)
+                    # OpenInterest = property(_xmdapi.CTORATstpMarketDataField_OpenInterest_get, _xmdapi.CTORATstpMarketDataField_OpenInterest_set)
+                    # BidVolume1 = property(_xmdapi.CTORATstpMarketDataField_BidVolume1_get, _xmdapi.CTORATstpMarketDataField_BidVolume1_set)
+                    # AskVolume1 = property(_xmdapi.CTORATstpMarketDataField_AskVolume1_get, _xmdapi.CTORATstpMarketDataField_AskVolume1_set)
+                    # BidPrice2 = property(_xmdapi.CTORATstpMarketDataField_BidPrice2_get, _xmdapi.CTORATstpMarketDataField_BidPrice2_set)
+                    # BidVolume2 = property(_xmdapi.CTORATstpMarketDataField_BidVolume2_get, _xmdapi.CTORATstpMarketDataField_BidVolume2_set)
+                    # AskPrice2 = property(_xmdapi.CTORATstpMarketDataField_AskPrice2_get, _xmdapi.CTORATstpMarketDataField_AskPrice2_set)
+                    # AskVolume2 = property(_xmdapi.CTORATstpMarketDataField_AskVolume2_get, _xmdapi.CTORATstpMarketDataField_AskVolume2_set)
+                    # BidPrice3 = property(_xmdapi.CTORATstpMarketDataField_BidPrice3_get, _xmdapi.CTORATstpMarketDataField_BidPrice3_set)
+                    # BidVolume3 = property(_xmdapi.CTORATstpMarketDataField_BidVolume3_get, _xmdapi.CTORATstpMarketDataField_BidVolume3_set)
+                    # AskPrice3 = property(_xmdapi.CTORATstpMarketDataField_AskPrice3_get, _xmdapi.CTORATstpMarketDataField_AskPrice3_set)
+                    # AskVolume3 = property(_xmdapi.CTORATstpMarketDataField_AskVolume3_get, _xmdapi.CTORATstpMarketDataField_AskVolume3_set)
+                    # BidPrice4 = property(_xmdapi.CTORATstpMarketDataField_BidPrice4_get, _xmdapi.CTORATstpMarketDataField_BidPrice4_set)
+                    # BidVolume4 = property(_xmdapi.CTORATstpMarketDataField_BidVolume4_get, _xmdapi.CTORATstpMarketDataField_BidVolume4_set)
+                    # AskPrice4 = property(_xmdapi.CTORATstpMarketDataField_AskPrice4_get, _xmdapi.CTORATstpMarketDataField_AskPrice4_set)
+                    # AskVolume4 = property(_xmdapi.CTORATstpMarketDataField_AskVolume4_get, _xmdapi.CTORATstpMarketDataField_AskVolume4_set)
+                    # BidPrice5 = property(_xmdapi.CTORATstpMarketDataField_BidPrice5_get, _xmdapi.CTORATstpMarketDataField_BidPrice5_set)
+                    # BidVolume5 = property(_xmdapi.CTORATstpMarketDataField_BidVolume5_get, _xmdapi.CTORATstpMarketDataField_BidVolume5_set)
+                    # AskPrice5 = property(_xmdapi.CTORATstpMarketDataField_AskPrice5_get, _xmdapi.CTORATstpMarketDataField_AskPrice5_set)
+                    # AskVolume5 = property(_xmdapi.CTORATstpMarketDataField_AskVolume5_get, _xmdapi.CTORATstpMarketDataField_AskVolume5_set)
+                    # UpdateTime = property(_xmdapi.CTORATstpMarketDataField_UpdateTime_get, _xmdapi.CTORATstpMarketDataField_UpdateTime_set)
+                    # UpdateMillisec = property(_xmdapi.CTORATstpMarketDataField_UpdateMillisec_get, _xmdapi.CTORATstpMarketDataField_UpdateMillisec_set)
+                    # ClosePrice = property(_xmdapi.CTORATstpMarketDataField_ClosePrice_get, _xmdapi.CTORATstpMarketDataField_ClosePrice_set)
+                    # SettlementPrice = property(_xmdapi.CTORATstpMarketDataField_SettlementPrice_get, _xmdapi.CTORATstpMarketDataField_SettlementPrice_set)
+                    # MDSecurityStat = property(_xmdapi.CTORATstpMarketDataField_MDSecurityStat_get, _xmdapi.CTORATstpMarketDataField_MDSecurityStat_set)
+                    # HWLevel = property(_xmdapi.CTORATstpMarketDataField_HWLevel_get, _xmdapi.CTORATstpMarketDataField_HWLevel_set)
+                    # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
+                    # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
+                }
+                if len(self.iopv)==0:#【第一行不需要验证是否有旧数据】ETF的IOPV数据少于5000条时直接添加【超过6000条会因为内存原因导致任务终止】
+                    pass
+                else:
+                    self.iopv = [item for item in self.iopv if item['SecurityID'] != pMarketDataField.SecurityID]#只去掉已有的行
                 self.iopv.append(thisiopv)
             else:
-                self.iopv=self.iopv[1:]#去掉第一行【按说第一行是最早进来的】
-                self.iopv.append(thisiopv)
-            # print(self.iopv)
+                # print(pMarketDataField.SecurityID,type(pMarketDataField.SecurityID))
+                thisstocks={
+                    "TradingDay":pMarketDataField.TradingDay,#交易时间
+                    "SecurityID":pMarketDataField.SecurityID,
+                    "ExchangeID":pMarketDataField.ExchangeID,
+                    "SecurityName":pMarketDataField.SecurityName,#中文名
+                    "PreClosePrice":pMarketDataField.PreClosePrice,
+                    "OpenPrice":pMarketDataField.OpenPrice,
+                    "Volume":pMarketDataField.Volume,
+                    "Turnover":pMarketDataField.Turnover,
+                    "TradingCount":pMarketDataField.TradingCount,
+                    "LastPrice":pMarketDataField.LastPrice,
+                    "BidPrice1":pMarketDataField.BidPrice1,
+                    "BidVolume1":pMarketDataField.BidVolume1,
+                    "AskPrice1":pMarketDataField.AskPrice1,
+                    "AskVolume1":pMarketDataField.AskVolume1,
+                    "UpperLimitPrice":pMarketDataField.UpperLimitPrice,#涨停价
+                    "LowerLimitPrice":pMarketDataField.LowerLimitPrice,#跌停价
+                    "PreCloseIOPV":pMarketDataField.PreCloseIOPV,
+                    "IOPV":pMarketDataField.IOPV,#盘前IOPV数据为0
+                }
+                if len(self.stocks)==0:#【第一行不需要验证是否有旧数据】ETF的IOPV数据少于5000条时直接添加【超过6000条会因为内存原因导致任务终止】
+                    pass
+                else:
+                    self.stocks = [item for item in self.stocks if item['SecurityID'] != pMarketDataField.SecurityID]#只去掉已有的行
+                self.stocks.append(thisstocks)
     def OnRtnRapidMarketData(self,pRapidMarketDataField):
         print("SecurityID[%s] LastPrice[%.2f] TotalVolumeTrade[%d] TotalValueTrade[%.2f] BidPrice1[%.2f] BidVolume1[%d] BidCount1[%d] AskPrice1[%.2f] AskVolume1[%d] AskCount1[%d] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]"
             % (pRapidMarketDataField.SecurityID,pRapidMarketDataField.LastPrice,pRapidMarketDataField.TotalVolumeTrade,
@@ -470,13 +514,17 @@ while True:
     iopvdf.to_csv('iopvdf.csv')
     # nowdf=iopvdf.copy().groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行【下面另外两种方式也可以】
     # nowdf=iopvdf.copy().groupby('SecurityID').last().reset_index()
-    nowdf=iopvdf.copy().drop_duplicates(subset='SecurityID',keep='last')#怼到10000条之后数据就出来的快了
-    print(nowdf)
-    nowdf.to_csv('iopvdf处理后.csv')
+    # nowdf=iopvdf.copy().drop_duplicates(subset='SecurityID',keep='last')#怼到10000条之后数据就出来的快了
+    # print(nowdf)
+    # nowdf.to_csv('iopvdf处理后.csv')#前面验证过这里就不需要处理了
+
+    stocksdf=pd.DataFrame(spi.stocks)#spi里面的数据可以传输出来
+    stocksdf.to_csv('stocksdf.csv')
 
 
-#【把所有股票都订阅了】
-# 计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股
+
+    #根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率
+    # 计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股
         #             etffile=True
         # #【验证ETF成分券信息】
         # etfstocksdf=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
@@ -488,9 +536,6 @@ while True:
         #                     '成分证券名称','成分证券数量','现金替代标志','溢价比例',
         #                     '申购替代金额','赎回替代金额','挂牌市场','ETF申赎类型']:
         #         etfbasket=True
-
-
-
 
 
 
