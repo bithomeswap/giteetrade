@@ -28,6 +28,31 @@ DepartmentID="0001";		#生产环境默认客户号的前4位
 SSE_ShareHolderID='A00030557'   #不同账号的股东代码需要接口ReqQryShareholderAccount去查询
 SZ_ShareHolderID='700030557'    #不同账号的股东代码需要接口ReqQryShareholderAccount去查询
 
+
+
+# 仿真
+# 行情：tcp://210.14.72.21:4402  
+# 交易：tcp://210.14.72.21:4400
+# 交易、行情fens地址：
+# tcp://210.14.72.21:42370
+# A套：
+# 行情前置地址：tcp://210.14.72.16:9402
+# 交易前置地址：tcp://210.14.72.15:4400
+# B套：
+# 行情前置地址：tcp://210.14.72.16:9402
+# 交易前置地址：tcp://210.14.72.16:9500
+# #【仿真】
+# marketurl="tcp://210.14.72.21:4402"
+# tradeurl="tcp://210.14.72.21:4400"
+#【A套】
+marketurl="tcp://210.14.72.16:9402"
+tradeurl="tcp://210.14.72.15:4400"
+# #【B套】
+# marketurl="tcp://210.14.72.16:9402"
+# tradeurl="tcp://210.14.72.16:9500"
+
+
+
 class TraderSpi(traderapi.CTORATstpTraderSpi):
     def __init__(self,api):
         traderapi.CTORATstpTraderSpi.__init__(self)
@@ -204,9 +229,11 @@ spi=TraderSpi(thistraderapi)
 # 注册回调接口
 thistraderapi.RegisterSpi(spi)
 # 注册单个交易前置服务地址
-TD_TCP_FrontAddress="tcp://210.14.72.21:4400" #仿真交易环境
+TD_TCP_FrontAddress=tradeurl
+# "tcp://210.14.72.21:4400" #仿真交易环境
 # TD_TCP_FrontAddress="tcp://210.14.72.15:4400" #24小时环境A套
 # TD_TCP_FrontAddress="tcp://210.14.72.16:9500" #24小时环境B套
+
 thistraderapi.RegisterFront(TD_TCP_FrontAddress)
 # 注册多个交易前置服务地址，用逗号隔开 形如:thistraderapi.RegisterFront("tcp://10.0.1.101:6500,tcp://10.0.1.101:26500")
 print("TD_TCP_FensAddress[sim or 24H]::%s\n"%TD_TCP_FrontAddress)
@@ -418,7 +445,8 @@ print("XMDAPI版本号::"+xmdapi.CTORATstpXMdApi_GetApiVersion())
 print("sys.argv",sys.argv)#系统文件参数，这里就一个，后面的方式应该是同时启动多个文件啥的，或者干脆就是想办法默认获取得到1
 argc=len(sys.argv)#【参数1默认执行TCP访问】
 print("argc",argc)
-XMD_TCP_FrontAddress="tcp://210.14.72.21:4402"#行情服务器接口
+XMD_TCP_FrontAddress=marketurl
+
 '''*************************创建实例 注册服务*****************'''
 print("************* XMD TCP *************")
 
@@ -439,11 +467,12 @@ thisxmdapi.Init()
 while True:
     time.sleep(10)
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来
+    # SecurityID
     print(iopvdf)
     iopvdf.to_csv('iopvdf.csv')
 
 
-
+#【把所有股票都订阅了】
 # 计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股
         #             etffile=True
         # #【验证ETF成分券信息】
