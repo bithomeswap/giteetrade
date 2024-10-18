@@ -428,7 +428,7 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                 # PreCloseIOPV = property(_xmdapi.CTORATstpMarketDataField_PreCloseIOPV_get, _xmdapi.CTORATstpMarketDataField_PreCloseIOPV_set)
                 # IOPV = property(_xmdapi.CTORATstpMarketDataField_IOPV_get, _xmdapi.CTORATstpMarketDataField_IOPV_set)
             }
-            if len(self.iopv)<=5000:#ETF的IOPV数据少于5000条时直接添加
+            if len(self.iopv)<=10000:#ETF的IOPV数据少于5000条时直接添加
                 self.iopv.append(thisiopv)
             else:
                 self.iopv=self.iopv[1:]#去掉第一行
@@ -465,12 +465,14 @@ thisxmdapi.RegisterSpi(spi)
 # 启动接口
 thisxmdapi.Init()
 while True:
-    time.sleep(10)
+    time.sleep(5)#得等几秒任务启动之后才能获取其中的数据
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来
     iopvdf.to_csv('iopvdf.csv')
-    iopvdf=iopvdf.groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行
-    print(iopvdf)
-    iopvdf.to_csv('iopvdf处理后.csv')
+    # nowdf=iopvdf.copy().groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行【下面另外两种方式也可以】
+    # nowdf=iopvdf.copy().groupby('SecurityID').last().reset_index()
+    nowdf=iopvdf.copy().drop_duplicates(subset='SecurityID',keep='last')
+    print(nowdf)
+    nowdf.to_csv('iopvdf处理后.csv')
 
 
 #【把所有股票都订阅了】
