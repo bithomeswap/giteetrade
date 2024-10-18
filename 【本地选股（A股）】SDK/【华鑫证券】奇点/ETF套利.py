@@ -294,9 +294,15 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
 			其它情况,订阅sub_arr集合中的合约行情
             '''
             # 【订阅列表】
-            for id in etfinfodf["ETF交易代码"].tolist():
-                sub_arr=[str(id).encode()]#
-                ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
+            for index in etfinfodf["ETF交易代码"].tolist():
+                symbol=str(index).zfill(6)
+                print(symbol,type(symbol))
+                if str(symbol).startswith("5"):#上交所
+                    sub_arr=[str(symbol).encode()]#
+                    ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SSE)#TORA_TSTP_EXD_SSE上交所
+                elif str(symbol).startswith("1"):#深交所
+                    sub_arr=[str(symbol).encode()]#
+                    ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所
             # 【订阅单个标的】
             # sub_arr=[b'159302']#b""前缀表示这是一个字节字符串（bytes literal）
             # ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所，TORA_TSTP_EXD_SSE上交所
