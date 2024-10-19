@@ -478,6 +478,7 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                 else:
                     self.stocks = [item for item in self.stocks if item['SecurityID'] != pMarketDataField.SecurityID]#只去掉已有的行
                 self.stocks.append(thisstocks)
+                # input()#验证是否会阻塞住【验证结果是会阻塞】input() 函数用于获取用户输入。当你调用 input() 函数时，程序会暂停执行，等待用户在控制台输入文本。用户输入的文本在按下回车键后会被 input() 函数接收，并返回一个字符串类型的值。
     def OnRtnRapidMarketData(self,pRapidMarketDataField):
         print("SecurityID[%s] LastPrice[%.2f] TotalVolumeTrade[%d] TotalValueTrade[%.2f] BidPrice1[%.2f] BidVolume1[%d] BidCount1[%d] AskPrice1[%.2f] AskVolume1[%d] AskCount1[%d] UpperLimitPrice[%.2f] LowerLimitPrice[%.2f]"
             % (pRapidMarketDataField.SecurityID,pRapidMarketDataField.LastPrice,pRapidMarketDataField.TotalVolumeTrade,
@@ -510,7 +511,7 @@ thisxmdapi.RegisterSpi(spi)
 thisxmdapi.Init()
 while True:
     time.sleep(5)#得等几秒任务启动之后才能获取其中的数据
-    iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来
+    iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来【SecurityID是股票代码】
     iopvdf.to_csv('iopvdf.csv')
     # nowdf=iopvdf.copy().groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行【下面另外两种方式也可以】
     # nowdf=iopvdf.copy().groupby('SecurityID').last().reset_index()
@@ -518,9 +519,16 @@ while True:
     # print(nowdf)
     # nowdf.to_csv('iopvdf处理后.csv')#前面验证过这里就不需要处理了
 
-    stocksdf=pd.DataFrame(spi.stocks)#spi里面的数据可以传输出来
+    stocksdf=pd.DataFrame(spi.stocks)#spi里面的数据可以传输出来【SecurityID是股票代码】
     stocksdf.to_csv('stocksdf.csv')
 
+    # 前一交易日申赎基准单位净值
+    etfbasket=etfbasket[etfbasket["etfbasket"]<80*(10**4)]#只要单笔下单金额小于50w的标的
+    etfbasket=etfbasket[(etfbasket["最大现金替代比例"]<1)&(etfbasket["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
+    
+    # 【预估现金差额】在ETF套利中，"预估现金差额"是一个重要的概念，它指的是在ETF申购赎回过程中，由于一篮子股票的市值与ETF净值之间的差异，需要用现金来补足的部分。这个差额可能为正、为负或为零，具体取决于ETF净值与一篮子股票市值的比较。
+    # 【挂牌市场】挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板
+    
 
 
     #根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【原则上只算流动性好的ETF就行】
@@ -536,6 +544,10 @@ while True:
         #                     '成分证券名称','成分证券数量','现金替代标志','溢价比例',
         #                     '申购替代金额','赎回替代金额','挂牌市场','ETF申赎类型']:
         #         etfbasket=True
+
+
+
+# 券商推送的iopv的延迟好像是3秒 理论上应该自己算更快一些
 
 
 
