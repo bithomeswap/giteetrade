@@ -522,32 +522,86 @@ while True:
     stocksdf=pd.DataFrame(spi.stocks)#spi里面的数据可以传输出来【SecurityID是股票代码】
     stocksdf.to_csv('stocksdf.csv')
 
-    # 【【券商推送的iopv的延迟好像是3秒 理论上应该自己算更快一些】】
+    # 【【券商推送的iopv的延迟好像是3秒 理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
 
     # #ETF申赎详情
     # 【预估现金差额】在ETF套利中，"预估现金差额"是一个重要的概念，它指的是在ETF申购赎回过程中，由于一篮子股票的市值与ETF净值之间的差异，需要用现金来补足的部分。这个差额可能为正、为负或为零，具体取决于ETF净值与一篮子股票市值的比较。
     etffile=etffile[etffile["前一交易日申赎基准单位净值"]<80*(10**4)]#只要单笔下单金额小于50w的标的
     etffile=etffile[(etffile["最大现金替代比例"]<1)&(etffile["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
-    
+    # etffile=etffile[(etffile["ETF申赎类型"]==0)]#0普通申赎，1实物申赎（0应该是不强制申赎类型了就）
     # #ETF成分券详情
     # 【挂牌市场】挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
     # etfbasket=etfbasket[etfbasket["前一交易日申赎基准单位净值"]<80*(10**4)]#只要单笔下单金额小于50w的标的
     # etfbasket=etfbasket[(etfbasket["最大现金替代比例"]<1)&(etfbasket["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
     
 
+    # 【后续任务】
     #根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【原则上只算流动性好的ETF就行】
-    # 计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股
-        #             etffile=True
-        # #【验证ETF成分券信息】
-        # etfstocksdf=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
-        # etfstocksdf=etfstocksdf.iloc[:, 1:]#这样一样可以去掉第一行避免空数据干扰
-        # # etfstocksdf=etfstocksdf.drop('Unnamed: 0',axis=1)#去掉空白行【:不能错，不能多空格】
-        # if len(etfstocksdf)>100000:#平时110000
-        #     print(etfstocksdf.columns.tolist(),type(etfstocksdf.columns.tolist()))
-        #     if etfstocksdf.columns.tolist()==['交易日','交易所代码','ETF交易代码','ETF成份证券代码',
-        #                     '成分证券名称','成分证券数量','现金替代标志','溢价比例',
-        #                     '申购替代金额','赎回替代金额','挂牌市场','ETF申赎类型']:
-        #         etfbasket=True
+    #计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股
+
+
+
+# 72.查询ETF清单信息响应(RspQryETFFile)：
+# 域字段	描述	类型	取值
+# TradingDay	交易日	char(8)	
+# ExchangeID	交易所代码	char(1)	
+# TORA_TSTP_EXD_COMM(0):通用(内部使用)
+# TORA_TSTP_EXD_SSE(1):上海交易所
+# TORA_TSTP_EXD_SZSE(2):深圳交易所
+# TORA_TSTP_EXD_HK(3):香港交易所
+# TORA_TSTP_EXD_BSE(4):北京证券交易所
+# ETFSecurityID	ETF交易代码	char(30)	
+# ETFCreRedSecurityID	ETF申赎代码	char(30)	
+# CreationRedemptionUnit	最小申购赎回单位份数	int	
+# Maxcashratio	最大现金替代比例	double	
+# EstimateCashComponent	预估现金差额	double	
+# CashComponent	前一交易日现金差额	double	
+# NAV	前一交易日基金单位净值	double	
+# NAVperCU	前一交易日申赎基准单位净值	double	
+# DividendPerCU	当日申购赎回基准单位的红利金额	double	
+# ETFCreRedType	ETF申赎类型	char(1)	
+# TORA_TSTP_CRT_IS(0):普通申赎
+# TORA_TSTP_CRT_OS(1):实物申赎
+# ETFSecurityName	ETF证券名称	char(80)	
+
+
+# 73.查询ETF成份证券信息响应(RspQryETFBasket)：
+# 域字段	描述	类型	取值
+# TradingDay	交易日	char(8)	
+# ExchangeID	交易所代码	char(1)	
+# TORA_TSTP_EXD_COMM(0):通用(内部使用)
+# TORA_TSTP_EXD_SSE(1):上海交易所
+# TORA_TSTP_EXD_SZSE(2):深圳交易所
+# TORA_TSTP_EXD_HK(3):香港交易所
+# TORA_TSTP_EXD_BSE(4):北京证券交易所
+# ETFSecurityID	ETF交易代码	char(30)	
+# SecurityID	ETF成份证券代码	char(30)	
+# SecurityName	成分证券名称	char(80)	
+# Volume	成分证券数量	int	
+# ETFCurrenceReplaceStatus	现金替代标志	char(1)	
+# TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
+# TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
+# TORA_TSTP_ETFCTSTAT_Force(2):必须现金替代
+# TORA_TSTP_ETFCTSTAT_CBAllow(3):跨市退补现金替代
+# TORA_TSTP_ETFCTSTAT_CBForce(4):跨市必须现金替代
+# Premium	溢价比例	double	
+# CreationReplaceAmount	申购替代金额	double	
+# RedemptionReplaceAmount	赎回替代金额	double	
+# MarketID	挂牌市场	char(1)	
+# TORA_TSTP_MKD_COMMON(0):通用(内部使用)
+# TORA_TSTP_MKD_SHA(1):上海A股
+# TORA_TSTP_MKD_SZA(2):深圳A股
+# TORA_TSTP_MKD_SHB(3):上海B股
+# TORA_TSTP_MKD_SZB(4):深圳B股
+# TORA_TSTP_MKD_SZThreeA(5):深圳三版A股
+# TORA_TSTP_MKD_SZThreeB(6):深圳三版B股
+# TORA_TSTP_MKD_Foreign(7):境外市场
+# TORA_TSTP_MKD_SZHK(8):深圳港股通市场
+# TORA_TSTP_MKD_SHHK(9):上海港股通市场
+# TORA_TSTP_MKD_BJMain(a):北京主板
+# ETFCreRedType	ETF申赎类型	char(1)	
+# TORA_TSTP_CRT_IS(0):普通申赎
+# TORA_TSTP_CRT_OS(1):实物申赎
 
 
 
