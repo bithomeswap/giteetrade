@@ -248,7 +248,7 @@ thistraderapi.SubscribePublicTopic(traderapi.TORA_TERT_QUICK)
 *	TORA_TERT_QUICK,从最新时刻开始
 *************************************'''
 
-# 启动接口
+# 启动接口【启动了单独的线程】
 thistraderapi.Init()
 
 #[根据时间结束任务]
@@ -507,7 +507,7 @@ iopvdf=pd.DataFrame({})#用来拼接iopv数据的列表
 spi=MdSpi(thisxmdapi)
 # 注册回调接口
 thisxmdapi.RegisterSpi(spi)
-# 启动接口
+# 启动接口【启动了单独的线程】
 thisxmdapi.Init()
 while True:
     time.sleep(5)#得等几秒任务启动之后才能获取其中的数据
