@@ -528,12 +528,17 @@ while True:
     # 【预估现金差额】在ETF套利中，"预估现金差额"是一个重要的概念，它指的是在ETF申购赎回过程中，由于一篮子股票的市值与ETF净值之间的差异，需要用现金来补足的部分。这个差额可能为正、为负或为零，具体取决于ETF净值与一篮子股票市值的比较。
     etffile=etffile[etffile["前一交易日申赎基准单位净值"]<80*(10**4)]#只要单笔下单金额小于50w的标的
     etffile=etffile[(etffile["最大现金替代比例"]<1)&(etffile["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
-    # etffile=etffile[(etffile["ETF申赎类型"]==0)]#0普通申赎，1实物申赎（0应该是不强制申赎类型了就）
+    # etffile=etffile[(etffile["ETF申赎类型"]==0)]#0普通申赎，1实物申赎（0应该是不强制申赎类型了就，1可能是强制实物申赎{暂时没遇到}）
     # #ETF成分券详情
+    # 【现金替代标志】
+    # TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
+    # TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
+    # TORA_TSTP_ETFCTSTAT_Force(2):必须现金替代
+    # TORA_TSTP_ETFCTSTAT_CBAllow(3):跨市退补现金替代
+    # TORA_TSTP_ETFCTSTAT_CBForce(4):跨市必须现金替代
     # 【挂牌市场】挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
-    # etfbasket=etfbasket[etfbasket["前一交易日申赎基准单位净值"]<80*(10**4)]#只要单笔下单金额小于50w的标的
-    # etfbasket=etfbasket[(etfbasket["最大现金替代比例"]<1)&(etfbasket["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
-    
+    # etfbasket=etfbasket[etfbasket["现金替代标志"]<80*(10**4)]
+
 
     # 【后续任务】
     #根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【原则上只算流动性好的ETF就行】
