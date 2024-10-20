@@ -141,13 +141,13 @@ def symbol_convert(stock):#股票代码加后缀
     if (stock.startswith("60"))or(#上交所主板
         stock.startswith("68"))or(#上交所科创板
         stock.startswith("11"))or(#上交所可转债
-        (stock.startswith("51"))or(stock.startswith("56"))or(stock.startswith("58"))):#上交所ETF
+        (stock.startswith("5"))):#上交所ETF：51、52、56、58都是
         return str(str(stock)+".SH")
         # return str(str(stock)+".SS")
     elif (stock.startswith("00"))or(#深交所主板
         stock.startswith("30"))or(#深交所创业板
         stock.startswith("12"))or(#深交所可转债
-        (stock.startswith("15"))):#深交所ETF
+        (stock.startswith("159"))):#深交所ETF：暂时只有159的是深交所ETF
         return str(str(stock)+".SZ")
     else:
         print("不在后缀转换名录",str(stock))

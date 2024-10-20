@@ -215,7 +215,7 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
 
 #确认当日时间
 start_time=datetime.datetime.now().strftime("%Y%m%d")#特殊的时间格式
-old_time=(datetime.datetime.now()-datetime.timedelta(days=60)).strftime("%Y%m%d")#特殊的时间格式
+old_time=(datetime.datetime.now()-datetime.timedelta(days=90)).strftime("%Y%m%d")#特殊的时间格式
 print("start_time",start_time,"old_time",old_time)
 interval=5#控制请求频率[针对循环型请求]
 
@@ -514,31 +514,82 @@ thisxmdapi.Init()
 
 
 
+def symbol_convert(stock):#股票代码加后缀
+    #北交所的股票8字开头，包括82、83、87、88，其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
+    if (stock.startswith("60"))or(#上交所主板
+        stock.startswith("68"))or(#上交所科创板
+        stock.startswith("11"))or(#上交所可转债
+        (stock.startswith("5"))):#上交所ETF：51、52、56、58都是
+        return str(str(stock)+".SH")
+        # return str(str(stock)+".SS")
+    elif (stock.startswith("00"))or(#深交所主板
+        stock.startswith("30"))or(#深交所创业板
+        stock.startswith("12"))or(#深交所可转债
+        (stock.startswith("159"))):#深交所ETF：暂时只有159的是深交所ETF
+        return str(str(stock)+".SZ")
+    else:
+        print("不在后缀转换名录",str(stock))
+        return str(str(stock))
 # 【ETF申赎套利前一天成交额低于5000万的都不要看（大概300多只将近400只ETF符合日成交额5000w的标准）】使用akshre或者tushare验证最近10天的平均成交额，至少要近10天平均交易额大于100倍单份申购额，要不大概率是亏损的
 lastETFdf=etfinfodf.copy()
-#pip install akshare【差多了会报错】
-import akshare as ak
-for symbol in lastETFdf["ETF交易代码"].tolist():
-    print(symbol)
-    thisdf=ak.fund_etf_hist_em(
-                symbol=symbol,
-                period= "daily",
-                start_date= old_time,
-                end_date= start_time,
-                adjust= "",#默认返回不复权的数据; qfq: 返回前复权后的数据; hfq: 返回后复权后的数据
-                )#ETF历史行情
-    thisdf=thisdf[-15:]#只要后15行
-    money=thisdf["成交额"].mean()
-    lastETFdf.loc[lastETFdf["ETF交易代码"]==symbol,"15日平均成交额"]=money
-    print(symbol,thisdf)
-print(len(lastETFdf))
-lastETFdf=lastETFdf[lastETFdf["15日平均成交额"]>(1000*(10**4))]#至少大于1000w（实际上应该大于5000w）
-lastETFdf=lastETFdf[lastETFdf["前一交易日申赎基准单位净值"]<(lastETFdf["15日平均成交额"]*0.01)]#单份申赎金额小于平均成交额的百分之一
-print("处理后",len(lastETFdf))
+try:
+    lastETFdf=pd.read_csv(f"ETF清单详情成交额过滤后{start_time}.csv")
+    lastETFdf['ETF交易代码']=lastETFdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
+    lastETFdf['ETF申赎代码']=lastETFdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
+    print(lastETFdf)
+    lastETFdf=lastETFdf.iloc[:, 1:]#这样一样可以去掉第一行避免空数据干扰
+    print("当日已经处理ETF成交额过滤")#这里应该还有一个格式处理
+except Exception as e:
+    print("当日尚未处理ETF成交额过滤")#这种一条条的筛选可能不太好，因为毕竟有1000条呢，速度和限频都不好处理
+    # pip install xcsc-tushare
+    import xcsc_tushare as ts
+    # ts.set_token('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7')
+    # ts.pro_api(server='http://116.128.206.39:7172')   #指定tocken对应的环境变量，此处以生产为例
+    pro = ts.pro_api('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7',server='http://116.128.206.39:7172')
+    #获取交易日数据
+    daydf = pro.trade_cal(exchange='SZSE', start_date=old_time, end_date=start_time)#获取深证的交易日交易所 SZN-深股通,SHN-沪股通,SSE-上海证券交易所,SZSE-深圳证券交易所
+    print(daydf)
+    old_day=daydf["trade_date"].values[-10]#取最近10个交易日
+    print(old_day)
+    # lastETFdf["ETF交易代码"]=lastETFdf["ETF交易代码"].apply(lambda x:symbol_convert(x)).astype(str) # 需要指定类型为字符串
+    for symbol in lastETFdf["ETF交易代码"].tolist():
+        print(symbol)
+        thisdf = pro.fund_daily(ts_code=symbol_convert(symbol),
+                                start_date=old_day,
+                                end_date=start_time,
+                                field='ts_code,trade_date,pre_close,open,high,low,close,amount')
+        money=thisdf["amount"].mean()
+        lastETFdf.loc[lastETFdf["ETF交易代码"]==symbol,"15日平均成交额"]=money
+        time.sleep(0.21)#每分钟最多访问300次否则限频
+        # print(symbol,thisdf)
+
+    # #pip install akshare【差多了会报错】
+    # import akshare as ak
+    # for symbol in lastETFdf["ETF交易代码"].tolist():
+    #     print(symbol)
+    #     thisdf=ak.fund_etf_hist_em(
+    #                 symbol=symbol,
+    #                 period= "daily",
+    #                 start_date= old_time,
+    #                 end_date= start_time,
+    #                 adjust= "",#默认返回不复权的数据; qfq: 返回前复权后的数据; hfq: 返回后复权后的数据
+    #                 )#ETF历史行情
+    #     thisdf=thisdf[-15:]#只要后15行
+    #     money=thisdf["成交额"].mean()
+    #     lastETFdf.loc[lastETFdf["ETF交易代码"]==symbol,"15日平均成交额"]=money
+    #     #print(symbol,thisdf)
+    # print(len(lastETFdf))
+
+    lastETFdf=lastETFdf[lastETFdf["15日平均成交额"]>(1000*(10**4))]#至少大于1000w（实际上应该大于5000w）
+    lastETFdf=lastETFdf[lastETFdf["前一交易日申赎基准单位净值"]<(lastETFdf["15日平均成交额"]*0.01)]#单份申赎金额小于平均成交额的百分之一
+    print("处理后",len(lastETFdf))
+    lastETFdf.to_csv(f"ETF清单详情成交额过滤后{start_time}.csv")
 holdETFlist=lastETFdf["ETF交易代码"].tolist()
 etfinfodf=etfinfodf[etfinfodf["ETF交易代码"].isin(holdETFlist)]
 etfstocksdf=etfstocksdf[etfstocksdf["ETF交易代码"].isin(holdETFlist)]
 print("处理后",len(etfinfodf))
+
+
 
 while True:
     time.sleep(5)#得等几秒任务启动之后才能获取其中的数据
@@ -581,17 +632,17 @@ while True:
     # TORA_TSTP_ETFCTSTAT_CBAllow(3):跨市退补现金替代
     # TORA_TSTP_ETFCTSTAT_CBForce(4):跨市必须现金替代
     # 1挂牌市场：挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
-    # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理
+    # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理【但是没找到这个】
 
     time.sleep(1000)
 
     # 【后续任务】
-    #根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【原则上只算流动性好的ETF就行】
-    #计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股【部分标的不允许现金替代】
+    # 0.【【券商推送的iopv的延迟好像是3秒一次，理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
+    # 1.根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【原则上只算流动性好的ETF就行】
+    # 2.计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股【部分标的不允许现金替代】
+    # 3.全市场限购额度、单账户最大申赎金额吗【这俩函数是用来解决ETF限额问题的，在外盘尤其要注意，内盘也经常会遇到】
 
-    # 【【券商推送的iopv的延迟好像是3秒 理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
-    # 
-# 全市场限购额度、单账户最大申赎金额吗【这俩函数应该是在交易函数里面，目前没写出来】
+
 
 # 72.查询ETF清单信息响应(RspQryETFFile)：
 # 域字段	描述	类型	取值
