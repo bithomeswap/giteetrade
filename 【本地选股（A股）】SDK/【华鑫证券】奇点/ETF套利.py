@@ -511,6 +511,7 @@ thisxmdapi.RegisterSpi(spi)
 thisxmdapi.Init()
 while True:
     time.sleep(5)#得等几秒任务启动之后才能获取其中的数据
+    
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来【SecurityID是股票代码】
     iopvdf.to_csv('iopvdf.csv')
     # nowdf=iopvdf.copy().groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行【下面另外两种方式也可以】
@@ -522,30 +523,40 @@ while True:
     stocksdf=pd.DataFrame(spi.stocks)#spi里面的数据可以传输出来【SecurityID是股票代码】
     stocksdf.to_csv('stocksdf.csv')
 
-    # 【【券商推送的iopv的延迟好像是3秒 理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
-    # 【ETF申赎套利前一天成交额低于5000万的都不用看】
+    #【】【策略执行细节说明】【】
+    # ETF套利策略会受基金公司限额问题，所以有时间不能全额实现策略，需要提前跟基金公司沟通好。
+    # 有一些规模大的ETF是T+2交易的需要融券还券，都是那些保险、证券公司自营盘在套。
+    # 一般来讲不做外盘ETF套利（外盘需要纯现金申赎），一个是汇率损失（申购赎回各有固定2%的汇率损失）一个是额度问题（高利润的标的开盘秒清散户基本抢不到），无法完全实现T+0，风险敞口极大。
 
-    # #ETF申赎详情
-    # 【预估现金差额】在ETF套利中，"预估现金差额"是一个重要的概念，它指的是在ETF申购赎回过程中，由于一篮子股票的市值与ETF净值之间的差异，需要用现金来补足的部分。这个差额可能为正、为负或为零，具体取决于ETF净值与一篮子股票市值的比较。
-    etffile=etffile[etffile["前一交易日申赎基准单位净值"]<80*(10**4)]#只要单笔下单金额小于50w的标的
-    etffile=etffile[(etffile["最大现金替代比例"]<1)&(etffile["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
-    # etffile=etffile[(etffile["ETF申赎类型"]==0)]#0普通申赎，1实物申赎（0应该是不强制申赎类型了就，1可能是强制实物申赎{暂时没遇到}）
-    # #ETF成分券详情
-    etfbasket=etfbasket.groupby()
-    # 【现金替代标志】
+    # #【ETF申赎详情】
+    # 0预估现金差额：在ETF套利中，"预估现金差额"是一个重要的概念，它指的是在ETF申购赎回过程中，由于一篮子股票的市值与ETF净值之间的差异，需要用现金来补足的部分。这个差额可能为正、为负或为零，具体取决于ETF净值与一篮子股票市值的比较。
+    etfinfodf=etfinfodf[(etfinfodf["前一交易日申赎基准单位净值"]<(100*(10**4)))]#只要单笔下单金额小于100w的标的
+    etfinfodf=etfinfodf[(etfinfodf["最大现金替代比例"]<1)&(etfinfodf["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
+    # etfinfodf=etfinfodf[(etfinfodf["ETF申赎类型"]==0)]#0普通申赎，1实物申赎（0应该是不强制申赎类型了就，1可能是强制实物申赎{暂时没遇到}）
+    # #【ETF成分券详情】
+    print(len(etfstocksdf["ETF交易代码"].unique().tolist()))#为何只删掉了一个
+    etfstocksdf['是否特殊ETF'] = etfstocksdf.groupby('ETF交易代码')['挂牌市场'].transform(lambda x: x.eq(7).any()|x.eq('a').any())
+    # etfstocksdf["是否特殊ETF"]=etfstocksdf.groupby("ETF交易代码").apply(lambda x:x["挂牌市场"])#去掉成分股包含外盘和北交所的，也就是挂牌市场的值包含7或者a的
+    etfstocksdf.to_csv("etfstocksdf000.csv")
+    etfstocksdf=etfstocksdf[etfstocksdf["是否特殊ETF"]!=True]
+    print(len(etfstocksdf["ETF交易代码"].unique().tolist()))
+    # 0现金替代标志：
     # TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
     # TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
     # TORA_TSTP_ETFCTSTAT_Force(2):必须现金替代
     # TORA_TSTP_ETFCTSTAT_CBAllow(3):跨市退补现金替代
     # TORA_TSTP_ETFCTSTAT_CBForce(4):跨市必须现金替代
-    # 【挂牌市场】挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
-    # etfbasket[etfbasket["现金替代标志"]==0]#不能现金替代的需要单独处理
+    # 1挂牌市场：挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
+    # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理
 
 
     # 【后续任务】
     #根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【原则上只算流动性好的ETF就行】
     #计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股【部分标的不允许现金替代】
 
+    # 【【券商推送的iopv的延迟好像是3秒 理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
+    # 【ETF申赎套利前一天成交额低于5000万的都不要看（大概300多只将近400只ETF符合日成交额5000w的标准）】使用akshre或者tushare验证最近10天的平均成交额，至少要近10天平均交易额大于100倍单份申购额，要不大概率是亏损的
+    
 # 全市场限购额度、单账户最大申赎金额吗【这俩函数应该是在交易函数里面，目前没写出来】
 
 # 72.查询ETF清单信息响应(RspQryETFFile)：
