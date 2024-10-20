@@ -531,6 +531,7 @@ while True:
     etffile=etffile[(etffile["最大现金替代比例"]<1)&(etffile["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
     # etffile=etffile[(etffile["ETF申赎类型"]==0)]#0普通申赎，1实物申赎（0应该是不强制申赎类型了就，1可能是强制实物申赎{暂时没遇到}）
     # #ETF成分券详情
+    etfbasket=etfbasket.groupby()
     # 【现金替代标志】
     # TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
     # TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
