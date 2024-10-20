@@ -57,7 +57,7 @@ wechatWindow = auto.WindowControl(searchDepth=1, Name="微信", ClassName='WeCha
 num=0
 while True:
     num+=1
-    if num>=181:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
+    if num>=197:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
         button = wechatWindow.ButtonControl(Name='收起')
         if button.Exists():
             print("有收起按钮无需重新打开")
