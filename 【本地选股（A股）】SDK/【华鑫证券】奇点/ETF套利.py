@@ -562,7 +562,7 @@ except Exception as e:
         lastETFdf.loc[lastETFdf["ETF交易代码"]==symbol,"15日平均成交额"]=money
         time.sleep(0.21)#每分钟最多访问300次否则限频
         # print(symbol,thisdf)
-
+        
     # #pip install akshare【差多了会报错】
     # import akshare as ak
     # for symbol in lastETFdf["ETF交易代码"].tolist():
@@ -580,10 +580,11 @@ except Exception as e:
     #     #print(symbol,thisdf)
     # print(len(lastETFdf))
 
-    lastETFdf=lastETFdf[lastETFdf["15日平均成交额"]>(1000*(10**4))]#至少大于1000w（实际上应该大于5000w）
-    lastETFdf=lastETFdf[lastETFdf["前一交易日申赎基准单位净值"]<(lastETFdf["15日平均成交额"]*0.01)]#单份申赎金额小于平均成交额的百分之一
-    print("处理后",len(lastETFdf))
     lastETFdf.to_csv(f"ETF清单详情成交额过滤后{start_time}.csv")
+
+lastETFdf=lastETFdf[lastETFdf["15日平均成交额"]>(1000*(10**4))]#至少大于1000w（实际上应该大于5000w）
+lastETFdf=lastETFdf[lastETFdf["前一交易日申赎基准单位净值"]<(lastETFdf["15日平均成交额"]*0.01)]#单份申赎金额小于平均成交额的百分之一
+print("处理后",len(lastETFdf))
 holdETFlist=lastETFdf["ETF交易代码"].tolist()
 etfinfodf=etfinfodf[etfinfodf["ETF交易代码"].isin(holdETFlist)]
 etfstocksdf=etfstocksdf[etfstocksdf["ETF交易代码"].isin(holdETFlist)]
