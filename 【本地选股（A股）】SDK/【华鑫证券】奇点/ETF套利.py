@@ -533,7 +533,7 @@ def symbol_convert(stock):#股票代码加后缀
 # 【ETF申赎套利前一天成交额低于5000万的都不要看（大概300多只将近400只ETF符合日成交额5000w的标准）】使用akshre或者tushare验证最近10天的平均成交额，至少要近10天平均交易额大于100倍单份申购额，要不大概率是亏损的
 lastETFdf=etfinfodf.copy()
 try:
-    lastETFdf=pd.read_csv(f"ETF清单详情成交额过滤后{start_time}.csv")
+    lastETFdf=pd.read_csv(f"ETF清单信息成交额过滤后{start_time}.csv")
     lastETFdf['ETF交易代码']=lastETFdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
     lastETFdf['ETF申赎代码']=lastETFdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
     print(lastETFdf)
@@ -580,7 +580,7 @@ except Exception as e:
     #     #print(symbol,thisdf)
     # print(len(lastETFdf))
 
-    lastETFdf.to_csv(f"ETF清单详情成交额过滤后{start_time}.csv")
+    lastETFdf.to_csv(f"ETF清单信息成交额过滤后{start_time}.csv")
 
 lastETFdf=lastETFdf[(lastETFdf["15日平均成交额"]*1000)>(1000*(10**4))]#至少大于1000w{600多个}（实际上应该大于5000w{394个}）
 lastETFdf=lastETFdf[lastETFdf["前一交易日申赎基准单位净值"]<(lastETFdf["15日平均成交额"]*1000*0.01)]#单份申赎金额小于平均成交额的百分之一
@@ -635,12 +635,19 @@ while True:
     # 1挂牌市场：挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
     # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理【但是没找到这个】
 
+    stocksdf["ETF成份证券代码"]=stocksdf["SecurityID"]
+    etfstocksdf=etfstocksdf.merge(stocksdf,on="ETF成份证券代码",how="left")#左连接意味着结果DataFrame将包含etfstocksdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
+    etfstocksdf["申购金额"]=etfstocksdf["AskPrice1"]*etfstocksdf["成分证券数量"]
+    etfstocksdf["赎回金额"]=etfstocksdf["BidPrice1"]*etfstocksdf["成分证券数量"]
+
+    # etfstocksdf["ETF成份证券代码"]#根据成分券代码拼接买一卖一，计算申赎金额
+    
     time.sleep(1000)
 
-    # 【后续任务】
+    # 【后续任务】如果无法计算三档深度，可以对手盘+滑点的模式计算冲击成本
     # 0.【【券商推送的iopv的延迟好像是3秒一次，理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
-    # 1.根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【原则上只算流动性好的ETF就行】
-    # 2.计算每一个标的的成分股组合之后的价格和实际价格的换算关系，还有涨停板处理和必选股【部分标的不允许现金替代】
+    # 1.根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【bidiopv和askiopv】
+    # 2.ETF成分股涨停板处理和必选股处理【部分标的不允许现金替代】
     # 3.全市场限购额度、单账户最大申赎金额吗【这俩函数是用来解决ETF限额问题的，在外盘尤其要注意，内盘也经常会遇到】
 
 
