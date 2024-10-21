@@ -1,5 +1,6 @@
 # 联系方式：lianghuajiaoyi123456
 # 通过调整下面两个参数确定策略类型是可转债、中小板、微盘股g.Strategy、g.stocknum
+# 【注意事项】ptrade下单金额不错不回调废单，查询系统查不到这个订单，尽量不要让下单金额不足
 import pandas as pd
 import numpy as np
 import time
@@ -56,7 +57,7 @@ def initialize(context):
     #设置交易参数并且获取买卖计划
     g.bidrate=0.0025 #设置下单滑点为0.0025
     # g.timetickwait=2000 #设置每次下单时确认是否是最新tick的确认时间【tick时间可能在60秒不是很快，3秒一根但是返回的速度不够快】
-    g.targetmoney=20000 #设置下单时对手盘挂单金额阈值（满足阈值之后g.targetmoney的单笔下单金额，因为下单股数需要是100的整数倍所以实际金额比这个值低）【开通免五功能之后这个值可以很小（未开通也不能太大避免验证下单失败无法下单）】
+    g.targetmoney=40000 #设置下单时对手盘挂单金额阈值（满足阈值之后g.targetmoney的单笔下单金额，因为下单股数需要是100的整数倍所以实际金额比这个值低）【开通免五功能之后这个值可以很小（未开通也不能太大避免验证下单失败无法下单）】
     g.traderate=2 #设置满足下单条件之后单次挂单金额是g.targetmoney的g.traderate倍以上时，按照g.targetmoney一笔进行下单，否则全部下单
     # g.cancellorder=False #取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
     g.cancellorder=True #设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
@@ -71,15 +72,15 @@ def handle_data(context,data):
     current_dt=context.blotter.current_dt
     log.info(str(current_dt)+"时分秒数据"+str(current_dt.time())+"小时"+str(current_dt.time().hour)+"分钟"+str(current_dt.time().minute))
     # 全天调仓【datetime.time()格式的时间一般不能带0】
-    if (
-    (current_dt.time()>datetime.time(9,55))and(current_dt.time()<datetime.time(11,20))
-    )or(
-    (current_dt.time()>datetime.time(13,5))and(current_dt.time()<datetime.time(14,50))
-    ):
-    # #下午调仓
     # if (
-    # (current_dt.time()>datetime.time(13,45))and(current_dt.time()<datetime.time(14,50))
+    # (current_dt.time()>datetime.time(9,55))and(current_dt.time()<datetime.time(11,20))
+    # )or(
+    # (current_dt.time()>datetime.time(13,5))and(current_dt.time()<datetime.time(14,50))
     # ):
+    #下午调仓
+    if (
+    (current_dt.time()>datetime.time(14,30))and(current_dt.time()<datetime.time(14,50))
+    ):
     # #一直调仓【仅限测试】
     # if True:
         
@@ -953,7 +954,7 @@ def handle_data(context,data):
                     buydf=buydf.sort_values(by="总市值")
                     buydf=buydf[:(g.stocknum-hodlstocks)]#这里减去的是持仓股票数量，然后在持仓标的中选择金额不足的向上拼接
                     print("对买入计划重新配置之后",len(buydf))
-        else:    
+        else:
             if (len(selldflist)==0)and(len(buydflist)==0):
                 print(thistime.month,"当月空仓")
                 selldf=pd.DataFrame({"代码":[],"总市值":[]})
@@ -969,7 +970,7 @@ def handle_data(context,data):
         buydf.to_csv("/home/fly/notebook/buydf.csv")
         print("实际卖出计划",selldf,"实际买入计划",buydf)
             
-        # #资金管理机制
+        # #资金管理机制context.portfolio.cash
         # 就是每次下单的仓位计算要做好，优先根据市值低的补仓，要不就容易漏仓位
         # cash 当前可用资金（不包含冻结资金）
         # positions 当前持有的标的(包含不可卖出的标的)，dict类型，key是标的代码，value是Position对象
@@ -1043,7 +1044,7 @@ def handle_data(context,data):
             print("是否执行订单管理",g.cancellorder)
             if ordernum>1:
                 print("从第二轮开始每执行一轮休息30秒避免订单过度冲击市场","当前轮次",ordernum)
-                time.sleep(30)#休息一秒，避免空转
+                time.sleep(15)#休息一秒，避免空转
             if ordernum%10==0:
                 print("交易轮次达标，执行撤单任务")
                 if g.cancellorder:#执行订单管理功能的话则后面代码才起作用
@@ -1228,6 +1229,9 @@ def handle_data(context,data):
             for stock in g.moneymanage["代码"].tolist():
                 # buymoney=g.moneymanage[g.moneymanage["代码"]==stock]["moneymanage"].iloc[0]
                 buymoney=g.moneymanage[g.moneymanage["代码"]==stock]["moneymanage"].values[0]
+                if context.portfolio.cash<buymoney:
+                    print("当前余额不足该次下单金额以余额为准【一个是买卖并行导致余额与理论有区别无法一次计算正确，再一个是因为余额不足下单失败并不回报为废单会导致资金计算错误】")
+                    buymoney=context.portfolio.cash-10#多减去10元避免余额不足现象发生
                 print(stock,"应下单金额",buymoney)
                 if buymoney>g.targetmoney:#只在应下单金额大于g.targetmoney的时候下单
                     # 获取买卖价格范围，【一分钱价差】或者【0.005滑点+一分钱】的最大值
@@ -1302,7 +1306,7 @@ def handle_data(context,data):
                                     log.info("[%s]买入股票" % stock)
                                     log.info("[%s]买入订单" % order_id)
                                     bidmoney=float(buy_limit)*buyvolume
-                                    g.moneymanage.loc[g.moneymanage["代码"]==stock,"moneymanage"]-=bidmoney
+                                    g.moneymanage.loc[g.moneymanage["代码"]==stock,"moneymanage"]-=bidmoney#下单
             log.info("买入订单已全部委托")
 
             g.moneymanage.to_csv("/home/fly/notebook/---g.moneymanage结束时"+".csv")
