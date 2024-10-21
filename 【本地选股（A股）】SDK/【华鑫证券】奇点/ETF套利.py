@@ -41,12 +41,12 @@ SZ_ShareHolderID='700030557'    #不同账号的股东代码需要接口ReqQrySh
 # B套：
 # 行情前置地址：tcp://210.14.72.16:9402
 # 交易前置地址：tcp://210.14.72.16:9500
-# #【仿真】
-# marketurl="tcp://210.14.72.21:4402"
-# tradeurl="tcp://210.14.72.21:4400"
-#【A套】
-marketurl="tcp://210.14.72.16:9402"
-tradeurl="tcp://210.14.72.15:4400"
+#【仿真】
+marketurl="tcp://210.14.72.21:4402"#主要是看iopv信息试试模拟盘是不是更准【说是全仿真环境的iopv是正常的】
+tradeurl="tcp://210.14.72.21:4400"
+# #【A套】
+# marketurl="tcp://210.14.72.16:9402"
+# tradeurl="tcp://210.14.72.15:4400"
 # #【B套】
 # marketurl="tcp://210.14.72.16:9402"
 # tradeurl="tcp://210.14.72.16:9500"
@@ -382,9 +382,9 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
             if str(pMarketDataField.SecurityID).zfill(6).startswith(("159","5")):#验证是否以159{深证基金}或者5{上证基金}开头
                 # print(pMarketDataField.SecurityID,type(pMarketDataField.SecurityID))
                 thisiopv={
-                    "TradingDay":pMarketDataField.TradingDay,#交易时间
+                    "交易日":pMarketDataField.TradingDay,#交易时间
                     "SecurityID":pMarketDataField.SecurityID,
-                    "ExchangeID":pMarketDataField.ExchangeID,
+                    "交易所代码":pMarketDataField.ExchangeID,
                     "SecurityName":pMarketDataField.SecurityName,#中文名
                     "PreClosePrice":pMarketDataField.PreClosePrice,
                     "OpenPrice":pMarketDataField.OpenPrice,
@@ -396,6 +396,14 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                     "BidVolume1":pMarketDataField.BidVolume1,
                     "AskPrice1":pMarketDataField.AskPrice1,
                     "AskVolume1":pMarketDataField.AskVolume1,
+                    "BidPrice2":pMarketDataField.BidPrice2,
+                    "BidVolume2":pMarketDataField.BidVolume2,
+                    "AskPrice2":pMarketDataField.AskPrice2,
+                    "AskVolume2":pMarketDataField.AskVolume2,
+                    "BidPrice3":pMarketDataField.BidPrice3,
+                    "BidVolume3":pMarketDataField.BidVolume3,
+                    "AskPrice3":pMarketDataField.AskPrice3,
+                    "AskVolume3":pMarketDataField.AskVolume3,
                     "UpperLimitPrice":pMarketDataField.UpperLimitPrice,#涨停价
                     "LowerLimitPrice":pMarketDataField.LowerLimitPrice,#跌停价
                     "PreCloseIOPV":pMarketDataField.PreCloseIOPV,
@@ -456,9 +464,9 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
             else:
                 # print(pMarketDataField.SecurityID,type(pMarketDataField.SecurityID))
                 thisstocks={
-                    "TradingDay":pMarketDataField.TradingDay,#交易时间
+                    "交易日":pMarketDataField.TradingDay,#交易时间
                     "SecurityID":pMarketDataField.SecurityID,
-                    "ExchangeID":pMarketDataField.ExchangeID,
+                    "交易所代码":pMarketDataField.ExchangeID,
                     "SecurityName":pMarketDataField.SecurityName,#中文名
                     "PreClosePrice":pMarketDataField.PreClosePrice,
                     "OpenPrice":pMarketDataField.OpenPrice,
@@ -470,6 +478,14 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                     "BidVolume1":pMarketDataField.BidVolume1,
                     "AskPrice1":pMarketDataField.AskPrice1,
                     "AskVolume1":pMarketDataField.AskVolume1,
+                    "BidPrice2":pMarketDataField.BidPrice2,
+                    "BidVolume2":pMarketDataField.BidVolume2,
+                    "AskPrice2":pMarketDataField.AskPrice2,
+                    "AskVolume2":pMarketDataField.AskVolume2,
+                    "BidPrice3":pMarketDataField.BidPrice3,
+                    "BidVolume3":pMarketDataField.BidVolume3,
+                    "AskPrice3":pMarketDataField.AskPrice3,
+                    "AskVolume3":pMarketDataField.AskVolume3,
                     "UpperLimitPrice":pMarketDataField.UpperLimitPrice,#涨停价
                     "LowerLimitPrice":pMarketDataField.LowerLimitPrice,#跌停价
                     "PreCloseIOPV":pMarketDataField.PreCloseIOPV,
@@ -624,7 +640,7 @@ while True:
                                                                             #   |
                                                                             #   x.eq('a').any()#x.eq('a').any()#暂时不单独去北交所标的
                                                                               )
-    etfstocksdf=etfstocksdf[etfstocksdf["是否特殊ETF"]!=True]
+    etfstocksdf=etfstocksdf[etfstocksdf["是否特殊ETF"]!=True]#北交所和科创板流动性差尽量不要
     print(len(etfstocksdf["ETF交易代码"].unique().tolist()))#单独去a的北交所剩下953（去掉了50多个），单独去7的外盘剩下808（去掉了188左右）
     # 0现金替代标志：目前没碰到有禁止现金替代的标的，大部分都是1选项，3、4选项大部分是外盘或者可能是支持港股通（深股通、沪股通）的部分
     # TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
@@ -635,13 +651,62 @@ while True:
     # 1挂牌市场：挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
     # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理【但是没找到这个】
 
-    stocksdf["ETF成份证券代码"]=stocksdf["SecurityID"]
-    etfstocksdf=etfstocksdf.merge(stocksdf,on="ETF成份证券代码",how="left")#左连接意味着结果DataFrame将包含etfstocksdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
-    etfstocksdf["申购金额"]=etfstocksdf["AskPrice1"]*etfstocksdf["成分证券数量"]
-    etfstocksdf["赎回金额"]=etfstocksdf["BidPrice1"]*etfstocksdf["成分证券数量"]
-
-    # etfstocksdf["ETF成份证券代码"]#根据成分券代码拼接买一卖一，计算申赎金额
+    #拼接etf详情数据0
+    etfinfodf=etfinfodf.rename(columns={"交易所代码":"ETF整体交易所代码",#成分券和ETF本身所在的交易所不同
+                                      "ETF申赎类型":"ETF整体申赎类型",
+                                      "ETF证券名称":"ETF整体证券名称",
+                                      })
+    etfstocksdf=etfstocksdf.merge(etfinfodf[["交易日","ETF整体交易所代码","ETF交易代码","ETF整体申赎类型","ETF整体证券名称","最小申购赎回单位份数",
+                                             "最大现金替代比例","预估现金差额","前一交易日现金差额","前一交易日基金单位净值",
+                                             "前一交易日申赎基准单位净值","当日申购赎回基准单位的红利金额",
+                                             ]],on=["ETF交易代码","交易日"],how="left")#成分券代码和申赎详情代码拼接
+    #拼接成分券数据
+    stocksdf=stocksdf.rename(columns={"SecurityID":"ETF成份证券代码",
+                                      "BidPrice1":"成分券BidPrice1",
+                                      "BidVolume1":"成分券BidVolume1",
+                                      "AskPrice1":"成分券AskPrice1",
+                                      "AskVolume1":"成分券AskVolume1",
+                                      "BidPrice2":"成分券BidPrice2",
+                                      "BidVolume2":"成分券BidVolume2",
+                                      "AskPrice2":"成分券AskPrice2",
+                                      "AskVolume2":"成分券AskVolume2",
+                                      "BidPrice3":"成分券BidPrice3",
+                                      "BidVolume3":"成分券BidVolume3",
+                                      "AskPrice3":"成分券AskPrice3",
+                                      "AskVolume3":"成分券AskVolume3",
+                                      "UpperLimitPrice":"成分券UpperLimitPrice",
+                                      "LowerLimitPrice":"成分券LowerLimitPrice",
+                                      })
+    etfstocksdf=etfstocksdf.merge(stocksdf[["ETF成份证券代码",]],on="ETF成份证券代码",how="left")#左连接意味着结果DataFrame将包含etfstocksdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
+    #拼接iopv数据
+    iopvdf=iopvdf.rename(columns={"SecurityID":"ETF交易代码",
+                                      "BidPrice1":"ETFBidPrice1",
+                                      "BidVolume1":"ETFBidVolume1",
+                                      "AskPrice1":"ETFAskPrice1",
+                                      "AskVolume1":"ETFAskVolume1",
+                                      "BidPrice2":"ETFBidPrice2",
+                                      "BidVolume2":"ETFBidVolume2",
+                                      "AskPrice2":"ETFAskPrice2",
+                                      "AskVolume2":"ETFAskVolume2",
+                                      "BidPrice3":"ETFBidPrice3",
+                                      "BidVolume3":"ETFBidVolume3",
+                                      "AskPrice3":"ETFAskPrice3",
+                                      "AskVolume3":"ETFAskVolume3",
+                                      "UpperLimitPrice":"ETFUpperLimitPrice",
+                                      "LowerLimitPrice":"ETFLowerLimitPrice",
+                                      })
+    etfstocksdf=etfstocksdf.merge(iopvdf[["ETF代码",]],on="ETF成份证券代码",how="left")#左连接意味着结果DataFrame将包含etfstocksdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
     
+    
+    
+    etfstocksdf["申购金额"]=etfstocksdf["成分券AskPrice1"]*etfstocksdf["成分证券数量"]
+    etfstocksdf["赎回金额"]=etfstocksdf["成分券BidPrice1"]*etfstocksdf["成分证券数量"]
+    etfstocksdf["ETF总申购金额"]=etfstocksdf.groupby('ETF交易代码')['申购金额'].transform('sum')
+    etfstocksdf["ETF总赎回金额"]=etfstocksdf.groupby('ETF交易代码')['赎回金额'].transform('sum')
+    # etfstocksdf["ETF成份证券代码"]#根据成分券代码拼接买一卖一，计算申赎金额
+    etfstocksdf.to_csv("etfstocksdf处理后.csv")
+    
+
     time.sleep(1000)
 
     # 【后续任务】如果无法计算三档深度，可以对手盘+滑点的模式计算冲击成本
