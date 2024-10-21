@@ -651,7 +651,7 @@ while True:
     # 1挂牌市场：挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
     # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理【但是没找到这个】
 
-    #拼接etf详情数据0
+    #拼接etf详情数据
     etfinfodf=etfinfodf.rename(columns={"交易所代码":"ETF整体交易所代码",#成分券和ETF本身所在的交易所不同
                                       "ETF申赎类型":"ETF整体申赎类型",
                                       "ETF证券名称":"ETF整体证券名称",
