@@ -57,7 +57,7 @@ wechatWindow = auto.WindowControl(searchDepth=1, Name="微信", ClassName='WeCha
 num=0
 while True:
     num+=1
-    if num>=240:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
+    if num>=248:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
         button = wechatWindow.ButtonControl(Name='收起')
         if button.Exists():
             print("有收起按钮无需重新打开")
@@ -92,7 +92,7 @@ while True:
         n=(num-m)/4#行数
         print(f"目前为为第{n}行{m}列")#每行四个用户，需要计算向下滚动的距离
         button.WheelDown(wheelTimes=int(math.floor(n*6/13)+3),#滚动次数【滚轮滚动6次跳过了13行】多跳几次避免点不到
-                                interval=0.1,#滚动间隔
+                                interval=0.15,#滚动间隔
                                 waitTime=0.1,#等待时间
                                 )#模拟鼠标向下滚动
 
