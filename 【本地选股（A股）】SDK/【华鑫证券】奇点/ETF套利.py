@@ -41,12 +41,12 @@ SZ_ShareHolderID='700030557'    #不同账号的股东代码需要接口ReqQrySh
 # B套：
 # 行情前置地址：tcp://210.14.72.16:9402
 # 交易前置地址：tcp://210.14.72.16:9500
-#【仿真】
-marketurl="tcp://210.14.72.21:4402"#主要是看iopv信息试试模拟盘是不是更准【说是全仿真环境的iopv是正常的】
-tradeurl="tcp://210.14.72.21:4400"
-# #【A套】
-# marketurl="tcp://210.14.72.16:9402"
-# tradeurl="tcp://210.14.72.15:4400"
+# #【仿真】
+# marketurl="tcp://210.14.72.21:4402"#主要是看iopv信息试试模拟盘是不是更准【说是全仿真环境的iopv是正常的】
+# tradeurl="tcp://210.14.72.21:4400"
+#【A套】
+marketurl="tcp://210.14.72.16:9402"
+tradeurl="tcp://210.14.72.15:4400"
 # #【B套】
 # marketurl="tcp://210.14.72.16:9402"
 # tradeurl="tcp://210.14.72.16:9500"
@@ -183,9 +183,9 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
                 "交易日":pETFBasketField.TradingDay,
                 "交易所代码":pETFBasketField.ExchangeID,
                 "ETF交易代码":pETFBasketField.ETFSecurityID,
-                "ETF成份证券代码":pETFBasketField.SecurityID,
-                "成分证券名称":pETFBasketField.SecurityName,
-                "成分证券数量":pETFBasketField.Volume,
+                "成份证券代码":pETFBasketField.SecurityID,
+                "成份证券名称":pETFBasketField.SecurityName,
+                "成份证券数量":pETFBasketField.Volume,
                 "现金替代标志":pETFBasketField.ETFCurrenceReplaceStatus,
                 "溢价比例":pETFBasketField.Premium,
                 "申购替代金额":pETFBasketField.CreationReplaceAmount,
@@ -281,16 +281,16 @@ while True:
                             '前一交易日现金差额','前一交易日基金单位净值','前一交易日申赎基准单位净值',
                             '当日申购赎回基准单位的红利金额','ETF申赎类型','ETF证券名称']:
                 etffile=True
-        #【验证ETF成分券信息】
+        #【验证ETF成份证券信息】
         etfstocksdf=pd.read_csv(f"ETF成份证券信息{start_time}.csv")
         etfstocksdf['ETF交易代码']=etfstocksdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
-        etfstocksdf['ETF成份证券代码']=etfstocksdf['ETF成份证券代码'].apply(lambda x:str(x).zfill(6))
+        etfstocksdf['成份证券代码']=etfstocksdf['成份证券代码'].apply(lambda x:str(x).zfill(6))
         etfstocksdf=etfstocksdf.iloc[:, 1:]#这样一样可以去掉第一行避免空数据干扰
         # etfstocksdf=etfstocksdf.drop('Unnamed: 0',axis=1)#去掉空白行【:不能错，不能多空格】
         if len(etfstocksdf)>100000:#平时110000
             print(etfstocksdf.columns.tolist(),type(etfstocksdf.columns.tolist()))
-            if etfstocksdf.columns.tolist()==['交易日','交易所代码','ETF交易代码','ETF成份证券代码',
-                            '成分证券名称','成分证券数量','现金替代标志','溢价比例',
+            if etfstocksdf.columns.tolist()==['交易日','交易所代码','ETF交易代码','成份证券代码',
+                            '成份证券名称','成份证券数量','现金替代标志','溢价比例',
                             '申购替代金额','赎回替代金额','挂牌市场','ETF申赎类型']:
                 etfbasket=True
     except Exception as e:
@@ -338,7 +338,7 @@ class MdSpi(xmdapi.CTORATstpXMdSpi):
                     sub_arr=[str(symbol).encode()]#
                     ret=self.__api.SubscribeMarketData(sub_arr,xmdapi.TORA_TSTP_EXD_SZSE)#TORA_TSTP_EXD_SZSE深交所
                     
-            for symbol in etfstocksdf["ETF成份证券代码"].tolist():
+            for symbol in etfstocksdf["成份证券代码"].tolist():
                 # symbol=str(index).zfill(6)#前面已经处理了
                 # print(symbol,type(symbol))
                 if str(symbol).startswith(("60","68","11")):#上交所"60","68","11"分别是上交所主板、上交所科创板、上交所可转债
@@ -549,7 +549,7 @@ def symbol_convert(stock):#股票代码加后缀
 # 【ETF申赎套利前一天成交额低于5000万的都不要看（大概300多只将近400只ETF符合日成交额5000w的标准）】使用akshre或者tushare验证最近10天的平均成交额，至少要近10天平均交易额大于100倍单份申购额，要不大概率是亏损的
 lastETFdf=etfinfodf.copy()
 try:
-    lastETFdf=pd.read_csv(f"ETF清单信息成交额过滤后{start_time}.csv")
+    lastETFdf=pd.read_csv(f"ETF清单信息含成交额{start_time}.csv")
     lastETFdf['ETF交易代码']=lastETFdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
     lastETFdf['ETF申赎代码']=lastETFdf['ETF交易代码'].apply(lambda x:str(x).zfill(6))
     print(lastETFdf)
@@ -596,7 +596,7 @@ except Exception as e:
     #     #print(symbol,thisdf)
     # print(len(lastETFdf))
 
-    lastETFdf.to_csv(f"ETF清单信息成交额过滤后{start_time}.csv")
+    lastETFdf.to_csv(f"ETF清单信息含成交额{start_time}.csv")
 
 lastETFdf=lastETFdf[(lastETFdf["15日平均成交额"]*1000)>(1000*(10**4))]#至少大于1000w{600多个}（实际上应该大于5000w{394个}）
 lastETFdf=lastETFdf[lastETFdf["前一交易日申赎基准单位净值"]<(lastETFdf["15日平均成交额"]*1000*0.01)]#单份申赎金额小于平均成交额的百分之一
@@ -611,37 +611,81 @@ print("处理后",len(etfinfodf))
 while True:
     time.sleep(5)#得等几秒任务启动之后才能获取其中的数据
     
+    #【iopv的tick数据处理】
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来【SecurityID是股票代码】
     iopvdf.to_csv('iopvdf.csv')
+    iopvdf=iopvdf.rename(columns={"SecurityID":"ETF交易代码",
+                                      "BidPrice1":"iopvBidPrice1",
+                                      "BidVolume1":"iopvBidVolume1",
+                                      "AskPrice1":"iopvAskPrice1",
+                                      "AskVolume1":"iopvAskVolume1",
+                                      "BidPrice2":"iopvBidPrice2",
+                                      "BidVolume2":"iopvBidVolume2",
+                                      "AskPrice2":"iopvAskPrice2",
+                                      "AskVolume2":"iopvAskVolume2",
+                                      "BidPrice3":"iopvBidPrice3",
+                                      "BidVolume3":"iopvBidVolume3",
+                                      "AskPrice3":"iopvAskPrice3",
+                                      "AskVolume3":"iopvAskVolume3",
+                                      "UpperLimitPrice":"iopvUpperLimitPrice",
+                                      "LowerLimitPrice":"iopvLowerLimitPrice",
+                                      })
+    iopvdf=iopvdf[[col for col in iopvdf.columns if (("iopv" in col) or (col=="ETF交易代码"))]]
+    print(iopvdf.columns)
     # nowdf=iopvdf.copy().groupby('SecurityID').apply(lambda x:x[-1:])#每一组只保留最后一行【下面另外两种方式也可以】
     # nowdf=iopvdf.copy().groupby('SecurityID').last().reset_index()
     # nowdf=iopvdf.copy().drop_duplicates(subset='SecurityID',keep='last')#怼到10000条之后数据就出来的快了
     # print(nowdf)
     # nowdf.to_csv('iopvdf处理后.csv')#前面验证过这里就不需要处理了
 
+    # 【stocks的tick数据处理】
     stocksdf=pd.DataFrame(spi.stocks)#spi里面的数据可以传输出来【SecurityID是股票代码】
     stocksdf.to_csv('stocksdf.csv')
-
-    #【】【策略执行细节说明】【】
-    # ETF套利策略会受基金公司限额问题，所以有时间不能全额实现策略，需要提前跟基金公司沟通好。
-    # 有一些规模大的ETF是T+2交易的需要融券还券，都是那些保险、证券公司自营盘在套。
-    # 一般来讲不做外盘ETF套利（外盘需要纯现金申赎），一个是汇率损失（申购赎回各有固定2%的汇率损失）一个是额度问题（高利润的标的开盘秒清散户基本抢不到），无法完全实现T+0，风险敞口极大。
+    stocksdf=stocksdf.rename(columns={"SecurityID":"成份证券代码",
+                                      "BidPrice1":"成份证券BidPrice1",
+                                      "BidVolume1":"成份证券BidVolume1",
+                                      "AskPrice1":"成份证券AskPrice1",
+                                      "AskVolume1":"成份证券AskVolume1",
+                                      "BidPrice2":"成份证券BidPrice2",
+                                      "BidVolume2":"成份证券BidVolume2",
+                                      "AskPrice2":"成份证券AskPrice2",
+                                      "AskVolume2":"成份证券AskVolume2",
+                                      "BidPrice3":"成份证券BidPrice3",
+                                      "BidVolume3":"成份证券BidVolume3",
+                                      "AskPrice3":"成份证券AskPrice3",
+                                      "AskVolume3":"成份证券AskVolume3",
+                                      "UpperLimitPrice":"成份证券UpperLimitPrice",
+                                      "LowerLimitPrice":"成份证券LowerLimitPrice",
+                                      })
+    stocksdf=stocksdf[[col for col in stocksdf.columns if ("成份证券" in col)]]
+    print(stocksdf.columns)
 
     # #【ETF申赎详情】
     # 0预估现金差额：在ETF套利中，"预估现金差额"是一个重要的概念，它指的是在ETF申购赎回过程中，由于一篮子股票的市值与ETF净值之间的差异，需要用现金来补足的部分。这个差额可能为正、为负或为零，具体取决于ETF净值与一篮子股票市值的比较。
-    etfinfodf=etfinfodf[(etfinfodf["前一交易日申赎基准单位净值"]<(100*(10**4)))]#只要单笔下单金额小于100w的标的
+    # etfinfodf=etfinfodf[(etfinfodf["前一交易日申赎基准单位净值"]<(100*(10**4)))]#只要单笔下单金额小于100w的标的【严重限制可交易标的的数量】
     etfinfodf=etfinfodf[(etfinfodf["最大现金替代比例"]<1)&(etfinfodf["最大现金替代比例"]>0)]#只要最大现金替代比例在（0，1）之间的标的
     # etfinfodf=etfinfodf[(etfinfodf["ETF申赎类型"]==0)]#0普通申赎，1实物申赎（0应该是不强制申赎类型了就，1可能是强制实物申赎{暂时没遇到}）
-    # #【ETF成分券详情】
+    etfinfodf=etfinfodf.rename(columns={"交易所代码":"ETF整体交易所代码",#成份证券和ETF本身所在的交易所不同
+                                      "ETF申赎类型":"ETF整体申赎类型",
+                                      "ETF证券名称":"ETF整体证券名称",
+                                      })
+    etfinfodf=etfinfodf[["交易日","ETF整体交易所代码","ETF交易代码","ETF整体申赎类型","ETF整体证券名称",
+            "最小申购赎回单位份数","最大现金替代比例","预估现金差额",
+            "前一交易日现金差额","前一交易日基金单位净值",
+            "前一交易日申赎基准单位净值","当日申购赎回基准单位的红利金额",
+            ]]
+    print("etfinfodf处理后",len(etfinfodf["ETF交易代码"].unique().tolist()))#剩下83个
+
+    # #【ETF成份证券详情】
     # print(len(etfstocksdf["ETF交易代码"].unique().tolist()))#996
-    #【eq("7").any()|x.eq('a').any()，因为输出成csv再读出来是字符串7了】
     etfstocksdf['是否特殊ETF'] = etfstocksdf.groupby('ETF交易代码')['挂牌市场'].transform(lambda x: 
                                                                               x.eq("7").any()
                                                                             #   |
-                                                                            #   x.eq('a').any()#x.eq('a').any()#暂时不单独去北交所标的
+                                                                            #   x.eq('a').any()#注释掉x.eq('a').any()#暂时不单独去北交所标的
                                                                               )
     etfstocksdf=etfstocksdf[etfstocksdf["是否特殊ETF"]!=True]#北交所和科创板流动性差尽量不要
-    print(len(etfstocksdf["ETF交易代码"].unique().tolist()))#单独去a的北交所剩下953（去掉了50多个），单独去7的外盘剩下808（去掉了188左右）
+    print("etfstocksdf处理后",len(etfstocksdf["ETF交易代码"].unique().tolist()))#剩下202个
+
     # 0现金替代标志：目前没碰到有禁止现金替代的标的，大部分都是1选项，3、4选项大部分是外盘或者可能是支持港股通（深股通、沪股通）的部分
     # TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
     # TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
@@ -649,65 +693,37 @@ while True:
     # TORA_TSTP_ETFCTSTAT_CBAllow(3):跨市退补现金替代
     # TORA_TSTP_ETFCTSTAT_CBForce(4):跨市必须现金替代
     # 1挂牌市场：挂牌市场不是1上交所A股、2深交所的部分A股，如7是境外市场，a是北交所主板【只保留不含北交所的】
-    # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理【但是没找到这个】
 
-    #拼接etf详情数据
-    etfinfodf=etfinfodf.rename(columns={"交易所代码":"ETF整体交易所代码",#成分券和ETF本身所在的交易所不同
-                                      "ETF申赎类型":"ETF整体申赎类型",
-                                      "ETF证券名称":"ETF整体证券名称",
-                                      })
-    etfstocksdf=etfstocksdf.merge(etfinfodf[["交易日","ETF整体交易所代码","ETF交易代码","ETF整体申赎类型","ETF整体证券名称","最小申购赎回单位份数",
-                                             "最大现金替代比例","预估现金差额","前一交易日现金差额","前一交易日基金单位净值",
-                                             "前一交易日申赎基准单位净值","当日申购赎回基准单位的红利金额",
-                                             ]],on=["ETF交易代码","交易日"],how="left")#成分券代码和申赎详情代码拼接
-    #拼接成分券数据
-    stocksdf=stocksdf.rename(columns={"SecurityID":"ETF成份证券代码",
-                                      "BidPrice1":"成分券BidPrice1",
-                                      "BidVolume1":"成分券BidVolume1",
-                                      "AskPrice1":"成分券AskPrice1",
-                                      "AskVolume1":"成分券AskVolume1",
-                                      "BidPrice2":"成分券BidPrice2",
-                                      "BidVolume2":"成分券BidVolume2",
-                                      "AskPrice2":"成分券AskPrice2",
-                                      "AskVolume2":"成分券AskVolume2",
-                                      "BidPrice3":"成分券BidPrice3",
-                                      "BidVolume3":"成分券BidVolume3",
-                                      "AskPrice3":"成分券AskPrice3",
-                                      "AskVolume3":"成分券AskVolume3",
-                                      "UpperLimitPrice":"成分券UpperLimitPrice",
-                                      "LowerLimitPrice":"成分券LowerLimitPrice",
-                                      })
-    etfstocksdf=etfstocksdf.merge(stocksdf[["ETF成份证券代码",]],on="ETF成份证券代码",how="left")#左连接意味着结果DataFrame将包含etfstocksdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
+    #拼接etfinfodf数据
+    lastdf=etfinfodf.copy()
+    #拼接etfstocksdf数据
+    lastdf=lastdf[lastdf["ETF交易代码"].isin(etfstocksdf["ETF交易代码"])]#只要两边都有的数据
+    lastdf=lastdf.merge(etfstocksdf,on=["ETF交易代码","交易日"],how="left")#成份证券代码和申赎详情代码拼接
+    #拼接成份证券数据
+    lastdf=lastdf.merge(stocksdf,on="成份证券代码",how="left")#左连接意味着结果DataFrame将包含lastdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
     #拼接iopv数据
-    iopvdf=iopvdf.rename(columns={"SecurityID":"ETF交易代码",
-                                      "BidPrice1":"ETFBidPrice1",
-                                      "BidVolume1":"ETFBidVolume1",
-                                      "AskPrice1":"ETFAskPrice1",
-                                      "AskVolume1":"ETFAskVolume1",
-                                      "BidPrice2":"ETFBidPrice2",
-                                      "BidVolume2":"ETFBidVolume2",
-                                      "AskPrice2":"ETFAskPrice2",
-                                      "AskVolume2":"ETFAskVolume2",
-                                      "BidPrice3":"ETFBidPrice3",
-                                      "BidVolume3":"ETFBidVolume3",
-                                      "AskPrice3":"ETFAskPrice3",
-                                      "AskVolume3":"ETFAskVolume3",
-                                      "UpperLimitPrice":"ETFUpperLimitPrice",
-                                      "LowerLimitPrice":"ETFLowerLimitPrice",
-                                      })
-    etfstocksdf=etfstocksdf.merge(iopvdf[["ETF代码",]],on="ETF成份证券代码",how="left")#左连接意味着结果DataFrame将包含etfstocksdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
-    
-    
-    
-    etfstocksdf["申购金额"]=etfstocksdf["成分券AskPrice1"]*etfstocksdf["成分证券数量"]
-    etfstocksdf["赎回金额"]=etfstocksdf["成分券BidPrice1"]*etfstocksdf["成分证券数量"]
-    etfstocksdf["ETF总申购金额"]=etfstocksdf.groupby('ETF交易代码')['申购金额'].transform('sum')
-    etfstocksdf["ETF总赎回金额"]=etfstocksdf.groupby('ETF交易代码')['赎回金额'].transform('sum')
-    # etfstocksdf["ETF成份证券代码"]#根据成分券代码拼接买一卖一，计算申赎金额
-    etfstocksdf.to_csv("etfstocksdf处理后.csv")
+    lastdf=lastdf.merge(iopvdf,on="ETF交易代码",how="left")#左连接意味着结果DataFrame将包含lastdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
     
 
-    time.sleep(1000)
+    
+
+    #计算iopv【iopv是上交所、深交所官方的推送，华鑫证券的仿真环境没有数据，交易所推送的是根据实时价格估算的】据说是估算
+    lastdf["申购金额"]=lastdf["成份证券AskPrice1"]*lastdf["成份证券数量"]
+    lastdf["赎回金额"]=lastdf["成份证券BidPrice1"]*lastdf["成份证券数量"]
+    lastdf["ETF总申购金额"]=lastdf.groupby('ETF交易代码')['申购金额'].transform('sum')
+    lastdf["ETF总赎回金额"]=lastdf.groupby('ETF交易代码')['赎回金额'].transform('sum')
+    # lastdf["成份证券代码"]#根据成份证券代码拼接买一卖一，计算申赎金额
+    lastdf.to_csv("lastdf处理后.csv")
+    print("完全处理后",len(lastdf["ETF交易代码"].unique().tolist()))#剩下80个标的
+    
+    # 滑点千五
+
+    # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理【必选股】
+
+    #【】【策略执行细节说明】【】
+    # ETF套利策略会受基金公司限额问题，所以有时间不能全额实现策略，需要提前跟基金公司沟通好。
+    # 有一些规模大的ETF是T+2交易的需要融券还券，都是那些保险、证券公司自营盘在套。
+    # 一般来讲不做外盘ETF套利（外盘需要纯现金申赎），一个是汇率损失（申购赎回各有固定2%的汇率损失）一个是额度问题（高利润的标的开盘秒清散户基本抢不到），无法完全实现T+0，风险敞口极大。
 
     # 【后续任务】如果无法计算三档深度，可以对手盘+滑点的模式计算冲击成本
     # 0.【【券商推送的iopv的延迟好像是3秒一次，理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
@@ -751,9 +767,9 @@ while True:
 # TORA_TSTP_EXD_HK(3):香港交易所
 # TORA_TSTP_EXD_BSE(4):北京证券交易所
 # ETFSecurityID	ETF交易代码	char(30)	
-# SecurityID	ETF成份证券代码	char(30)	
-# SecurityName	成分证券名称	char(80)	
-# Volume	成分证券数量	int	
+# SecurityID	成份证券代码	char(30)	
+# SecurityName	成份证券名称	char(80)	
+# Volume	成份证券数量	int	
 # ETFCurrenceReplaceStatus	现金替代标志	char(1)	
 # TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
 # TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
