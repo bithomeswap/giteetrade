@@ -41,13 +41,13 @@ SZ_ShareHolderID='700030557'    #不同账号的股东代码需要接口ReqQrySh
 # B套：
 # 行情前置地址：tcp://210.14.72.16:9402
 # 交易前置地址：tcp://210.14.72.16:9500
-# #【仿真】
-# marketurl="tcp://210.14.72.21:4402"#主要是看iopv信息试试模拟盘是不是更准【说是全仿真环境的iopv是正常的】
+# #【仿真】跟实盘数据更一致
+# marketurl="tcp://210.14.72.21:4402"
 # tradeurl="tcp://210.14.72.21:4400"
-#【A套】
+#【A套】个股价格有差异不适合测试
 marketurl="tcp://210.14.72.16:9402"
 tradeurl="tcp://210.14.72.15:4400"
-# #【B套】
+# #【B套】个股价格有差异不适合测试
 # marketurl="tcp://210.14.72.16:9402"
 # tradeurl="tcp://210.14.72.16:9500"
 
@@ -128,6 +128,67 @@ class TraderSpi(traderapi.CTORATstpTraderSpi):
     def QueryEtf(self,):#这里取出来的数据跟同花顺实盘的数据不完全一致
         self.QryETFFileField()
         self.QryETFBasketField()
+
+        # 72.查询ETF清单信息响应(RspQryETFFile)：
+        # 域字段	描述	类型	取值
+        # TradingDay	交易日	char(8)	
+        # ExchangeID	交易所代码	char(1)	
+        # TORA_TSTP_EXD_COMM(0):通用(内部使用)
+        # TORA_TSTP_EXD_SSE(1):上海交易所
+        # TORA_TSTP_EXD_SZSE(2):深圳交易所
+        # TORA_TSTP_EXD_HK(3):香港交易所
+        # TORA_TSTP_EXD_BSE(4):北京证券交易所
+        # ETFSecurityID	ETF交易代码	char(30)	
+        # ETFCreRedSecurityID	ETF申赎代码	char(30)	
+        # CreationRedemptionUnit	最小申购赎回单位份数	int	
+        # Maxcashratio	最大现金替代比例	double	
+        # EstimateCashComponent	预估现金差额	double	
+        # CashComponent	前一交易日现金差额	double	
+        # NAV	前一交易日基金单位净值	double	
+        # NAVperCU	前一交易日申赎基准单位净值	double	
+        # DividendPerCU	当日申购赎回基准单位的红利金额	double	
+        # ETFCreRedType	ETF申赎类型	char(1)	
+        # TORA_TSTP_CRT_IS(0):普通申赎
+        # TORA_TSTP_CRT_OS(1):实物申赎
+        # ETFSecurityName	ETF证券名称	char(80)	
+
+        # 73.查询ETF成份证券信息响应(RspQryETFBasket)：
+        # 域字段	描述	类型	取值
+        # TradingDay	交易日	char(8)	
+        # ExchangeID	交易所代码	char(1)	
+        # TORA_TSTP_EXD_COMM(0):通用(内部使用)
+        # TORA_TSTP_EXD_SSE(1):上海交易所
+        # TORA_TSTP_EXD_SZSE(2):深圳交易所
+        # TORA_TSTP_EXD_HK(3):香港交易所
+        # TORA_TSTP_EXD_BSE(4):北京证券交易所
+        # ETFSecurityID	ETF交易代码	char(30)	
+        # SecurityID	成份证券代码	char(30)	
+        # SecurityName	成份证券名称	char(80)	
+        # Volume	成份证券数量	int	
+        # ETFCurrenceReplaceStatus	现金替代标志	char(1)	
+        # TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
+        # TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
+        # TORA_TSTP_ETFCTSTAT_Force(2):必须现金替代
+        # TORA_TSTP_ETFCTSTAT_CBAllow(3):跨市退补现金替代
+        # TORA_TSTP_ETFCTSTAT_CBForce(4):跨市必须现金替代
+        # Premium	溢价比例	double	
+        # CreationReplaceAmount	申购替代金额	double	
+        # RedemptionReplaceAmount	赎回替代金额	double	
+        # MarketID	挂牌市场	char(1)	
+        # TORA_TSTP_MKD_COMMON(0):通用(内部使用)
+        # TORA_TSTP_MKD_SHA(1):上海A股
+        # TORA_TSTP_MKD_SZA(2):深圳A股
+        # TORA_TSTP_MKD_SHB(3):上海B股
+        # TORA_TSTP_MKD_SZB(4):深圳B股
+        # TORA_TSTP_MKD_SZThreeA(5):深圳三版A股
+        # TORA_TSTP_MKD_SZThreeB(6):深圳三版B股
+        # TORA_TSTP_MKD_Foreign(7):境外市场
+        # TORA_TSTP_MKD_SZHK(8):深圳港股通市场
+        # TORA_TSTP_MKD_SHHK(9):上海港股通市场
+        # TORA_TSTP_MKD_BJMain(a):北京主板
+        # ETFCreRedType	ETF申赎类型	char(1)	
+        # TORA_TSTP_CRT_IS(0):普通申赎
+        # TORA_TSTP_CRT_OS(1):实物申赎
 
     def QryETFFileField(self,):
         # 查询ETF清单信息
@@ -299,9 +360,9 @@ while True:
         print("数据已经获取成功任务结束")
         break
 
-# thistraderapi.Join()# 加入任务
-# input()# 等待程序结束[不确定几分钟结束]一直没结束
-thistraderapi.Release()# 释放接口对象
+# #thistraderapi.Join()# 加入任务【开启子线程】
+# # input()# 等待程序结束[不确定几分钟结束]一直没结束
+thistraderapi.Release()# 释放接口对象【希望在这里一起下单但是不释放就直接报错结束了尽量把其中的一部分开启子线程试试】
 
 
 
@@ -615,6 +676,7 @@ while True:
     iopvdf=pd.DataFrame(spi.iopv)#spi里面的数据可以传输出来【SecurityID是股票代码】
     iopvdf.to_csv('iopvdf.csv')
     iopvdf=iopvdf.rename(columns={"SecurityID":"ETF交易代码",
+                                      "LastPrice":"iopvLastPrice",
                                       "BidPrice1":"iopvBidPrice1",
                                       "BidVolume1":"iopvBidVolume1",
                                       "AskPrice1":"iopvAskPrice1",
@@ -642,6 +704,7 @@ while True:
     stocksdf=pd.DataFrame(spi.stocks)#spi里面的数据可以传输出来【SecurityID是股票代码】
     stocksdf.to_csv('stocksdf.csv')
     stocksdf=stocksdf.rename(columns={"SecurityID":"成份证券代码",
+                                      "LastPrice":"成份证券LastPrice",
                                       "BidPrice1":"成份证券BidPrice1",
                                       "BidVolume1":"成份证券BidVolume1",
                                       "AskPrice1":"成份证券AskPrice1",
@@ -697,103 +760,54 @@ while True:
     #拼接etfinfodf数据
     lastdf=etfinfodf.copy()
     #拼接etfstocksdf数据
-    lastdf=lastdf[lastdf["ETF交易代码"].isin(etfstocksdf["ETF交易代码"])]#只要两边都有的数据
+    lastdf=lastdf[lastdf["ETF交易代码"].isin(etfstocksdf["ETF交易代码"].unique().tolist())]#只要两边都有的标的，也就是两边的标准都符合了
     lastdf=lastdf.merge(etfstocksdf,on=["ETF交易代码","交易日"],how="left")#成份证券代码和申赎详情代码拼接
     #拼接成份证券数据
     lastdf=lastdf.merge(stocksdf,on="成份证券代码",how="left")#左连接意味着结果DataFrame将包含lastdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
     #拼接iopv数据
     lastdf=lastdf.merge(iopvdf,on="ETF交易代码",how="left")#左连接意味着结果DataFrame将包含lastdf中的所有行，如果stocksdf中有匹配的行，则会添加相应的列；如果没有匹配的行，则对应的列会用NaN（即“非数字”值）填充。
     
-
-    
-
-    #计算iopv【iopv是上交所、深交所官方的推送，华鑫证券的仿真环境没有数据，交易所推送的是根据实时价格估算的】据说是估算
-    lastdf["申购金额"]=lastdf["成份证券AskPrice1"]*lastdf["成份证券数量"]
-    lastdf["赎回金额"]=lastdf["成份证券BidPrice1"]*lastdf["成份证券数量"]
-    lastdf["ETF总申购金额"]=lastdf.groupby('ETF交易代码')['申购金额'].transform('sum')
-    lastdf["ETF总赎回金额"]=lastdf.groupby('ETF交易代码')['赎回金额'].transform('sum')
-    # lastdf["成份证券代码"]#根据成份证券代码拼接买一卖一，计算申赎金额
+    #计算iopv【iopv是上交所、深交所官方的推送，华鑫证券的仿真环境没有数据，交易所推送的是根据实时价格估算的】据说是估算，7*24小时模拟环境的标的价格跟实盘也有很大差异，可能模拟盘涨停了实盘并没有涨停，尽量用全仿真环境更贴近实盘一些
+    lastdf["申购卖出金额"]=lastdf["成份证券AskPrice1"]*lastdf["成份证券数量"]#申购时，需要按照卖价购买成分券，以卖一计算成分券的申购金额
+    lastdf["买入赎回金额"]=lastdf["成份证券BidPrice1"]*lastdf["成份证券数量"]#赎回时，需要按照买价卖出成分券，以买一计算成分券的赎回金额
+    lastdf["ETF总申购卖出金额"]=lastdf.groupby('ETF交易代码')['申购卖出金额'].transform('sum')
+    lastdf["ETF总买入赎回金额"]=lastdf.groupby('ETF交易代码')['买入赎回金额'].transform('sum')
+    #判断执行单笔买入赎回或者申购需要买入或者卖出的ETF的金额
+    lastdf["单笔申购卖出金额"]=lastdf["iopvBidPrice1"]*lastdf["最小申购赎回单位份数"]#申购ETF，需要在盘口卖出
+    lastdf["单笔买入赎回金额"]=lastdf["iopvAskPrice1"]*lastdf["最小申购赎回单位份数"]#赎回ETF，需要在盘口买入
+    #标记ETF涨停、跌停
+    lastdf.loc[lastdf["iopvLastPrice"]==lastdf["iopvUpperLimitPrice"],"ETF涨停"]=1
+    lastdf.loc[lastdf["iopvLastPrice"]==lastdf["iopvLowerLimitPrice"],"ETF跌停"]=1
+    #标记成份证券涨停、跌停
+    lastdf.loc[lastdf["成份证券LastPrice"]==lastdf["成份证券UpperLimitPrice"],"成份证券涨停"]=1
+    lastdf.loc[lastdf["成份证券LastPrice"]==lastdf["成份证券LowerLimitPrice"],"成份证券跌停"]=1
+    # #计算申购折价溢价率
+    # lastdf["申购卖出溢价率"]=lastdf["ETF总申购卖出金额"]/lastdf["单笔申购卖出金额"]-1#申购卖出
+    # lastdf["买入赎回溢价率"]=lastdf["单笔买入赎回金额"]/lastdf["ETF总买入赎回金额"]-1#买入赎回
+    # #计算申购赎回利润需要分别去掉涨停无法买入并赎回的、跌停无法申购并卖出的
+    # lastdf=lastdf[lastdf["ETF涨停"]!=1]
+    # lastdf=lastdf[lastdf["ETF跌停"]!=1]
+    #计算申购折价溢价率【对ETF涨跌停进行了特殊处理】
+    lastdf.loc[lastdf["ETF跌停"]!=1,"申购卖出溢价率"]=lastdf["ETF总申购卖出金额"]/lastdf["单笔申购卖出金额"]-1#申购卖出
+    lastdf.loc[lastdf["ETF涨停"]!=1,"买入赎回溢价率"]=lastdf["单笔买入赎回金额"]/lastdf["ETF总买入赎回金额"]-1#买入赎回
     lastdf.to_csv("lastdf处理后.csv")
     print("完全处理后",len(lastdf["ETF交易代码"].unique().tolist()))#剩下80个标的
-    
-    # 滑点千五
+
+
 
     # etfstocksdf[etfstocksdf["现金替代标志"]==0]#不能现金替代的需要单独处理【必选股】
-
-    #【】【策略执行细节说明】【】
-    # ETF套利策略会受基金公司限额问题，所以有时间不能全额实现策略，需要提前跟基金公司沟通好。
-    # 有一些规模大的ETF是T+2交易的需要融券还券，都是那些保险、证券公司自营盘在套。
-    # 一般来讲不做外盘ETF套利（外盘需要纯现金申赎），一个是汇率损失（申购赎回各有固定2%的汇率损失）一个是额度问题（高利润的标的开盘秒清散户基本抢不到），无法完全实现T+0，风险敞口极大。
-
-    # 【后续任务】如果无法计算三档深度，可以对手盘+滑点的模式计算冲击成本
+    # 【添加交易模块】
+    # 【后续任务】如果无法计算三档深度，可以对手盘+滑点的模式计算冲击成本后重新计算价格【滑点设置为千分之五】
     # 0.【【券商推送的iopv的延迟好像是3秒一次，理论上应该自己算更快一些】】有人实盘半自动{手动点}试过大概十几秒能完成一次套利
     # 1.根据订阅的股票价格和ETF价格，通过成分股换算IOPV价格，计算实际折价率【bidiopv和askiopv】
     # 2.ETF成分股涨停板处理和必选股处理【部分标的不允许现金替代】
     # 3.全市场限购额度、单账户最大申赎金额吗【这俩函数是用来解决ETF限额问题的，在外盘尤其要注意，内盘也经常会遇到】
+    # 【注意事项】
+    # 4.注意事项：ETF套利策略会受基金公司限额问题，所以有时间不能全额实现策略，需要提前跟基金公司沟通好。
+    # 5.注意事项：有一些规模大的ETF是T+2交易的需要融券还券，都是那些保险、证券公司自营盘在套。
+    # 6.注意事项：一般来讲不做外盘ETF套利（外盘需要纯现金申赎），一个是汇率损失（申购赎回各有固定2%的汇率损失）一个是额度问题（高利润的标的开盘秒清散户基本抢不到），无法完全实现T+0，风险敞口极大。
 
 
-
-# 72.查询ETF清单信息响应(RspQryETFFile)：
-# 域字段	描述	类型	取值
-# TradingDay	交易日	char(8)	
-# ExchangeID	交易所代码	char(1)	
-# TORA_TSTP_EXD_COMM(0):通用(内部使用)
-# TORA_TSTP_EXD_SSE(1):上海交易所
-# TORA_TSTP_EXD_SZSE(2):深圳交易所
-# TORA_TSTP_EXD_HK(3):香港交易所
-# TORA_TSTP_EXD_BSE(4):北京证券交易所
-# ETFSecurityID	ETF交易代码	char(30)	
-# ETFCreRedSecurityID	ETF申赎代码	char(30)	
-# CreationRedemptionUnit	最小申购赎回单位份数	int	
-# Maxcashratio	最大现金替代比例	double	
-# EstimateCashComponent	预估现金差额	double	
-# CashComponent	前一交易日现金差额	double	
-# NAV	前一交易日基金单位净值	double	
-# NAVperCU	前一交易日申赎基准单位净值	double	
-# DividendPerCU	当日申购赎回基准单位的红利金额	double	
-# ETFCreRedType	ETF申赎类型	char(1)	
-# TORA_TSTP_CRT_IS(0):普通申赎
-# TORA_TSTP_CRT_OS(1):实物申赎
-# ETFSecurityName	ETF证券名称	char(80)	
-
-
-# 73.查询ETF成份证券信息响应(RspQryETFBasket)：
-# 域字段	描述	类型	取值
-# TradingDay	交易日	char(8)	
-# ExchangeID	交易所代码	char(1)	
-# TORA_TSTP_EXD_COMM(0):通用(内部使用)
-# TORA_TSTP_EXD_SSE(1):上海交易所
-# TORA_TSTP_EXD_SZSE(2):深圳交易所
-# TORA_TSTP_EXD_HK(3):香港交易所
-# TORA_TSTP_EXD_BSE(4):北京证券交易所
-# ETFSecurityID	ETF交易代码	char(30)	
-# SecurityID	成份证券代码	char(30)	
-# SecurityName	成份证券名称	char(80)	
-# Volume	成份证券数量	int	
-# ETFCurrenceReplaceStatus	现金替代标志	char(1)	
-# TORA_TSTP_ETFCTSTAT_Forbidden(0):禁止现金替代
-# TORA_TSTP_ETFCTSTAT_Allow(1):可以现金替代
-# TORA_TSTP_ETFCTSTAT_Force(2):必须现金替代
-# TORA_TSTP_ETFCTSTAT_CBAllow(3):跨市退补现金替代
-# TORA_TSTP_ETFCTSTAT_CBForce(4):跨市必须现金替代
-# Premium	溢价比例	double	
-# CreationReplaceAmount	申购替代金额	double	
-# RedemptionReplaceAmount	赎回替代金额	double	
-# MarketID	挂牌市场	char(1)	
-# TORA_TSTP_MKD_COMMON(0):通用(内部使用)
-# TORA_TSTP_MKD_SHA(1):上海A股
-# TORA_TSTP_MKD_SZA(2):深圳A股
-# TORA_TSTP_MKD_SHB(3):上海B股
-# TORA_TSTP_MKD_SZB(4):深圳B股
-# TORA_TSTP_MKD_SZThreeA(5):深圳三版A股
-# TORA_TSTP_MKD_SZThreeB(6):深圳三版B股
-# TORA_TSTP_MKD_Foreign(7):境外市场
-# TORA_TSTP_MKD_SZHK(8):深圳港股通市场
-# TORA_TSTP_MKD_SHHK(9):上海港股通市场
-# TORA_TSTP_MKD_BJMain(a):北京主板
-# ETFCreRedType	ETF申赎类型	char(1)	
-# TORA_TSTP_CRT_IS(0):普通申赎
-# TORA_TSTP_CRT_OS(1):实物申赎
 
 
 
@@ -801,3 +815,550 @@ while True:
 # input()# 等待程序结束[不确定几分钟结束]一直没结束
 thisxmdapi.Release()# 释放接口对象
 
+
+
+
+
+#【订单处理】
+# ordernum=0#初始化当前交易轮次为0
+# dfaccount=pd.DataFrame({"账号余额":[0],"持仓金额":[0]})#初始化持仓金额【只初始化一次，不要重置】
+# dfordercancelled=pd.DataFrame({})#初始化存储已经撤销订单的列表【只初始化一次，不要重置】
+# while True:
+#     time.sleep(1)#休息一秒，避免空转
+#     dfordersall=pd.DataFrame({})#初始化存储全部订单的列表【每一轮都可以重置】
+#     logger.info(f"******,订单管理（标准时间）,{datetime.datetime.utcnow()},订单管理（东八区）,{datetime.datetime.utcnow()+datetime.timedelta(hours=8)},当前交易轮次,{ordernum}")
+#     ordernum+=1
+#     #撤单管理【尚未完成】
+#     if ordernum%10==0:
+#         logger.info(f"交易轮次达标{ordernum}，执行撤单任务")
+#         #获取所有订单对未完成订单进行处理
+#         allorderalls=main_engine.get_all_orders()
+#         for thisorder in allorderalls:
+#             #logger.info(f"thisorder,{thisorder}")
+#             thissymbol=str(thisorder.symbol)
+#             exchange=allcontracts.loc[allcontracts["symbol"]==str(thissymbol),"exchange"].values.tolist()[0].split(".")[1]
+#             try:
+#                 if (type(thisorder.datetime)!=str)and((thisorder.datetime)!=None):#只处理既不是空值又不是字符串的情况
+#                     thisorder.datetime=str(thisorder.datetime.strftime("%Y-%m-%d %H:%M:%S,%f %Z%z"))
+#             except Exception as e:
+#                 logger.info(f"******订单时间标准化报错，报错信息{e},thisorder详情{thisorder}")
+#             thisorderdf=pd.DataFrame([thisorder])
+#             dfordersall=pd.concat([dfordersall,thisorderdf])
+#             orderstatus=thisorder.status#获取订单状态
+#             vt_orderid=thisorder.vt_orderid#获取订单id
+#             orderprice=thisorder.price#获取下单价格
+#             ordertraded=thisorder.traded#获取已成交数量
+#             ordervolume=thisorder.volume#获取总下单数量
+#             if cancellorder:#如果cancellorder设置为true则执行以下撤单流程【最低撤单金额一万元】
+#                 ##针对未完全成交的订单进行处理
+#                 #Status.PARTTRADED：部分成交，Status.ALLTRADED：全部成交  
+#                 #Status.CANCELLED：已经撤销，拒绝订单
+#                 if (orderstatus!=Status.ALLTRADED):
+#                     if (orderstatus!=Status.CANCELLED)and(orderstatus!=Status.REJECTED):
+#                         logger.info(f"******,不是已成交订单、撤销订单和被拒绝订单,{vt_orderid}")
+#                         #60秒内不成交就撤单【这个是要小于当前时间，否则就一直无法执行】
+#                         thisordertime=dateutil.parser.parse(thisorder.datetime).replace(tzinfo=datetime.datetime.utcnow().tzinfo)
+#                         logger.info(thisordertime)
+#                         now=datetime.datetime.utcnow()+datetime.timedelta(hours=8)
+#                         logger.info(f"thisordertime,{thisordertime},{now}处理开始")
+#                         if thisordertime+datetime.timedelta(seconds=timecancellwait)<now:
+#                             logger.info(f"******,超时撤单,{vt_orderid},{thissymbol},{ordervolume},{ordertraded}")
+#                             if (ordertraded*orderprice>targetmoney):
+#                                 try:
+#                                     main_engine.cancel_order(thisorder.create_cancel_request(),thisorder.gateway_name)
+#                                     logger.info(f"******,已成交金额达标执行撤单,{vt_orderid}")
+#                                 except Exception as e:
+#                                     logger.info(f"******报错信息{e},已完成或取消中的条件单不允许取消")
+#                             elif ordertraded==0:#未成交撤单
+#                                 try:#如果该委托已成交或者已撤单则会报错
+#                                     main_engine.cancel_order(thisorder.create_cancel_request(),thisorder.gateway_name)
+#                                     logger.info(f"******,下单后一直未成交执行撤单,{vt_orderid}")
+#                                 except Exception as e:
+#                                     logger.info(f"******报错信息{e},已完成或取消中的条件单不允许取消")
+#                 direction=thisorder.direction
+#                 if buyorderroad==True:#只在买入线程当中进行撤销订单的余额回补
+#                     #这里只计算BUY方向的订单
+#                     if ((direction)==Direction.LONG):
+#                         if (orderstatus==Status.CANCELLED):
+#                             cancel_amount=ordervolume-ordertraded
+#                             logger.info(f"******,撤单成功,{vt_orderid},{thissymbol},{ordervolume},{ordertraded}")
+#                             if dfordercancelled.empty:#dfordercancelled一开始是个空值，这里主要是确认一下之前有没有数据，有数据才需要检验之前是否撤销过
+#                                 dfordercancelled=pd.concat([dfordercancelled,thisorderdf],ignore_index=True)
+#                                 cancel_money=cancel_amount*orderprice#然后就是计算撤销了的订单的未完成金额，加给下单金额当中
+#                                 moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]+=cancel_money
+#                             else:
+#                                 if thisorder.orderid not in dfordercancelled["orderid"].tolist():
+#                                     dfordercancelled=pd.concat([dfordercancelled,thisorderdf],ignore_index=True)
+#                                     cancel_money=cancel_amount*orderprice#然后就是计算撤销了的订单的未完成金额，加给下单金额当中
+#                                     moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]+=cancel_money
+#                         elif (orderstatus==Status.REJECTED):
+#                             cancel_amount=ordervolume
+#                             #logger.info(f"******,废单处理",vt_orderid,thissymbol,ordervolume,ordertraded)
+#                             if dfordercancelled.empty:#dfordercancelled一开始是个空值，这里主要是确认一下之前有没有数据，有数据才需要检验之前是否撤销过
+#                                 dfordercancelled=pd.concat([dfordercancelled,thisorderdf],ignore_index=True)
+#                                 cancel_money=cancel_amount*orderprice#然后就是计算撤销了的订单的未完成金额，加给下单金额当中
+#                                 moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]+=cancel_money
+#                             if thisorder.orderid not in dfordercancelled["orderid"].tolist():
+#                                 dfordercancelled=pd.concat([dfordercancelled,thisorderdf],ignore_index=True)
+#                                 cancel_money=cancel_amount*orderprice#然后就是计算撤销了的订单的未完成金额，加给下单金额当中
+#                                 moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]+=cancel_money
+#         dfordersall.to_csv(f"{basepath}{start_date}/{accountid}{test}___dfordersall.csv")#输出所有未全部成交的订单【针对所有订单】
+#         dfordercancelled.to_csv(f"{basepath}{start_date}/{accountid}{test}___dfordercancelled.csv")#输出已经撤销或者作废的订单【只针对的买入订单】
+#     #获取账号详情
+#     account=main_engine.get_account(f"{TRADE_TYPE}.{accountid}")
+#     logger.info(f"account,{account}")
+#     if not hasattr(account, "balance"):
+#         logger.info(f"等待账户数据") 
+#     else:#只有引擎已经启动并且account对象具有balance属性的时候才执行下一步
+#         accountbalance=account.balance
+#         logger.info(f"资金余额,{accountbalance}")
+#         dfaccount["账号余额"]=accountbalance
+#         #获取所有订阅标的的tick
+#         dfallticks=pd.DataFrame({})
+#         allticks=main_engine.get_all_ticks()
+#         for tick in allticks: #五档买入参数准备
+#             thissymbol=str(tick.symbol)
+#             exchange=allcontracts.loc[allcontracts["symbol"]==str(thissymbol),"exchange"].values.tolist()[0].split(".")[1]
+#             if (type(tick.datetime)!=str):#将时间类型不是字符串的tcik数据进行处理
+#                 tick.datetime=tick.datetime.strftime("%Y-%m-%d %H:%M:%S,%f %Z%z")
+#             thistickdf=pd.DataFrame([tick])
+#             dfallticks=pd.concat([dfallticks,thistickdf])
+#         if dfallticks.empty:
+#             logger.info(f"等待tick数据")
+#         else:#只针对dfallticks不为空的情况进行处理
+#             dfallticks["wap_price"]=(dfallticks["bid_price_1"]*dfallticks["bid_volume_1"]+dfallticks["ask_price_1"]*dfallticks["ask_volume_1"])/(dfallticks["bid_volume_1"] + dfallticks["ask_volume_1"])
+#             #获取持仓详情
+#             dfallpositions=pd.DataFrame({})
+#             allpositions=pd.DataFrame(main_engine.get_all_positions())
+#             sellsymbol=[]
+#             nostocks=0#验证是否有持仓标的的tick没有获取成功
+#             if (allpositions.empty):
+#                 logger.info(f"allpositions为空值等待数据获取{allpositions}")
+#                 if(ordernum>targetordernum):
+#                     sellorderroad=True
+#                     logger.info(f"持仓为空值,但是交易轮次达到{ordernum}轮{sellorderroad}")
+#             else:#只有引擎已经启动并且有返回值的时候才执行
+#                 logger.info(f"allpositions不为空值执行卖出确认{allpositions}")
+#                 for thisposition in allpositions.iterrows():
+#                     thisposition=thisposition[1]
+#                     thissymbol=thisposition.symbol
+#                     exchange=allcontracts.loc[allcontracts["symbol"]==str(thissymbol),"exchange"].values.tolist()[0].split(".")[1]
+#                     gateway_name=allcontracts.loc[allcontracts["symbol"]==str(thissymbol),"gateway_name"].values.tolist()[0]
+#                     #订阅已经持仓的标的
+#                     main_engine.subscribe(
+#                         req=SubscribeRequest(symbol=str(thissymbol),exchange=Exchange(exchange)),
+#                         gateway_name=str(gateway_name),
+#                     )
+#                     if (thissymbol not in dfallticks["symbol"].tolist()):
+#                         nostocks+=1
+#                     if (thissymbol in dfallticks["symbol"].tolist()):#需要订阅这个标的成功并且返回tick之后才能执行
+#                         logger.info(f"{thissymbol}已经订阅可以执行")
+#                         #拼接持仓详情
+#                         positionprice=dfallticks[dfallticks["symbol"]==str(thissymbol)]["wap_price"].values[0]
+#                         thispositiondf=pd.DataFrame(thisposition).T
+#                         thispositiondf["wap_price"]=positionprice
+#                         logger.info(f"thispositiondf,{thispositiondf},volume,{thisposition.volume}")
+#                         if thisposition.volume>0:#持仓数量大于0
+#                             dfallpositions=pd.concat([dfallpositions,thispositiondf])
+#                             dfallpositions["positionmoney"]=dfallpositions["volume"]*dfallpositions["wap_price"]
+#                             allpositionmoney=dfallpositions["positionmoney"].sum()
+#                             dfaccount["持仓金额"]=allpositionmoney
+#                             logger.info(f"{thissymbol}持仓数量大于0")
+#                             if (buyorderroad==False):#只在非买入线程执行卖出计划
+#                                 logger.info(f"{thissymbol}正在执行卖出线程")
+#                                 if (thissymbol not in selldf["symbol"].tolist()):#确认是否有应卖出未卖出标的
+#                                     sellsymbol.append(thissymbol)
+#                                     logger.info(f"待卖出标的,{thissymbol},所有待卖出标的,{sellsymbol}")
+#                                     #volume总数量frozen冻结数量yd_volume昨日持仓数量
+#                                     available_amount=thisposition.yd_volume-thisposition.frozen
+#                                     if available_amount>0:#【可卖出数量大于0】昨日持仓数量减去当前冻结数量大于0
+#                                         logger.info(f"{thissymbol}昨日持仓数量减去当前冻结数量大于0")
+#                                         if thissymbol in dfallticks["symbol"].tolist():
+#                                             selltick=dfallticks[dfallticks["symbol"]==str(thissymbol)]
+#                                             logger.info(f"{thissymbol}已经订阅可以进行处理{selltick}")
+#                                             ask_price_1=selltick["ask_price_1"].values[0]
+#                                             ask_volume_1=selltick["ask_volume_1"].values[0]
+#                                             bid_price_1=selltick["bid_price_1"].values[0]
+#                                             bid_volume_1=selltick["bid_volume_1"].values[0]
+#                                             logger.info(f"卖出准备,{exchange},{gateway_name},{ask_price_1},{ask_volume_1},{bid_price_1},{bid_volume_1}")
+#                                             #对ticktime的时区进行处理
+#                                             ticktime=dateutil.parser.parse(selltick["datetime"].values[0]).replace(tzinfo=datetime.datetime.utcnow().tzinfo)
+#                                             now=datetime.datetime.utcnow()+datetime.timedelta(hours=8)
+#                                             logger.info(f"ticktime,{ticktime}{type(ticktime)},{now}处理开始")
+#                                             if ticktime+datetime.timedelta(seconds=timetickwait)>now:
+#                                                 logger.info(f"ticktime较近适宜下单")
+#                                                 if ((thissymbol.startswith("12")) or (thissymbol.startswith("11"))):#针对11开头或者12开头的转债单独处理
+#                                                     logger.info(f"******,可转债策略")
+#                                                     if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
+#                                                         logger.info(f"******,盘口价差适宜，适合执行交易")
+#                                                         if tradeway=="maker":
+#                                                             if (available_amount*ask_price_1)<(traderate*targetmoney):
+#                                                                 logger.info(f"******,剩余全部卖出")
+#                                                                 sellvolume=(math.floor(available_amount/10))*10
+#                                                                 sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=ask_price_1,
+#                                                                         #reference=f"strategy_测试"
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                 logger.info(sellorder)
+#                                                             else:#限价卖出最小下单金额
+#                                                                 logger.info(f"******,卖出目标金额")
+#                                                                 sellvolume=(math.floor(((targetmoney/ask_price_1))/10))*10
+#                                                                 if (available_amount*ask_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
+#                                                                     sellvolume*=10
+#                                                                 sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=ask_price_1,
+#                                                                         #reference=f"strategy_测试"
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                 logger.info(sellorder)
+#                                                         if tradeway=="taker":
+#                                                             if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【对手盘一档买入】                                            
+#                                                                 if (available_amount*bid_price_1)<(traderate*targetmoney):
+#                                                                     logger.info(f"******,剩余全部卖出")
+#                                                                     sellvolume=(math.floor(available_amount/10))*10
+#                                                                     sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=bid_price_1,
+#                                                                         #reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                     logger.info(sellorder)
+#                                                                 else:#限价卖出最小下单金额
+#                                                                     logger.info(f"******,卖出目标金额")
+#                                                                     sellvolume=(math.floor((targetmoney/bid_price_1)/10))*10
+#                                                                     if (available_amount*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
+#                                                                         sellvolume*=10
+#                                                                     sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=bid_price_1,
+#                                                                         #reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                     logger.info(f"{sellorder}")
+#                                                 else:
+#                                                     logger.info(f"******,个股策略")
+#                                                     if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
+#                                                         logger.info(f"******,盘口价差适宜，适合执行交易")
+#                                                         if tradeway=="maker":
+#                                                             if (available_amount*ask_price_1)<(traderate*targetmoney):
+#                                                                 logger.info(f"******,剩余全部卖出")
+#                                                                 sellvolume=(math.floor(available_amount/100))*100
+#                                                                 sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=ask_price_1,
+#                                                                         #reference=f"strategy_测试"
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                 logger.info(sellorder)
+#                                                             else:#限价卖出最小下单金额
+#                                                                 logger.info(f"******,卖出目标金额")
+#                                                                 sellvolume=(math.floor(((targetmoney/ask_price_1))/100))*100
+#                                                                 if (available_amount*ask_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
+#                                                                     sellvolume*=10
+#                                                                 sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=ask_price_1,
+#                                                                         #reference=f"strategy_测试"
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                 logger.info(sellorder)
+#                                                         if tradeway=="taker":
+#                                                             if (bid_price_1*bid_volume_1)>targetmoney:#盘口深度【对手盘一档买入】                                            
+#                                                                 if (available_amount*bid_price_1)<(traderate*targetmoney):
+#                                                                     logger.info(f"******,剩余全部卖出")
+#                                                                     sellvolume=(math.floor(available_amount/100))*100
+#                                                                     sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=bid_price_1,
+#                                                                         #reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                     logger.info(sellorder)
+#                                                                 else:#限价卖出最小下单金额
+#                                                                     logger.info(f"******,卖出目标金额")
+#                                                                     sellvolume=(math.floor((targetmoney/bid_price_1)/100))*100
+#                                                                     if (available_amount*bid_price_1)>500000:#针对余额高于500000的标的单独扩大下单数量
+#                                                                         sellvolume*=10
+#                                                                     sellorder=main_engine.send_order(req=OrderRequest(
+#                                                                         symbol=thissymbol,
+#                                                                         exchange=Exchange(exchange),
+#                                                                         direction=Direction.SHORT, #卖出
+#                                                                         type=OrderType.LIMIT, #限价单
+#                                                                         volume=sellvolume,
+#                                                                         price=bid_price_1,
+#                                                                         #reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                         ),
+#                                                                         gateway_name=str(gateway_name))#下单
+#                                                                     logger.info(f"{sellorder}")
+#                     sellorderroad=True
+#                     logger.info(f"持仓不为空值,等待应卖出持仓卖出{ordernum}轮{sellorderroad}")
+#             if sellorderroad==True:#交易轮次数ordernum大于200才进行金额重置
+#                 dfallpositions.to_csv(f"{basepath}{start_date}/{accountid}{test}___dfallpositions.csv")
+#                 dfallticks.to_csv(f"{basepath}{start_date}/{accountid}{test}___dfallticks.csv")
+#                 dfaccount.to_csv(f"{basepath}{start_date}/{accountid}{test}___dfaccount.csv")
+#                 if (len(sellsymbol)==0) and (buyorderroad==False):#没有需要卖出的标的才执行，并且只能在刚刚由卖出线程转换成买入线程的时候使用
+#                     logger.info(f"没有需要卖出的标的计算交易金额")
+#                     if nostocks==0:
+#                         logger.info(f"所有持仓标的均已经订阅")
+#                         buyorderroad=True#启动买入计划
+#                         initmoney=dfaccount["账号余额"].values[0]+dfaccount["持仓金额"].values[0] #设置主账号初始仓位（一百万）
+#                         if initmoney>maxmoney:
+#                             initmoney=maxmoney
+#                             logger.info(f"initmoney金额过高重置为{initmoney}")
+#                         premoney=initmoney/targetnum
+#                         buydf["moneymanage"]=premoney
+#                         moneymanage=buydf[["symbol", "moneymanage"]]
+#                         if dfallpositions.empty:
+#                             logger.info(f"第一次建仓无需重置金额")
+#                         else:
+#                             logger.info(f"已有持仓需调整下单金额")
+#                             if (targetnum-len(dfallpositions)>=0):
+#                                 moneymanage=moneymanage[~moneymanage["symbol"].isin(dfallpositions["symbol"].tolist())] #重置之前需要把在卖出selldf中的标的在moneymanage当中去掉
+#                                 moneymanage=moneymanage[:(targetnum-len(dfallpositions))] #这里减去的是持仓股票数量，然后在持仓标的中选择金额不足的向上拼接                                    
+#                                 logger.info(f"卖出计划结束，已根据持仓情况调整下单计划,{moneymanage}")
+#                                 for thispostion in dfallpositions.iterrows():
+#                                     thispostion=thispostion[1]
+#                                     thissymbol=thispostion.symbol
+#                                     logger.info(f"针对持仓状态对下单金额进行调整{thispostion.symbol},thisposition,{thisposition},thisposition.volume{thisposition.volume},{type(thisposition.volume)}")
+#                                     if float(thisposition.volume)>0:
+#                                         positionmoney=dfallpositions[dfallpositions["symbol"]==str(thissymbol)]["positionmoney"].iloc[0]
+#                                         logger.info(f"有持仓需要调整,{thissymbol},thisposition,{thisposition},positionmoney,{positionmoney}")
+#                                         if thissymbol not in moneymanage["symbol"].tolist():
+#                                             newdata=pd.DataFrame([{"symbol":str(thissymbol),"moneymanage":(premoney-positionmoney)}])
+#                                             moneymanage=pd.concat([moneymanage,newdata],ignore_index=True)
+#                                             logger.info(f"******,拼接上之前应买入未买全的股票，之后最新的下单金额计划,{moneymanage}")
+#                                         elif thissymbol in moneymanage["symbol"].tolist():
+#                                             moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]=(premoney-positionmoney)
+#                                             logger.info(f"******,更新完之前应买入未买全的股票，之后最新的下单金额计划,{moneymanage}")
+#                             else:#持仓数量大于等于目标数量【直接对持仓标的当中金额不足的进行处理】
+#                                 logger.info(f"******,持仓数量超过目标数量无法重置金额请尽快处理")
+#                         moneymanage["目标金额"]=moneymanage["moneymanage"].copy()
+#                         logger.info(f"moneymanage,{moneymanage}")
+#                         ##根据可用资金比例，重新设置单股下单金额【目的是想把剩余资金利用起来】
+#                         #available_cash=dfaccount["账号余额"].values[0]
+#                         #turnrate=available_cash/(moneymanage["moneymanage"].sum())
+#                         #logger.info(available_cash,moneymanage["moneymanage"].sum())
+#                         #moneymanage["moneymanage"]=moneymanage["moneymanage"]*turnrate
+#                         #logger.info(f"调整比例,{turnrate},处理后,{moneymanage}")
+#             if (buyorderroad):#如果持仓真的是空值的话就直接下单【不过需要小心引擎刚启动数据还没过来的情况】
+#                 if onlysell==True:
+#                     logger.info(f"清理仓位任务已经完成")
+#                     break
+#                 moneymanage.to_csv(f"{basepath}{start_date}/{accountid}{test}___moneymanage.csv")
+#                 logger.info(f"买入准备,buyorderroad,{buyorderroad}")
+#                 for thissymbol in moneymanage["symbol"].tolist():#如果恰好是三十只以上股票，且没有需要卖出的股票时，moneymanage为空会导致报错
+#                     logger.info(f"待买入标的,{thissymbol}")
+#                     buymoney=moneymanage[moneymanage["symbol"]==str(thissymbol)]["moneymanage"].iloc[0]
+#                     if buymoney>targetmoney:#只针对待买入金额超过targetmoney的标的进行买入，否则直接掠过
+#                         #重置并获取资产信息
+#                         account=main_engine.get_account(f"{TRADE_TYPE}.{accountid}")
+#                         logger.info(f"account,{account}")
+#                         if hasattr(account, "balance"):#只有引擎已经启动并且有返回值的时候才执行
+#                             portfolio_available_cash=account.balance
+#                             logger.info(f"当前余额,{portfolio_available_cash},{type(portfolio_available_cash)}")
+#                             if portfolio_available_cash>targetmoney:#余额大于targetmoney才执行下单
+#                                 if buymoney>targetmoney:#应买入金额大于单笔交易金额时执行买入计划
+#                                     exchange=allcontracts.loc[allcontracts["symbol"]==str(thissymbol),"exchange"].values.tolist()[0].split(".")[1]
+#                                     gateway_name=allcontracts.loc[allcontracts["symbol"]==str(thissymbol),"gateway_name"].values.tolist()[0]
+#                                     buytick=dfallticks[dfallticks["symbol"]==str(thissymbol)]
+#                                     ask_price_1=buytick["ask_price_1"].values[0]
+#                                     ask_volume_1=buytick["ask_volume_1"].values[0]
+#                                     bid_price_1=buytick["bid_price_1"].values[0]
+#                                     bid_volume_1=buytick["bid_volume_1"].values[0]
+#                                     logger.info(f"买入准备,{exchange},{gateway_name},{ask_price_1},{ask_volume_1},{bid_price_1},{bid_volume_1}")
+#                                     ticktime=dateutil.parser.parse(buytick["datetime"].values[0]).replace(tzinfo=datetime.datetime.utcnow().tzinfo)
+#                                     now=datetime.datetime.utcnow()+datetime.timedelta(hours=8)
+#                                     logger.info(f"ticktime,{ticktime}{type(ticktime)},{now}处理开始")
+#                                     if ticktime+datetime.timedelta(seconds=timetickwait)>now:
+#                                         logger.info(f"ticktime较近适宜下单")
+#                                         if ((thissymbol.startswith("12")) or (thissymbol.startswith("11"))):#针对11开头或者12开头的转债单独处理
+#                                             logger.info(f"******,可转债策略")
+#                                             if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
+#                                                 logger.info(f"******,盘口价差适宜，适合执行交易")
+#                                                 if tradeway=="maker":#maker下单【不需要考虑深度问题】
+#                                                     if buymoney<(traderate*targetmoney):
+#                                                         logger.info(f"******,剩余全部买入")
+#                                                         buyvolume=(math.floor((buymoney/bid_price_1)/10))*10
+#                                                         buyorder=main_engine.send_order(req=OrderRequest(
+#                                                             symbol=thissymbol,
+#                                                             exchange=Exchange(exchange),
+#                                                             direction=Direction.LONG, #多头
+#                                                             type=OrderType.LIMIT, #限价单
+#                                                             volume=buyvolume,
+#                                                             price=bid_price_1,
+#                                                             #reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                             ),
+#                                                             gateway_name=str(gateway_name))#下单
+#                                                         logger.info(buyorder)
+#                                                         bidmoney=float(bid_price_1)*buyvolume
+#                                                         moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#                                                     else:
+#                                                         logger.info(f"******,买入目标金额")
+#                                                         buyvolume=(math.floor((targetmoney/bid_price_1)/10))*10
+#                                                         if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
+#                                                             buyvolume*=10
+#                                                         buyorder=main_engine.send_order(req=OrderRequest(
+#                                                             symbol=thissymbol,
+#                                                             exchange=Exchange(exchange),
+#                                                             direction=Direction.LONG, #多头
+#                                                             type=OrderType.LIMIT, #限价单
+#                                                             volume=buyvolume,
+#                                                             price=bid_price_1,
+#                                                             # reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                             ),
+#                                                             gateway_name=str(gateway_name))#下单
+#                                                         logger.info(buyorder)
+#                                                         bidmoney=float(bid_price_1)*buyvolume
+#                                                         moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#                                                 if tradeway=="taker":#taker下单【跟其他地方一样需要考虑深度】
+#                                                     if (ask_price_1*ask_volume_1)>targetmoney:#盘口深度【对手盘一档买入】
+#                                                         if buymoney<(traderate*targetmoney):
+#                                                             logger.info(f"******,剩余全部买入")
+#                                                             buyvolume=(math.floor((buymoney/ask_price_1)/10))*10
+#                                                             buyorder=main_engine.send_order(req=OrderRequest(
+#                                                                 symbol=thissymbol,
+#                                                                 exchange=Exchange(exchange),
+#                                                                 direction=Direction.LONG, #多头
+#                                                                 type=OrderType.LIMIT, #限价单
+#                                                                 volume=buyvolume,
+#                                                                 price=ask_price_1,
+#                                                                 # reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                 ),
+#                                                                 gateway_name=str(gateway_name))#下单
+#                                                             logger.info(buyorder)
+#                                                             bidmoney=float(ask_price_1)*buyvolume
+#                                                             moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#                                                         else:
+#                                                             logger.info(f"******,买入目标金额")
+#                                                             buyvolume=(math.floor((targetmoney/ask_price_1)/10))*10
+#                                                             if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
+#                                                                 buyvolume*=10
+#                                                             buyorder=main_engine.send_order(req=OrderRequest(
+#                                                                 symbol=thissymbol,
+#                                                                 exchange=Exchange(exchange),
+#                                                                 direction=Direction.LONG, #多头
+#                                                                 type=OrderType.LIMIT, #限价单
+#                                                                 volume=buyvolume,
+#                                                                 price=ask_price_1,
+#                                                                 # reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                 ),
+#                                                                 gateway_name=str(gateway_name))#下单
+#                                                             logger.info(buyorder)
+#                                                             bidmoney=float(ask_price_1)*buyvolume
+#                                                             moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#                                         else:
+#                                             logger.info(f"******,个股策略")
+#                                             if (ask_price_1-bid_price_1)<=(((ask_price_1+bid_price_1)/2)*bidrate):#盘口价差
+#                                                 logger.info(f"******,盘口价差适宜，适合执行交易")
+#                                                 if tradeway=="maker":#maker下单【不需要考虑深度问题】
+#                                                     if buymoney<(traderate*targetmoney):
+#                                                         logger.info(f"******,剩余全部买入")
+#                                                         buyvolume=(math.floor((buymoney/bid_price_1)/100))*100
+#                                                         buyorder=main_engine.send_order(req=OrderRequest(
+#                                                             symbol=thissymbol,
+#                                                             exchange=Exchange(exchange),
+#                                                             direction=Direction.LONG, #多头
+#                                                             type=OrderType.LIMIT, #限价单
+#                                                             volume=buyvolume,
+#                                                             price=bid_price_1,
+#                                                             #reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                             ),
+#                                                             gateway_name=str(gateway_name))#下单
+#                                                         logger.info(buyorder)
+#                                                         bidmoney=float(bid_price_1)*buyvolume
+#                                                         moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#                                                     else:
+#                                                         logger.info(f"******,买入目标金额")
+#                                                         buyvolume=(math.floor((targetmoney/bid_price_1)/100))*100
+#                                                         if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
+#                                                             buyvolume*=10
+#                                                         buyorder=main_engine.send_order(req=OrderRequest(
+#                                                             symbol=thissymbol,
+#                                                             exchange=Exchange(exchange),
+#                                                             direction=Direction.LONG, #多头
+#                                                             type=OrderType.LIMIT, #限价单
+#                                                             volume=buyvolume,
+#                                                             price=bid_price_1,
+#                                                             # reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                             ),
+#                                                             gateway_name=str(gateway_name))#下单
+#                                                         logger.info(buyorder)
+#                                                         bidmoney=float(bid_price_1)*buyvolume
+#                                                         moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#                                                 if tradeway=="taker":#taker下单【跟其他地方一样需要考虑深度】
+#                                                     if (ask_price_1*ask_volume_1)>targetmoney:#盘口深度【对手盘一档买入】
+#                                                         if buymoney<(traderate*targetmoney):
+#                                                             logger.info(f"******,剩余全部买入")
+#                                                             buyvolume=(math.floor((buymoney/ask_price_1)/100))*100
+#                                                             buyorder=main_engine.send_order(req=OrderRequest(
+#                                                                 symbol=thissymbol,
+#                                                                 exchange=Exchange(exchange),
+#                                                                 direction=Direction.LONG, #多头
+#                                                                 type=OrderType.LIMIT, #限价单
+#                                                                 volume=buyvolume,
+#                                                                 price=ask_price_1,
+#                                                                 # reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                 ),
+#                                                                 gateway_name=str(gateway_name))#下单
+#                                                             logger.info(buyorder)
+#                                                             bidmoney=float(ask_price_1)*buyvolume
+#                                                             moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#                                                         else:
+#                                                             logger.info(f"******,买入目标金额")
+#                                                             buyvolume=(math.floor((targetmoney/ask_price_1)/100))*100
+#                                                             if buymoney>500000:#针对总下单余额高于500000的标的单独扩大下单数量
+#                                                                 buyvolume*=10
+#                                                             buyorder=main_engine.send_order(req=OrderRequest(
+#                                                                 symbol=thissymbol,
+#                                                                 exchange=Exchange(exchange),
+#                                                                 direction=Direction.LONG, #多头
+#                                                                 type=OrderType.LIMIT, #限价单
+#                                                                 volume=buyvolume,
+#                                                                 price=ask_price_1,
+#                                                                 # reference=f"strategy_测试"#这个是区分具体使用的哪个策略
+#                                                                 ),
+#                                                                 gateway_name=str(gateway_name))#下单
+#                                                             logger.info(buyorder)
+#                                                             bidmoney=float(ask_price_1)*buyvolume
+#                                                             moneymanage.loc[moneymanage["symbol"]==str(thissymbol),"moneymanage"]-=bidmoney
+#             #打印当前的持仓状态
+#             if not dfallpositions.empty:
+#                 positionsymbols=dfallpositions["symbol"].tolist()
+#                 selldflist=selldf["symbol"].tolist()
+#                 buydflist=buydf["symbol"].tolist()
+#                 falsesymbol=[x for x in positionsymbols if x not in selldflist]
+#                 truesymbol=[x for x in positionsymbols if x in selldflist]
+#                 havesymbol=[x for x in buydflist if x in positionsymbols]
+#                 nohavesymbol=[x for x in buydflist if x not in positionsymbols]
+#                 logger.info(f"******,应卖出标的,{falsesymbol},应买入标的,{nohavesymbol},持仓标的,{positionsymbols}")
