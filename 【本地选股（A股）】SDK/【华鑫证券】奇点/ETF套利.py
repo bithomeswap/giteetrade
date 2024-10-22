@@ -817,6 +817,8 @@ while True:
 
 
 
+# 景顺长城官网【有ETF申赎数据但是也缺乏实时的申赎数据】：https://www.igwfmc.com/main/etf/detail.html?fundcode=159682
+
 # thistraderapi.Join()# 加入任务
 # input()# 等待程序结束[不确定几分钟结束]一直没结束
 thisxmdapi.Release()# 释放接口对象
