@@ -25,7 +25,7 @@ tradedays=tradedaydf["trade_date"].tolist()
 
 # node -v
 # #需要提前安装node.js抓网页数据，如果没node.js会报错
-# pip install pywencai -U
+# pip install pywencai -U#python3.7版本调用这个函数就报错：module 'pywencai' has no attribute 'get'
 import pywencai
 
 word=f'{tradedays[-2]},所有ETF,申赎额度,申赎状态,成分股比例'#申赎状态-基金@申购赎回状态[20240904]要求是开放申购|开放赎回

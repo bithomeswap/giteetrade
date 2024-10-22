@@ -33,9 +33,9 @@ import math
 
 #需要先打开群，才能进行好友添加
 # who="文件传输助手"
-# who="量化策略交流学习"#已经加完好友了
-who="QMT交易实战33群"
-# who="聚宽策略PTrade实盘"
+# who="量化策略交流学习"#已经加完好友
+# who="QMT交易实战33群"#跑到第280个群友了
+who="聚宽策略PTrade实盘"
 # who="国金吃肉聊天交流群"
 # who="wxauto三群"
 wx.ChatWith(who)#【默认点击左键{左键右键功能置换时使用下方代码}】打开群指定的聊天窗口{返回值为字符串}
@@ -57,7 +57,7 @@ wechatWindow = auto.WindowControl(searchDepth=1, Name="微信", ClassName='WeCha
 num=0
 while True:
     num+=1
-    if num>=280:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
+    if num>=20:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
         button = wechatWindow.ButtonControl(Name='收起')
         if button.Exists():
             print("有收起按钮无需重新打开")

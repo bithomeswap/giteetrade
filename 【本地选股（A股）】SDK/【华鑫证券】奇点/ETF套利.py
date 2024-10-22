@@ -41,12 +41,12 @@ SZ_ShareHolderID='700030557'    #不同账号的股东代码需要接口ReqQrySh
 # B套：
 # 行情前置地址：tcp://210.14.72.16:9402
 # 交易前置地址：tcp://210.14.72.16:9500
-# #【仿真】跟实盘数据更一致
-# marketurl="tcp://210.14.72.21:4402"
-# tradeurl="tcp://210.14.72.21:4400"
-#【A套】个股价格有差异不适合测试
-marketurl="tcp://210.14.72.16:9402"
-tradeurl="tcp://210.14.72.15:4400"
+#【仿真】跟实盘数据更一致【获取成分券详情的速度会慢一些】
+marketurl="tcp://210.14.72.21:4402"
+tradeurl="tcp://210.14.72.21:4400"
+# #【A套】个股价格有差异不适合测试
+# marketurl="tcp://210.14.72.16:9402"
+# tradeurl="tcp://210.14.72.15:4400"
 # #【B套】个股价格有差异不适合测试
 # marketurl="tcp://210.14.72.16:9402"
 # tradeurl="tcp://210.14.72.16:9500"
@@ -607,6 +607,11 @@ def symbol_convert(stock):#股票代码加后缀
     else:
         print("不在后缀转换名录",str(stock))
         return str(str(stock))
+
+# 【仿真环境获取成分股数据会慢一些，另外申赎额度一定要仔细看，
+# 尽量选择不限制额度的方向，# 因为有限制的只公布限制多少不公布实时剩余额度，
+# 当然即便选错了的话只要买入的是有利的一方，其价格也会向合理价格回归未必会导致亏损，
+# 需要注意的是，套利资金会去盯盘寻找交易机会，当折价或者溢价长期存在的时候很可能就是无法形成交易闭环】
 # 【ETF申赎套利前一天成交额低于5000万的都不要看（大概300多只将近400只ETF符合日成交额5000w的标准）】使用akshre或者tushare验证最近10天的平均成交额，至少要近10天平均交易额大于100倍单份申购额，要不大概率是亏损的
 lastETFdf=etfinfodf.copy()
 try:
@@ -618,6 +623,8 @@ try:
     print("当日已经处理ETF成交额过滤")#这里应该还有一个格式处理
 except Exception as e:
     print("当日尚未处理ETF成交额过滤")#这种一条条的筛选可能不太好，因为毕竟有1000条呢，速度和限频都不好处理
+
+    #【tuhare】
     # pip install xcsc-tushare
     import xcsc_tushare as ts
     # ts.set_token('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7')
@@ -640,7 +647,8 @@ except Exception as e:
         time.sleep(0.21)#每分钟最多访问300次否则限频
         # print(symbol,thisdf)
 
-    # #pip install akshare【差多了会报错】
+    #【kshare】
+    # #pip install akshare【查询频繁了会因为限频报错】
     # import akshare as ak
     # for symbol in lastETFdf["ETF交易代码"].tolist():
     #     print(symbol)
