@@ -91,9 +91,9 @@ while True:
         m=num%4#列数
         n=(num-m)/4#行数
         print(f"目前为为第{n}行{m}列")#每行四个用户，需要计算向下滚动的距离
-        button.WheelDown(wheelTimes=int(math.floor(n*6/13)+1),#滚动次数【滚轮滚动6次跳过了13行】多跳几次避免点不到
+        button.WheelDown(wheelTimes=int(math.floor(n*7/13)),#7次13行多一点，6次13行少一点
                                 interval=0.1,#滚动间隔
-                                waitTime=0.1,#等待时间
+                                waitTime=0.2,#等待时间【任务完成后的等待时间】
                                 )#模拟鼠标向下滚动
 
         #执行加好友操作
