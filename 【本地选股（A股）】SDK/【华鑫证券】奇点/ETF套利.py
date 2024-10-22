@@ -827,6 +827,7 @@ thisxmdapi.Release()# 释放接口对象
 
 
 
+
 #【订单处理】
 # ordernum=0#初始化当前交易轮次为0
 # dfaccount=pd.DataFrame({"账号余额":[0],"持仓金额":[0]})#初始化持仓金额【只初始化一次，不要重置】
