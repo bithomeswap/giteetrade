@@ -6,12 +6,29 @@
 # # 景顺长城申赎详情：https://www.igwfmc.com/main/jjcp/product/513980/detail.html
 # # 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
 
+import akshare
+from akshare.utils import demjson
+akshare.bond_cb_index_jsl
 # pip install lxml
 import requests
 import pandas as pd
 # 目标网页URL
 # url = r'https://www.jisilu.cn/data/etf/#index'
-url = "https://www.jisilu.cn/data/etf/index_history/"
+
+
+
+    #【地址换算】
+    # 集思录可转债
+    # https://app.jisilu.cn/data/cbnew/#cb
+    # :param cookie: 输入获取到的游览器 cookie
+    # :type cookie: str
+    # :return: 集思录可转债
+    # :rtype: pandas.DataFrame
+    # """
+    # url = "https://app.jisilu.cn/data/cbnew/cb_list_new/"
+
+
+
 r = requests.get(url)
 from akshare.utils import demjson
 data_dict = demjson.decode(r.text)["data"]
