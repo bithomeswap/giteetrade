@@ -31,7 +31,7 @@ tradedays=tradedaydf["trade_date"].tolist()
 # pip install pywencai -U#python3.7版本调用这个函数就报错：module 'pywencai' has no attribute 'get'
 import pywencai
 
-word=f'{tradedays[-2]},所有ETF,申赎额度,申赎状态,成分股比例'#申赎状态-基金@申购赎回状态[20240904]要求是开放申购|开放赎回
+word=f'{tradedays[-2]},所有ETF,申赎清单,申赎状态,成分股比例'#申赎状态-基金@申购赎回状态[20240904]要求是开放申购|开放赎回
 df=pywencai.get(question=word,#query参数
                     loop=True,
                     query_type="fund",
@@ -42,7 +42,7 @@ df=pywencai.get(question=word,#query参数
 print(df)
 df.to_csv("ETF全部信息.csv")
 
-word=f'{tradedays[-2]}所有ETF价格及净值'
+word=f'{tradedays[-2]}所有ETF，价格及净值，所有ETF，申赎额度，最近十日成交额'
 df=pywencai.get(question=word,#query参数
                     loop=True,
                     query_type="fund",

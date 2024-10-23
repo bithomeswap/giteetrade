@@ -443,9 +443,9 @@ thistime=datetime.datetime.now()
     # selldflist=[]
     # buydflist=[]
     
-#【设置一键清仓】
-selldflist=[]
-buydflist=[]
+# #【设置一键清仓】
+# selldflist=[]
+# buydflist=[]
 
 if not dfposition.empty:#持仓不为空值
     positionsymbols=dfposition["symbol"].tolist()
