@@ -7,16 +7,22 @@
 # # 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
 import requests
 import pandas as pd
-# 目标网页URL【直接】
+# 目标网页URL【直接抓实时的iopv数据】
 url = r'https://www.jisilu.cn/data/etf/etf_list/'#["rows"]这个ETF数据游客就能查看，或者使用针对性链接https://www.jisilu.cn/data/etf/etf_list/?___jsl=LST___t=1729690579460&rp=25&page=1%20%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95:%20GET
 # "https://app.jisilu.cn/data/cbnew/cb_list_new/"#["data"]这个可转债数据需要开会员才能看【也就是后缀加上东西才行】
 r = requests.get(url)
 print(r.text)
 from akshare.utils import demjson
-data_dict = demjson.decode(r.text)["rows"]#这里直接去解析json
+data_dict = demjson.decode(r.text)["rows"]#这里直接去解析json，而不一定用别人的方式是解码
 df = pd.DataFrame(data_dict)
 print(df)
 df.to_csv("df.csv")
+
+
+
+# #现在就差一个ETF申赎清单【上交所官网有公布】
+# # "//query.sse.com.cn/etfDownload/downloadETF2Bulletin.do?etfType=006"
+
 
 
 # #申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
@@ -75,11 +81,6 @@ df.to_csv("df.csv")
 
 
 
-
-
-
-# #现在就是差一个iopv一个ETF申赎清单【上交所官网有公布】
-# # "//query.sse.com.cn/etfDownload/downloadETF2Bulletin.do?etfType=006"
 
 
 
