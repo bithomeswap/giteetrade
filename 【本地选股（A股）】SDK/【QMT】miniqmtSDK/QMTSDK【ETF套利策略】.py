@@ -49,8 +49,7 @@ df.to_csv("etf.csv",index=False)
 
 
 # #现在就差一个ETF申赎清单【上交所官网有公布】
-# # "//query.sse.com.cn/etfDownload/downloadETF2Bulletin.do?etfType=006"
-
+# https://www.sse.com.cn/disclosure/fund/etflist/detail.shtml?fundid=510010
 
 
 # #申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
