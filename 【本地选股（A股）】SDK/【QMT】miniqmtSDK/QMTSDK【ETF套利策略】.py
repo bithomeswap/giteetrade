@@ -6,6 +6,9 @@
 # 景顺长城申赎详情：https://www.igwfmc.com/main/jjcp/product/513980/detail.html
 # 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
 
+
+
+#申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
 #【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】
 import pandas as pd
 import datetime
@@ -33,30 +36,34 @@ tradedays=tradedaydf["trade_date"].tolist()
 # #需要提前安装node.js抓网页数据，如果没node.js会报错
 # pip install pywencai -U#python3.7版本调用这个函数就报错：module 'pywencai' has no attribute 'get'
 import pywencai#同花顺的最新净值数据不是iopv不能用来计算溢价率
-# ETF净值数据【当天】
-# 【申购、赎回费率】，最近十日逐日成交额，
-# 【价格及净值数据】，不是实时的，
-# 【最近十日成交额】和【最近十日逐日成交额】有差异，
-# 【成分股详情】只包含重仓股
-word=f'{startday}所有ETF，申赎清单，申赎状态，价格及净值，最近十日逐日成交额，最高申购费率、最高赎回费率'
-df=pywencai.get(question=word,#query参数
+try:
+    df=pd.read_csv(f"ETF详情{startday}.csv")
+    print(f"ETF详情{startday}.csv","存在")
+except Exception as e:
+    print(e)
+    print(f"ETF详情{startday}.csv","不存在")
+    # ETF净值数据【当天】
+    # 【申购、赎回费率】跟官网对比了一下问财的最高申购赎回费率是准确的【具体说法是：申购赎回代理券商可按照不超过 0.4%的标准收取佣金】
+    # 【价格及净值数据】，不是实时的，
+    # 【最近十日成交额】和【最近十日逐日成交额】有差异，但是都是准确的现在用的【最近十日逐日成交额】
+    # 【成分股详情】只包含重仓股
+    word=f'{startday}所有ETF，最高申购费率、最高赎回费率，最近十日逐日成交额'
+    df=pywencai.get(question=word,#query参数
                     loop=True,
                     query_type="fund",
                     # pro=True, #付费版才使用
                     # cookie='xxxx',
-                   )
-# df["昨日成交额"]=df[f"基金@成交额[{tradedays[-2].replace('-','')}]"].astype(float)
-# df=df.sort_values(by="昨日成交额",ascending=False)#溢价率降序排列
-# df=df[df["昨日成交额"]>10000000]#卡在一个亿的金额直接去掉了一半多
+                    )
+    for day in tradedays[-10:]:
+        print(day)
+        df[f"{day.replace('-','')}日成交额"]=df[f"基金@成交额[{day.replace('-','')}]"].astype(float)
+        df=df.sort_values(by=f"{day.replace('-','')}日成交额",ascending=False)#成交额降序排列
+        df=df[df[f"{day.replace('-','')}日成交额"]>10000000]#卡在最近十天每天成交额大于一个亿从999只变成了418只
+    print(df)
+    df.to_csv(f"ETF详情{startday}.csv")
 
-print(df)
-df.to_csv("ETF详情.csv")
-
-
-
-
-
-
+#现在就是差一个iopv一个ETF申赎清单【上交所官网有公布】
+# "//query.sse.com.cn/etfDownload/downloadETF2Bulletin.do?etfType=006"
 
 
 
