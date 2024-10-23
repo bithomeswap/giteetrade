@@ -48,7 +48,7 @@ df = pd.DataFrame([row["cell"] for row in response.json()["rows"]])#这个里面
 df.to_csv("etf.csv",index=False)
 
 
-# #现在就差一个ETF申赎清单【上交所官网有公布】
+# #现在就差一个ETF申赎清单【上交所官网有公布各个标的的申赎清单】
 # https://www.sse.com.cn/disclosure/fund/etflist/detail.shtml?fundid=510010
 
 
