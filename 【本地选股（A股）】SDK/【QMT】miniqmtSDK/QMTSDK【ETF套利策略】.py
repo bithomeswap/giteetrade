@@ -7,17 +7,45 @@
 # # 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
 import requests
 import pandas as pd
-# 目标网页URL【直接抓实时的iopv数据】
-url = r'https://www.jisilu.cn/data/etf/etf_list/'#["rows"]这个ETF数据游客就能查看，或者使用针对性链接https://www.jisilu.cn/data/etf/etf_list/?___jsl=LST___t=1729690579460&rp=25&page=1%20%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95:%20GET
-# "https://app.jisilu.cn/data/cbnew/cb_list_new/"#["data"]这个可转债数据需要开会员才能看【也就是后缀加上东西才行】
-r = requests.get(url)
-print(r.text)
-from akshare.utils import demjson
-data_dict = demjson.decode(r.text)["rows"]#这里直接去解析json，而不一定用别人的方式是解码
-df = pd.DataFrame(data_dict)
-print(df)
-df.to_csv("df.csv")
-
+import time
+#cookie和headers加一下，不然他们知道你用的python
+headers = {
+    "accept": "application/json, text/javascript, */*; q=0.01",
+    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+    "cache-control": "no-cache",
+    "dnt": "1",
+    "pragma": "no-cache",
+    "priority": "u=1, i",
+    "referer": "https://www.jisilu.cn/data/etf/",
+    "sec-ch-ua": "\"Chromium\";v=\"130\", \"Microsoft Edge\";v=\"130\", \"Not?A_Brand\";v=\"99\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0",
+    "x-requested-with": "XMLHttpRequest"
+}
+cookies = {
+    "kbzw__Session": "j5stpa4friur6i24dqae5dnnp1",
+    "kbz_newcookie": "1"
+}
+url = "https://www.jisilu.cn/data/etf/etf_list/"
+params = {
+    "___jsl": "LST___t=1729680229839",
+    "volume": "",
+    "unit_total": "",
+    "rp": "25"
+}
+params["___jsl"] = f"LST___t={int(time.time()*1000)}"
+response = requests.get(url, headers=headers, cookies=cookies, params=params)
+print(response.text)
+print(response)
+df = pd.DataFrame([row["cell"] for row in response.json()["rows"]])#这个里面有iopv数据
+# # 目标网页URL【直接抓实时的iopv数据】
+# url = r'https://www.jisilu.cn/data/etf/etf_list/'#["rows"]这个ETF数据游客就能查看，或者使用针对性链接https://www.jisilu.cn/data/etf/etf_list/?___jsl=LST___t=1729690579460&rp=25&page=1%20%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95:%20GET
+# # "https://app.jisilu.cn/data/cbnew/cb_list_new/"#["data"]这个可转债数据需要开会员才能看【也就是后缀加上东西才行】
+df.to_csv("etf.csv",index=False)
 
 
 # #现在就差一个ETF申赎清单【上交所官网有公布】
