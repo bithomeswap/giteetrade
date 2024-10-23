@@ -62,6 +62,11 @@
 #     print(df)
 #     df.to_csv(f"ETF详情{startday}.csv")
 
+
+
+
+
+
 # #现在就是差一个iopv一个ETF申赎清单【上交所官网有公布】
 # # "//query.sse.com.cn/etfDownload/downloadETF2Bulletin.do?etfType=006"
 
@@ -70,142 +75,132 @@
 
 
 
+# # #勾选独立交易之后，行情、交易、交易+行情选项一个都不要选择，才能启动miniqmt成功，否则无法执行订单
+# # import datetime
+# # import time
+# # import math
+# # import pandas as pd#conda install pandas
+# # import numpy as np#pip install numpy
 
+# # #【只要不用supermind，就可以直接使用3.12最新版的python执行策略】
+# # # supermind的SDK作废了拿不到数据，尽量使用pywencai库直接从问财接口获取
+# # # conda create -n my_env8 python=3.8#创建环境
+# # # conda env remove -n my_env8#删除环境
 
+# # xtdata提供和MiniQmt的交互接口,本质是和MiniQmt建立连接,由MiniQmt处理行情数据请求,再把结果回传返回到python层。使用的行情服务器以及能获取到的行情数据和MiniQmt是一致的,要检查数据或者切换连接时直接操作MiniQmt即可。
+# # 对于数据获取接口,使用时需要先确保MiniQmt已有所需要的数据,如果不足可以通过补充数据接口补充,再调用数据获取接口获取。
+# # 对于订阅接口,直接设置数据回调,数据到来时会由回调返回。订阅接收到的数据一般会保存下来,同种数据不需要再单独补充。
+# from xtquant import xtdata
 
+# # #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
+# # 配置日志
+# basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】miniqmtSDK"
+# # pip install loguru # 这个框架可以解决中文不显示的问题
+# from loguru import logger
+# logger.add(
+#     sink=f"{basepath}/log.log",#sink: 创建日志文件的路径。
+#     # sink=f"log.log",#sink: 创建日志文件的路径。
+#     level="INFO",#level: 记录日志的等级,低于这个等级的日志不会被记录。等级顺序为 debug < info < warning < error。设置 INFO 会让 logger.debug 的输出信息不被写入磁盘。
+#     rotation="00:00",#rotation: 轮换策略,此处代表每天凌晨创建新的日志文件进行日志 IO；也可以通过设置 "2 MB" 来指定 日志文件达到 2 MB 时进行轮换。   
+#     retention="7 days",#retention: 只保留 7 天。 
+#     compression="zip",#compression: 日志文件较大时会采用 zip 进行压缩。
+#     encoding="utf-8",#encoding: 编码方式
+#     enqueue=True,#enqueue: 队列 IO 模式,此模式下日志 IO 不会影响 python 主进程,建议开启。
+#     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"#format: 定义日志字符串的样式,这个应该都能看懂。
+# )
 
+# def symbol_convert(stock):#股票代码加后缀
+#     #北交所的股票8字开头，包括82、83、87、88，其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
+#     if (stock.startswith("60"))or(#上交所主板
+#         stock.startswith("68"))or(#上交所科创板
+#         stock.startswith("11"))or(#上交所可转债
+#         (stock.startswith("5"))):#上交所ETF：51、52、56、58都是
+#         return str(str(stock)+".SH")
+#         # return str(str(stock)+".SS")
+#     elif (stock.startswith("00"))or(#深交所主板
+#         stock.startswith("30"))or(#深交所创业板
+#         stock.startswith("12"))or(#深交所可转债
+#         (stock.startswith("159"))):#深交所ETF：暂时只有159的是深交所ETF
+#         return str(str(stock)+".SZ")
+#     else:
+#         print("不在后缀转换名录",str(stock))
+#         return str(str(stock))
 
-
-
-
-
-
-# #勾选独立交易之后，行情、交易、交易+行情选项一个都不要选择，才能启动miniqmt成功，否则无法执行订单
 # import datetime
 # import time
-# import math
-# import pandas as pd#conda install pandas
-# import numpy as np#pip install numpy
+# now=datetime.datetime.now()
+# start_date=now.strftime("%Y%m%d")#测试当天的数据
+# # last_date=(now-datetime.timedelta(days=730)).strftime("%Y%m%d")
+# last_date=(now-datetime.timedelta(days=250)).strftime("%Y%m%d")
+# while True:
+#     # 获取交易日期
+#     tradelist=xtdata.get_trading_dates("SH",start_time="",end_time=start_date,count=2)
+#     logger.info(f"{tradelist}")
+#     if len(tradelist)!=0:
+#         logger.info("日期获取成功")
+#         today=tradelist[-1]
+#         today=datetime.datetime.fromtimestamp(today/1000)
+#         today=today.strftime("%Y%m%d")
+#         yesterday=tradelist[0]
+#         yesterday=datetime.datetime.fromtimestamp(yesterday/1000)
+#         yesterday=yesterday.strftime("%Y%m%d")
+#         break
+#     else:
+#         logger.info("日期获取失败")
+#         time.sleep(10)
+#         today=now.strftime("%Y%m%d")
+#         yesterday=(now-datetime.timedelta(days=1)).strftime("%Y%m%d")
+#         break
+# logger.info(f"******"+"today"+today+"yesterday"+yesterday)
 
-# #【只要不用supermind，就可以直接使用3.12最新版的python执行策略】
-# # supermind的SDK作废了拿不到数据，尽量使用pywencai库直接从问财接口获取
-# # conda create -n my_env8 python=3.8#创建环境
-# # conda env remove -n my_env8#删除环境
+# #交易模块
+# import random
+# from xtquant.xttype import StockAccount
+# from xtquant.xttrader import XtQuantTrader
+# from xtquant import xtconstant
+# # QMT账号
+# # mini_qmt_path = r"D:\迅投极速交易终端 睿智融科版\userdata_mini"# miniQMT安装路径
+# # account_id = "2011506"# QMT账号
+# # account_id = "2011908"
+# # mini_qmt_path = r"D:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
+# mini_qmt_path = r"C:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
 
-# xtdata提供和MiniQmt的交互接口,本质是和MiniQmt建立连接,由MiniQmt处理行情数据请求,再把结果回传返回到python层。使用的行情服务器以及能获取到的行情数据和MiniQmt是一致的,要检查数据或者切换连接时直接操作MiniQmt即可。
-# 对于数据获取接口,使用时需要先确保MiniQmt已有所需要的数据,如果不足可以通过补充数据接口补充,再调用数据获取接口获取。
-# 对于订阅接口,直接设置数据回调,数据到来时会由回调返回。订阅接收到的数据一般会保存下来,同种数据不需要再单独补充。
-from xtquant import xtdata
+# account_id = "55013189"
+# if (account_id=='55013189')or(account_id=='2011506')or(account_id=="2011908"):#密码:wth000
+#     # choosename="可转债"
+#     choosename="微盘股"
+#     tradeway="taker"#设置主动吃单
+#     # tradeway="maker"#设置被动吃单
+# else:
+#     choosename="微盘股"
+#     tradeway="taker"#设置主动吃单
+# session_id = int(random.randint(100000,999999))# 创建session_id
+# trade_api = XtQuantTrader(mini_qmt_path,session_id)# 创建交易对象
+# trade_api.start()# 启动交易对象
 
-# #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
-# 配置日志
-basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】miniqmtSDK"
-# pip install loguru # 这个框架可以解决中文不显示的问题
-from loguru import logger
-logger.add(
-    sink=f"{basepath}/log.log",#sink: 创建日志文件的路径。
-    # sink=f"log.log",#sink: 创建日志文件的路径。
-    level="INFO",#level: 记录日志的等级,低于这个等级的日志不会被记录。等级顺序为 debug < info < warning < error。设置 INFO 会让 logger.debug 的输出信息不被写入磁盘。
-    rotation="00:00",#rotation: 轮换策略,此处代表每天凌晨创建新的日志文件进行日志 IO；也可以通过设置 "2 MB" 来指定 日志文件达到 2 MB 时进行轮换。   
-    retention="7 days",#retention: 只保留 7 天。 
-    compression="zip",#compression: 日志文件较大时会采用 zip 进行压缩。
-    encoding="utf-8",#encoding: 编码方式
-    enqueue=True,#enqueue: 队列 IO 模式,此模式下日志 IO 不会影响 python 主进程,建议开启。
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"#format: 定义日志字符串的样式,这个应该都能看懂。
-)
+# while True:
+#     connect_result = trade_api.connect()# 连接客户端
+#     print("连接结果",connect_result)
+#     if connect_result==0:
+#         logger.info("连接成功")
+#         break
+#     else:
+#         logger.info("重新链接")
+#         time.sleep(1)
 
-def symbol_convert(stock):#股票代码加后缀
-    #北交所的股票8字开头，包括82、83、87、88，其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
-    if (stock.startswith("60"))or(#上交所主板
-        stock.startswith("68"))or(#上交所科创板
-        stock.startswith("11"))or(#上交所可转债
-        (stock.startswith("5"))):#上交所ETF：51、52、56、58都是
-        return str(str(stock)+".SH")
-        # return str(str(stock)+".SS")
-    elif (stock.startswith("00"))or(#深交所主板
-        stock.startswith("30"))or(#深交所创业板
-        stock.startswith("12"))or(#深交所可转债
-        (stock.startswith("159"))):#深交所ETF：暂时只有159的是深交所ETF
-        return str(str(stock)+".SZ")
-    else:
-        print("不在后缀转换名录",str(stock))
-        return str(str(stock))
+# acc = StockAccount(account_id)# 创建账号对象
+# trade_api.subscribe(acc)# 订阅账号
+# # #设置交易参数并且获取买卖计划
+# # bidrate=0.005#设置盘口价差为0.004
+# # timecancellwait=60#设置撤单函数筛选订单的确认时间
+# # timetickwait=600#设置每次下单时确认是否是最新tick的确认时间【3秒一根，但是模拟盘的tick滞后五分钟左右】
+# # timeseconds=60#设置获取tick的函数的时间长度【避免没有数据】
+# # targetmoney=20000#设置下单时对手盘需要达到的厚度（即单笔目标下单金额,因为手数需要向下取整,所以实际金额比这个值低）
+# # traderate=2#设置单次挂单金额是targetmoney的traderate倍
+# # # cancellorder=False#取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
+# # cancellorder=True#设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
 
-import datetime
-import time
-now=datetime.datetime.now()
-start_date=now.strftime("%Y%m%d")#测试当天的数据
-# last_date=(now-datetime.timedelta(days=730)).strftime("%Y%m%d")
-last_date=(now-datetime.timedelta(days=250)).strftime("%Y%m%d")
-while True:
-    # 获取交易日期
-    tradelist=xtdata.get_trading_dates("SH",start_time="",end_time=start_date,count=2)
-    logger.info(f"{tradelist}")
-    if len(tradelist)!=0:
-        logger.info("日期获取成功")
-        today=tradelist[-1]
-        today=datetime.datetime.fromtimestamp(today/1000)
-        today=today.strftime("%Y%m%d")
-        yesterday=tradelist[0]
-        yesterday=datetime.datetime.fromtimestamp(yesterday/1000)
-        yesterday=yesterday.strftime("%Y%m%d")
-        break
-    else:
-        logger.info("日期获取失败")
-        time.sleep(10)
-        today=now.strftime("%Y%m%d")
-        yesterday=(now-datetime.timedelta(days=1)).strftime("%Y%m%d")
-        break
-logger.info(f"******"+"today"+today+"yesterday"+yesterday)
-
-#交易模块
-import random
-from xtquant.xttype import StockAccount
-from xtquant.xttrader import XtQuantTrader
-from xtquant import xtconstant
-# QMT账号
-# mini_qmt_path = r"D:\迅投极速交易终端 睿智融科版\userdata_mini"# miniQMT安装路径
-# account_id = "2011506"# QMT账号
-# account_id = "2011908"
-# mini_qmt_path = r"D:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
-mini_qmt_path = r"C:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
-
-account_id = "55013189"
-if (account_id=='55013189')or(account_id=='2011506')or(account_id=="2011908"):#密码:wth000
-    # choosename="可转债"
-    choosename="微盘股"
-    tradeway="taker"#设置主动吃单
-    # tradeway="maker"#设置被动吃单
-else:
-    choosename="微盘股"
-    tradeway="taker"#设置主动吃单
-session_id = int(random.randint(100000,999999))# 创建session_id
-trade_api = XtQuantTrader(mini_qmt_path,session_id)# 创建交易对象
-trade_api.start()# 启动交易对象
-
-while True:
-    connect_result = trade_api.connect()# 连接客户端
-    print("连接结果",connect_result)
-    if connect_result==0:
-        logger.info("连接成功")
-        break
-    else:
-        logger.info("重新链接")
-        time.sleep(1)
-
-acc = StockAccount(account_id)# 创建账号对象
-trade_api.subscribe(acc)# 订阅账号
-# #设置交易参数并且获取买卖计划
-# bidrate=0.005#设置盘口价差为0.004
-# timecancellwait=60#设置撤单函数筛选订单的确认时间
-# timetickwait=600#设置每次下单时确认是否是最新tick的确认时间【3秒一根，但是模拟盘的tick滞后五分钟左右】
-# timeseconds=60#设置获取tick的函数的时间长度【避免没有数据】
-# targetmoney=20000#设置下单时对手盘需要达到的厚度（即单笔目标下单金额,因为手数需要向下取整,所以实际金额比这个值低）
-# traderate=2#设置单次挂单金额是targetmoney的traderate倍
-# # cancellorder=False#取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
-# cancellorder=True#设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
-
-logger.info(f"{now},{choosename},{account_id},{start_date},{last_date},{today},{yesterday}")
+# logger.info(f"{now},{choosename},{account_id},{start_date},{last_date},{today},{yesterday}")
 
 # buyfilename=choosename+"买入.csv"
 # sellfilename=choosename+"卖出.csv"
