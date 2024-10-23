@@ -5,35 +5,19 @@
 # # 集思录ETF净值数据地址：https://www.jisilu.cn/data/etf/#index
 # # 景顺长城申赎详情：https://www.igwfmc.com/main/jjcp/product/513980/detail.html
 # # 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
-
-import akshare
-from akshare.utils import demjson
-akshare.bond_cb_index_jsl
-# pip install lxml
 import requests
 import pandas as pd
-# 目标网页URL
-# url = r'https://www.jisilu.cn/data/etf/#index'
-
-
-
-    #【地址换算】
-    # 集思录可转债
-    # https://app.jisilu.cn/data/cbnew/#cb
-    # :param cookie: 输入获取到的游览器 cookie
-    # :type cookie: str
-    # :return: 集思录可转债
-    # :rtype: pandas.DataFrame
-    # """
-    # url = "https://app.jisilu.cn/data/cbnew/cb_list_new/"
-
-
-
+# 目标网页URL【直接】
+url = r'https://www.jisilu.cn/data/etf/etf_list/'#["rows"]这个ETF数据游客就能查看，或者使用针对性链接https://www.jisilu.cn/data/etf/etf_list/?___jsl=LST___t=1729690579460&rp=25&page=1%20%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95:%20GET
+# "https://app.jisilu.cn/data/cbnew/cb_list_new/"#["data"]这个可转债数据需要开会员才能看【也就是后缀加上东西才行】
 r = requests.get(url)
+print(r.text)
 from akshare.utils import demjson
-data_dict = demjson.decode(r.text)["data"]
-temp_df = pd.DataFrame(data_dict)
-print(temp_df)
+data_dict = demjson.decode(r.text)["rows"]#这里直接去解析json
+df = pd.DataFrame(data_dict)
+print(df)
+df.to_csv("df.csv")
+
 
 # #申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
 # #【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】
