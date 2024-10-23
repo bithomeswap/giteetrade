@@ -1,3 +1,18 @@
+#pip install screeninfo
+import screeninfo#根据分辨率判断具体应该滑动几次
+main_screen = screeninfo.get_monitors()[0]# 获取主显示器的信息
+resolution = main_screen.width, main_screen.height# 获取分辨率
+print(f"屏幕分辨率为：{resolution}")
+
+# #pip install pynput#鼠标事件监听
+# from pynput import mouse
+# # 定义滚动事件的处理函数
+# def on_scroll(x, y, dx, dy):
+#     print(f'滚动事件：位置 ({x}, {y})，水平滚动 {dx}，垂直滚动 {dy}')
+# # 定义鼠标监听器，设置滚动事件的处理函数
+# with mouse.Listener(on_scroll=on_scroll) as listener:
+#     listener.join()
+
 # pip install wxauto#安装
 # pip install --upgrade wxauto#更新
 # pip install -r requirements.txt#环境配置
@@ -34,9 +49,9 @@ import math
 #需要先打开群，才能进行好友添加
 # who="文件传输助手"
 # who="量化策略交流学习"#已经加完好友
+# who="聚宽策略PTrade实盘"#已经加完好友
 # who="QMT交易实战33群"#跑到第280个群友了
-who="聚宽策略PTrade实盘"
-# who="国金吃肉聊天交流群"
+who="国金吃肉聊天交流群"
 # who="wxauto三群"
 wx.ChatWith(who)#【默认点击左键{左键右键功能置换时使用下方代码}】打开群指定的聊天窗口{返回值为字符串}
 
@@ -59,12 +74,13 @@ wechatWindow = auto.WindowControl(searchDepth=1, Name="微信", ClassName='WeCha
 num=0
 while True:
     num+=1
-    if num>=62:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
+    if num>=20:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
         button = wechatWindow.ButtonControl(Name='收起')
         if button.Exists():
             print("有收起按钮无需重新打开")
             pass
         else:
+            print("没有收起按钮")
             button = wechatWindow.ButtonControl(Name='聊天信息')
             button.Click()#默认左键
             time.sleep(0.5+random.random())
@@ -93,12 +109,14 @@ while True:
         m=num%4#列数
         n=(num-m)/4#行数
         print(f"目前为为第{n}行{m}列")#每行四个用户，需要计算向下滚动的距离
-        if num<200:
+        if main_screen.height==1080:#可能跟主机分辨率有关但是行数多了确实不容易找到
+            print("当前分辨率屏幕纵向1080")
             button.WheelDown(wheelTimes=int(math.floor(n*6/13)),#7次13行多一点，6次13行少一点
                                     interval=0.1,#滚动间隔
                                     waitTime=0.1,#等待时间【任务完成后的等待时间】
                                     )#模拟鼠标向下滚动
         else:
+            print("当前分辨率屏幕纵向不是1080")
             button.WheelDown(wheelTimes=int(math.floor(n*7/13)),#7次13行多一点，6次13行少一点
                                     interval=0.1,#滚动间隔
                                     waitTime=0.2,#等待时间【任务完成后的等待时间】
