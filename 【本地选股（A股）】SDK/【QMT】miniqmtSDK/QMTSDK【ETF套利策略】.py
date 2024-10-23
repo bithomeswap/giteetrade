@@ -11,7 +11,7 @@ import requests
 import pandas as pd
 # 目标网页URL
 # url = r'https://www.jisilu.cn/data/etf/#index'
-url = "https://www.jisilu.cn/webapi/etf/index_history/"
+url = "https://www.jisilu.cn/data/etf/index_history/"
 r = requests.get(url)
 from akshare.utils import demjson
 data_dict = demjson.decode(r.text)["data"]
