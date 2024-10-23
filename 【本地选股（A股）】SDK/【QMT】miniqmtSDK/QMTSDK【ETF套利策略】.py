@@ -1,7 +1,10 @@
-#【同花顺APP上有申赎清单信息】
+#【同花顺APP上有申赎清单信息，但是没接口拿到】
+#【iopv数据据说软件上的计算方式有延迟，而且抢的人多肯定要高频低延迟才能抢到】
 # 集思录的ETF净值数据比问财出来的速度快【估值就是iopv，现价除以估值就是溢价率】
+# 爬虫循环获取网页信息比较可靠【每一个基金也可以单独获取申赎额度等信息】
 # 集思录ETF净值数据地址：https://www.jisilu.cn/data/etf/#index
-
+# 景顺长城申赎详情：https://www.igwfmc.com/main/jjcp/product/513980/detail.html
+# 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
 
 #【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】
 import pandas as pd
@@ -29,50 +32,25 @@ tradedays=tradedaydf["trade_date"].tolist()
 # node -v
 # #需要提前安装node.js抓网页数据，如果没node.js会报错
 # pip install pywencai -U#python3.7版本调用这个函数就报错：module 'pywencai' has no attribute 'get'
-import pywencai
-
-word=f'{tradedays[-2]},所有ETF,申赎清单,申赎状态,成分股比例'#申赎状态-基金@申购赎回状态[20240904]要求是开放申购|开放赎回
-df=pywencai.get(question=word,#query参数
-                    loop=True,
-                    query_type="fund",
-                    # pro=True, #付费版才使用
-                    # cookie='xxxx',
-                   )
-# print(len(df))
-print(df)
-df.to_csv("ETF全部信息.csv")
-
-word=f'{tradedays[-2]}所有ETF，价格及净值，所有ETF，申赎额度，最近十日成交额'
-df=pywencai.get(question=word,#query参数
-                    loop=True,
-                    query_type="fund",
-                    # pro=True, #付费版才使用
-                    # cookie='xxxx',
-                   )
-# print(len(df))
-df["昨日成交额"]=df[f"基金@成交额[{tradedays[-2].replace('-','')}]"].astype(float)
-df=df.sort_values(by="昨日成交额",ascending=False)#溢价率降序排列
-df=df[df["昨日成交额"]>10000000]#卡在一个亿的金额直接去掉了一半多
-symbols=df["基金代码"].tolist()
-# print(len(df))
-print(df)
-df.to_csv("ETF昨日成交额.csv")
-
+import pywencai#同花顺的最新净值数据不是iopv不能用来计算溢价率
 # ETF净值数据【当天】
-word=f'{startday}所有ETF价格及净值'
+# 【申购、赎回费率】，最近十日逐日成交额，
+# 【价格及净值数据】，不是实时的，
+# 【最近十日成交额】和【最近十日逐日成交额】有差异，
+# 【成分股详情】只包含重仓股
+word=f'{startday}所有ETF，申赎清单，申赎状态，价格及净值，最近十日逐日成交额，最高申购费率、最高赎回费率'
 df=pywencai.get(question=word,#query参数
                     loop=True,
                     query_type="fund",
                     # pro=True, #付费版才使用
                     # cookie='xxxx',
                    )
-# print(len(df))
-df["ETF溢价率"]=df[f"基金@收盘价[{startday}]"].astype(float)/df["基金@最新单位净值"].astype(float)-1
-df=df.sort_values(by="ETF溢价率",ascending=False)#溢价率降序排列
-df=df[df["基金代码"].isin(symbols)]
-# print(len(df))
+# df["昨日成交额"]=df[f"基金@成交额[{tradedays[-2].replace('-','')}]"].astype(float)
+# df=df.sort_values(by="昨日成交额",ascending=False)#溢价率降序排列
+# df=df[df["昨日成交额"]>10000000]#卡在一个亿的金额直接去掉了一半多
+
 print(df)
-df.to_csv("ETF实时净值.csv")
+df.to_csv("ETF详情.csv")
 
 
 
