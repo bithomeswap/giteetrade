@@ -1,69 +1,69 @@
-#【同花顺APP上有申赎清单信息，但是没接口拿到】
-#【iopv数据据说软件上的计算方式有延迟，而且抢的人多肯定要高频低延迟才能抢到】
-# 集思录的ETF净值数据比问财出来的速度快【估值就是iopv，现价除以估值就是溢价率】
-# 爬虫循环获取网页信息比较可靠【每一个基金也可以单独获取申赎额度等信息】
-# 集思录ETF净值数据地址：https://www.jisilu.cn/data/etf/#index
-# 景顺长城申赎详情：https://www.igwfmc.com/main/jjcp/product/513980/detail.html
-# 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
+# #【同花顺APP上有申赎清单信息，但是没接口拿到】
+# #【iopv数据据说软件上的计算方式有延迟，而且抢的人多肯定要高频低延迟才能抢到】
+# # 集思录的ETF净值数据比问财出来的速度快【估值就是iopv，现价除以估值就是溢价率】
+# # 爬虫循环获取网页信息比较可靠【每一个基金也可以单独获取申赎额度等信息】
+# # 集思录ETF净值数据地址：https://www.jisilu.cn/data/etf/#index
+# # 景顺长城申赎详情：https://www.igwfmc.com/main/jjcp/product/513980/detail.html
+# # 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
 
 
 
-#申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
-#【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】
-import pandas as pd
-import datetime
-import time
-now=datetime.datetime.now()
-startday=now.strftime("%Y%m%d")
-# lastday=(now-datetime.timedelta(days=365)).strftime("%Y%m%d")
-lastday=(now-datetime.timedelta(days=60)).strftime("%Y%m%d")
+# #申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
+# #【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】
+# import pandas as pd
+# import datetime
+# import time
+# now=datetime.datetime.now()
+# startday=now.strftime("%Y%m%d")
+# # lastday=(now-datetime.timedelta(days=365)).strftime("%Y%m%d")
+# lastday=(now-datetime.timedelta(days=60)).strftime("%Y%m%d")
 
-# pip install xcsc-tushare
-import xcsc_tushare as ts
-# ts.set_token('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7')
-# ts.pro_api(server='http://116.128.206.39:7172')   #指定tocken对应的环境变量，此处以生产为例
-pro = ts.pro_api('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7',server='http://116.128.206.39:7172')
-tradedaydf = pro.query('trade_cal',
-                exchange='SSE',#交易所 SZN-深股通,SHN-沪股通,SSE-上海证券交易所,SZSE-深圳证券交易所
-                start_date=lastday,
-                end_date=startday)
-tradedaydf['trade_date'] = pd.to_datetime(tradedaydf['trade_date'], format='%Y%m%d')
-tradedaydf['trade_date'] = tradedaydf['trade_date'].dt.strftime('%Y-%m-%d')
-print(tradedaydf)
-tradedays=tradedaydf["trade_date"].tolist()
+# # pip install xcsc-tushare
+# import xcsc_tushare as ts
+# # ts.set_token('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7')
+# # ts.pro_api(server='http://116.128.206.39:7172')   #指定tocken对应的环境变量，此处以生产为例
+# pro = ts.pro_api('7ed61c98882a320cadce6481aef04ebf7853807179d45ee7f72089d7',server='http://116.128.206.39:7172')
+# tradedaydf = pro.query('trade_cal',
+#                 exchange='SSE',#交易所 SZN-深股通,SHN-沪股通,SSE-上海证券交易所,SZSE-深圳证券交易所
+#                 start_date=lastday,
+#                 end_date=startday)
+# tradedaydf['trade_date'] = pd.to_datetime(tradedaydf['trade_date'], format='%Y%m%d')
+# tradedaydf['trade_date'] = tradedaydf['trade_date'].dt.strftime('%Y-%m-%d')
+# print(tradedaydf)
+# tradedays=tradedaydf["trade_date"].tolist()
 
-# node -v
-# #需要提前安装node.js抓网页数据，如果没node.js会报错
-# pip install pywencai -U#python3.7版本调用这个函数就报错：module 'pywencai' has no attribute 'get'
-import pywencai#同花顺的最新净值数据不是iopv不能用来计算溢价率
-try:
-    df=pd.read_csv(f"ETF详情{startday}.csv")
-    print(f"ETF详情{startday}.csv","存在")
-except Exception as e:
-    print(e)
-    print(f"ETF详情{startday}.csv","不存在")
-    # ETF净值数据【当天】
-    # 【申购、赎回费率】跟官网对比了一下问财的最高申购赎回费率是准确的【具体说法是：申购赎回代理券商可按照不超过 0.4%的标准收取佣金】
-    # 【价格及净值数据】，不是实时的，
-    # 【最近十日成交额】和【最近十日逐日成交额】有差异，但是都是准确的现在用的【最近十日逐日成交额】
-    # 【成分股详情】只包含重仓股
-    word=f'{startday}所有ETF，最高申购费率、最高赎回费率，最近十日逐日成交额'
-    df=pywencai.get(question=word,#query参数
-                    loop=True,
-                    query_type="fund",
-                    # pro=True, #付费版才使用
-                    # cookie='xxxx',
-                    )
-    for day in tradedays[-10:]:
-        print(day)
-        df[f"{day.replace('-','')}日成交额"]=df[f"基金@成交额[{day.replace('-','')}]"].astype(float)
-        df=df.sort_values(by=f"{day.replace('-','')}日成交额",ascending=False)#成交额降序排列
-        df=df[df[f"{day.replace('-','')}日成交额"]>10000000]#卡在最近十天每天成交额大于一个亿从999只变成了418只
-    print(df)
-    df.to_csv(f"ETF详情{startday}.csv")
+# # node -v
+# # #需要提前安装node.js抓网页数据，如果没node.js会报错
+# # pip install pywencai -U#python3.7版本调用这个函数就报错：module 'pywencai' has no attribute 'get'
+# import pywencai#同花顺的最新净值数据不是iopv不能用来计算溢价率
+# try:
+#     df=pd.read_csv(f"ETF详情{startday}.csv")
+#     print(f"ETF详情{startday}.csv","存在")
+# except Exception as e:
+#     print(e)
+#     print(f"ETF详情{startday}.csv","不存在")
+#     # ETF净值数据【当天】
+#     # 【申购、赎回费率】跟官网对比了一下问财的最高申购赎回费率是准确的【具体说法是：申购赎回代理券商可按照不超过 0.4%的标准收取佣金】
+#     # 【价格及净值数据】，不是实时的，
+#     # 【最近十日成交额】和【最近十日逐日成交额】有差异，但是都是准确的现在用的【最近十日逐日成交额】
+#     # 【成分股详情】只包含重仓股
+#     word=f'{startday}所有ETF，最高申购费率、最高赎回费率，最近十日逐日成交额'
+#     df=pywencai.get(question=word,#query参数
+#                     loop=True,
+#                     query_type="fund",
+#                     # pro=True, #付费版才使用
+#                     # cookie='xxxx',
+#                     )
+#     for day in tradedays[-10:]:
+#         print(day)
+#         df[f"{day.replace('-','')}日成交额"]=df[f"基金@成交额[{day.replace('-','')}]"].astype(float)
+#         df=df.sort_values(by=f"{day.replace('-','')}日成交额",ascending=False)#成交额降序排列
+#         df=df[df[f"{day.replace('-','')}日成交额"]>10000000]#卡在最近十天每天成交额大于一个亿从999只变成了418只
+#     print(df)
+#     df.to_csv(f"ETF详情{startday}.csv")
 
-#现在就是差一个iopv一个ETF申赎清单【上交所官网有公布】
-# "//query.sse.com.cn/etfDownload/downloadETF2Bulletin.do?etfType=006"
+# #现在就是差一个iopv一个ETF申赎清单【上交所官网有公布】
+# # "//query.sse.com.cn/etfDownload/downloadETF2Bulletin.do?etfType=006"
 
 
 
@@ -92,313 +92,109 @@ except Exception as e:
 # # conda create -n my_env8 python=3.8#创建环境
 # # conda env remove -n my_env8#删除环境
 
-# # xtdata提供和MiniQmt的交互接口,本质是和MiniQmt建立连接,由MiniQmt处理行情数据请求,再把结果回传返回到python层。使用的行情服务器以及能获取到的行情数据和MiniQmt是一致的,要检查数据或者切换连接时直接操作MiniQmt即可。
-# # 对于数据获取接口,使用时需要先确保MiniQmt已有所需要的数据,如果不足可以通过补充数据接口补充,再调用数据获取接口获取。
-# # 对于订阅接口,直接设置数据回调,数据到来时会由回调返回。订阅接收到的数据一般会保存下来,同种数据不需要再单独补充。
-# from xtquant import xtdata
+# xtdata提供和MiniQmt的交互接口,本质是和MiniQmt建立连接,由MiniQmt处理行情数据请求,再把结果回传返回到python层。使用的行情服务器以及能获取到的行情数据和MiniQmt是一致的,要检查数据或者切换连接时直接操作MiniQmt即可。
+# 对于数据获取接口,使用时需要先确保MiniQmt已有所需要的数据,如果不足可以通过补充数据接口补充,再调用数据获取接口获取。
+# 对于订阅接口,直接设置数据回调,数据到来时会由回调返回。订阅接收到的数据一般会保存下来,同种数据不需要再单独补充。
+from xtquant import xtdata
 
-# # #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
-# # 配置日志
-# basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】miniqmtSDK"
-# # pip install loguru # 这个框架可以解决中文不显示的问题
-# from loguru import logger
-# logger.add(
-#     sink=f"{basepath}/log.log",#sink: 创建日志文件的路径。
-#     # sink=f"log.log",#sink: 创建日志文件的路径。
-#     level="INFO",#level: 记录日志的等级,低于这个等级的日志不会被记录。等级顺序为 debug < info < warning < error。设置 INFO 会让 logger.debug 的输出信息不被写入磁盘。
-#     rotation="00:00",#rotation: 轮换策略,此处代表每天凌晨创建新的日志文件进行日志 IO；也可以通过设置 "2 MB" 来指定 日志文件达到 2 MB 时进行轮换。   
-#     retention="7 days",#retention: 只保留 7 天。 
-#     compression="zip",#compression: 日志文件较大时会采用 zip 进行压缩。
-#     encoding="utf-8",#encoding: 编码方式
-#     enqueue=True,#enqueue: 队列 IO 模式,此模式下日志 IO 不会影响 python 主进程,建议开启。
-#     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"#format: 定义日志字符串的样式,这个应该都能看懂。
-# )
+# #测试里面买不了深证的是因为没开相关记录,上证的正常买入没有限制
+# 配置日志
+basepath=r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【QMT】miniqmtSDK"
+# pip install loguru # 这个框架可以解决中文不显示的问题
+from loguru import logger
+logger.add(
+    sink=f"{basepath}/log.log",#sink: 创建日志文件的路径。
+    # sink=f"log.log",#sink: 创建日志文件的路径。
+    level="INFO",#level: 记录日志的等级,低于这个等级的日志不会被记录。等级顺序为 debug < info < warning < error。设置 INFO 会让 logger.debug 的输出信息不被写入磁盘。
+    rotation="00:00",#rotation: 轮换策略,此处代表每天凌晨创建新的日志文件进行日志 IO；也可以通过设置 "2 MB" 来指定 日志文件达到 2 MB 时进行轮换。   
+    retention="7 days",#retention: 只保留 7 天。 
+    compression="zip",#compression: 日志文件较大时会采用 zip 进行压缩。
+    encoding="utf-8",#encoding: 编码方式
+    enqueue=True,#enqueue: 队列 IO 模式,此模式下日志 IO 不会影响 python 主进程,建议开启。
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"#format: 定义日志字符串的样式,这个应该都能看懂。
+)
 
-# def symbol_convert(stock):#股票代码加后缀
-#     #北交所的股票8字开头,包括82、83、87、88,其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
-#     if (stock.startswith("60"))or(#上交所主板
-#         stock.startswith("68"))or(#上交所科创板
-#         stock.startswith("11"))or(#上交所可转债
-#         (stock.startswith("51"))or(stock.startswith("56"))or(stock.startswith("58"))):#上交所ETF
-#         return str(str(stock)+".SH")
-#         # return str(str(stock)+".SS")
-#     elif (stock.startswith("00"))or(#深交所主板
-#         stock.startswith("30"))or(#深交所创业板
-#         stock.startswith("12"))or(#深交所可转债
-#         (stock.startswith("15"))):#深交所ETF
-#         return str(str(stock)+".SZ")
-#     else:
-#         logger.info(f"不在后缀转换名录"+str(stock))
-#         return str(str(stock))
-    
-# def filter_kcb_stock(stocks):#过滤科创北交股票
-#     for stock in stocks[:]:
-#         if stock[0]=="4" or stock[0]=="8" or stock[:2]=="68":
-#             stocks.remove(stock)
-#     return stocks
+def symbol_convert(stock):#股票代码加后缀
+    #北交所的股票8字开头，包括82、83、87、88，其中82开头的股票表示优先股；83和87开头的股票表示普通股票、88开头的股票表示公开发行的。
+    if (stock.startswith("60"))or(#上交所主板
+        stock.startswith("68"))or(#上交所科创板
+        stock.startswith("11"))or(#上交所可转债
+        (stock.startswith("5"))):#上交所ETF：51、52、56、58都是
+        return str(str(stock)+".SH")
+        # return str(str(stock)+".SS")
+    elif (stock.startswith("00"))or(#深交所主板
+        stock.startswith("30"))or(#深交所创业板
+        stock.startswith("12"))or(#深交所可转债
+        (stock.startswith("159"))):#深交所ETF：暂时只有159的是深交所ETF
+        return str(str(stock)+".SZ")
+    else:
+        print("不在后缀转换名录",str(stock))
+        return str(str(stock))
 
-# def choose_stocks(choosename,now,start_date,last_date,today,yesterday):
-#     if choosename=="可转债":#A股可转债策略
-#         try:
-#             pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
-#             logger.info(f"******"+str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv"+"文件存在")
-#             pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
-#             logger.info(f"******"+str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv"+"文件存在")
-#         except Exception as e:
-#             logger.info(f"******"+"******"+str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv"+choosename+"卖出.csv"+"文件不同时存在")
-#             #pip install akshare
-#             import akshare as ak
-#             df_cbonds=ak.bond_cb_redeem_jsl()#强制赎回信息【实时数据】
-#             df_cbonds["代码"]=df_cbonds["代码"].str.replace(r'\D','',regex=True).astype(str)
-#             logger.info(f"去掉强制赎回之前,{len(df_cbonds)}")
-#             df_cbonds=df_cbonds[~(df_cbonds["强赎状态"]=="已公告强赎")]
-#             logger.info(f"去掉强制赎回之后,{len(df_cbonds)}")
-#             df_cbonds["总市值"]=df_cbonds["现价"]*df_cbonds["剩余规模"]        
-#             df_cbonds["转股溢价率"]=df_cbonds["现价"]/((100/df_cbonds["转股价"])*df_cbonds["正股价"])
-#             df_cbonds["三低指数"]=df_cbonds["总市值"]*df_cbonds["转股溢价率"]
-#             df_cbonds["排名"]=df_cbonds["三低指数"].rank(method="max", ascending=True,na_option='bottom')
-#             # df_cbonds.to_csv("可转债强制赎回信息.csv")
+import datetime
+import time
+now=datetime.datetime.now()
+start_date=now.strftime("%Y%m%d")#测试当天的数据
+# last_date=(now-datetime.timedelta(days=730)).strftime("%Y%m%d")
+last_date=(now-datetime.timedelta(days=250)).strftime("%Y%m%d")
+while True:
+    # 获取交易日期
+    tradelist=xtdata.get_trading_dates("SH",start_time="",end_time=start_date,count=2)
+    logger.info(f"{tradelist}")
+    if len(tradelist)!=0:
+        logger.info("日期获取成功")
+        today=tradelist[-1]
+        today=datetime.datetime.fromtimestamp(today/1000)
+        today=today.strftime("%Y%m%d")
+        yesterday=tradelist[0]
+        yesterday=datetime.datetime.fromtimestamp(yesterday/1000)
+        yesterday=yesterday.strftime("%Y%m%d")
+        break
+    else:
+        logger.info("日期获取失败")
+        time.sleep(10)
+        today=now.strftime("%Y%m%d")
+        yesterday=(now-datetime.timedelta(days=1)).strftime("%Y%m%d")
+        break
+logger.info(f"******"+"today"+today+"yesterday"+yesterday)
 
-#             olddf=ak.bond_zh_cov_info_ths()
-#             olddf["代码"]=olddf["债券代码"].str.replace(r'\D','',regex=True).astype(str)
-#             olddf=olddf[olddf["到期时间"]>(datetime.datetime.now()+datetime.timedelta(days=180)).date()]
-#             logger.info(f"当前展示K线,{len(olddf)}")
-#             # olddf.to_csv("债券评级同花顺.csv")
-#             df_cbonds=df_cbonds[df_cbonds["代码"].isin(olddf["代码"].tolist())]
-#             logger.info(f"去掉到期时间之后,{len(olddf)}")
+#交易模块
+import random
+from xtquant.xttype import StockAccount
+from xtquant.xttrader import XtQuantTrader
+from xtquant import xtconstant
+# QMT账号
+# mini_qmt_path = r"D:\迅投极速交易终端 睿智融科版\userdata_mini"# miniQMT安装路径
+# account_id = "2011506"# QMT账号
+# account_id = "2011908"
+# mini_qmt_path = r"D:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
+mini_qmt_path = r"C:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
 
-#             #评级接口需要开集思录会员,如果要用的话开了再改,目前使用阉割版
-#             olddf=ak.bond_cb_jsl()
-#             olddf["代码"]=olddf["代码"].str.replace(r'\D','',regex=True).astype(str)
-#             logger.info(f"当前展示K线,{len(olddf)}")
-#             # olddf=olddf[olddf["到期时间"]>(datetime.datetime.now()+datetime.timedelta(days=180)).date()]
-#             # olddf=olddf[(olddf["债券评级"]=="BBB")|(olddf["债券评级"]=="BBB+")|(olddf["债券评级"].str.contains("A"))]
-#             # olddf["总市值"]=olddf["现价"]*olddf["剩余规模"]  
-#             # olddf["转股溢价率"]=olddf["转股溢价率"]+1
-#             # # olddf["转股溢价率"]=olddf["现价"]/((100/olddf["转股价"])*olddf["正股价"])
-#             # olddf["三低指数"]=olddf["总市值"]*olddf["转股溢价率"]
-#             # olddf["排名"]=olddf["三低指数"].rank(method="max", ascending=True,na_option='bottom')
-#             # olddf.to_csv("债券评级.csv")
-#             # logger.info(f"去掉平级和到期时间之后K线,{len(olddf)}")
-#             # olddf=olddf[olddf["代码"].isin(cbonds)]
-#             # logger.info(f"去掉强制赎回之后K线,{len(olddf)}")
+account_id = "55013189"
+if (account_id=='55013189')or(account_id=='2011506')or(account_id=="2011908"):#密码:wth000
+    # choosename="可转债"
+    choosename="微盘股"
+    tradeway="taker"#设置主动吃单
+    # tradeway="maker"#设置被动吃单
+else:
+    choosename="微盘股"
+    tradeway="taker"#设置主动吃单
+session_id = int(random.randint(100000,999999))# 创建session_id
+trade_api = XtQuantTrader(mini_qmt_path,session_id)# 创建交易对象
+trade_api.start()# 启动交易对象
 
-#             notbonds=olddf[~(olddf["债券评级"]=="BBB")|(olddf["债券评级"]=="BBB+")|(olddf["债券评级"].str.contains("A"))]
-#             df_cbonds=df_cbonds[~df_cbonds["代码"].isin(notbonds)]
-#             logger.info(f"去掉强制赎回之后K线,{len(df_cbonds)}")
+while True:
+    connect_result = trade_api.connect()# 连接客户端
+    print("连接结果",connect_result)
+    if connect_result==0:
+        logger.info("连接成功")
+        break
+    else:
+        logger.info("重新链接")
+        time.sleep(1)
 
-#             df_cbonds=df_cbonds[df_cbonds["现价"]<150]
-#             logger.info(f"去掉价格高于150之后,{len(df_cbonds)}")
-                    
-#             df_cbonds["正股代码"]=df_cbonds["正股代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
-#             stocks=df_cbonds["正股代码"].tolist()
-            
-#             # 处理停牌和ST数据
-#             for stock in stocks:
-#                 df=xtdata.get_instrument_detail(stock, iscomplete=False)
-#                 try:
-#                     logger.info(f"{df},{type(df)}")
-#                     # InstrumentStatus#停牌状态
-#                     # InstrumentName#合约名称
-#                     logger.info(f'{df["InstrumentStatus"]},{type(df["InstrumentStatus"])}')
-#                     logger.info(f'{df["InstrumentName"]},{type(df["InstrumentName"])}')
-#                     # if (df["InstrumentStatus"]!=0):#-1是跌停没有数据了,3是算上当天停牌了三个交易日,数越大停牌时间越长
-#                     #     if stock in stocks:
-#                     #         stocks.remove(stock)
-#                     #         logger.info("去掉停牌",stock,df["InstrumentStatus"])
-#                     if ("S" in df["InstrumentName"])or("退" in df["InstrumentName"]):
-#                         if stock in stocks:
-#                             stocks.remove(stock)
-#                             logger.info(f'去掉ST,{stock},{df["InstrumentName"]}')
-#                 except Exception as e:
-#                     logger.info(e,stock)
-#             # logger.info("过滤完ST和停牌标的之后",len(stocks))
-#             df_cbonds=df_cbonds[df_cbonds["正股代码"].isin(stocks)]
-#             logger.info(f"过滤完正股ST和停牌标的之后,{len(df_cbonds)}")
-
-#             olddf=df_cbonds.copy()
-#             olddf['代码']=olddf['代码'].str.replace(r'\D','',regex=True).astype(str)
-#             numbuystock=10 # 设置持仓数量
-#             dftwo=olddf.nsmallest(math.ceil(1.5*numbuystock), "三低指数")
-#             dfone=olddf.nsmallest(math.ceil(numbuystock), "三低指数")
-#             dftwo.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
-#             dfone.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
-#             dftwo["代码"]=dftwo["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
-#             dfone["代码"]=dfone["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
-#             buylisttwo=dftwo["代码"].values
-#             buylistone=dfone["代码"].values
-#             logger.info(f"******,{buylistone},{buylisttwo}")
-#     if (choosename=="中小板")or(choosename=="微盘股"):#A股中小板策略
-#         try:
-#             pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
-#             logger.info(f"******"+str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv"+"文件存在")
-#             pd.read_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
-#             logger.info(f"******"+f"/{str(start_date)}"+choosename+"卖出.csv"+"文件存在")
-#         except Exception as e:
-#             logger.info(f"******"+"******"+f"/{str(start_date)}"+choosename+"买入.csv"+choosename+"卖出.csv"+"文件不同时存在")
-#             # 获取板块列表
-#             stocks=xtdata.get_stock_list_in_sector("沪深A股")
-#             stocks=filter_kcb_stock(stocks)
-#             logger.info(stocks)#000和300是SZ结尾,600是SH结尾
-#             # 处理停牌和ST数据
-#             for stock in stocks:
-#                 df=xtdata.get_instrument_detail(stock,iscomplete=False)
-#                 # InstrumentStatus#停牌状态
-#                 # InstrumentName#合约名称
-#                 # logger.info(df["InstrumentStatus"],type(df["InstrumentStatus"]))
-#                 try:#有可能报错
-#                     if (df["InstrumentStatus"]!=0):#-1是跌停没有数据了,3是算上当天停牌了三个交易日,数越大停牌时间越长
-#                         if stock in stocks:
-#                             stocks.remove(stock)
-#                             logger.info(f'去掉停牌,{stock},{df["InstrumentStatus"]}')
-#                     if ("S" in df["InstrumentName"])or(("退" in df["InstrumentName"])):
-#                         if stock in stocks:
-#                             stocks.remove(stock)
-#                             logger.info(f'去掉ST,{stock},{df["InstrumentName"]}')
-#                 except Exception as e:#报索引越界一般是tick数据没出来
-#                     logger.info(e)
-#             logger.info(f"过滤完ST和停牌标的之后,{len(stocks)}")
-        
-#             #使用问财python库获取数据【同花顺利润口径不同,普遍是ttm的归母净利润】
-#             #问财获取数据【需要提前安装node.js进行页面解析,接口获取到的最新价列就是实时最新价】
-#             # pip install pywencai
-#             logger.info("问财下载财务数据")
-#             import pywencai
-#             import datetime
-#             try:
-#                 # 获取交易日期
-#                 tradelist=xtdata.get_trading_dates("SH",start_time="",end_time=start_date,count=2)
-#                 strday=datetime.datetime.fromtimestamp(tradelist[0]/1000).strftime("%Y%m%d")
-#             except Exception as e:#报索引越界一般是tick数据没出来
-#                 logger.info("获取交易日失败直接用前一个自然日")
-#                 strday=(datetime.datetime.now()-datetime.timedelta(days=1)).strftime("%Y%m%d")
-#             logger.info(f"strday,{strday}")
-#             word=f'主板创业板股票昨天的总股本及净利润'
-#             # word=f'中小综指所有成分股票昨天的总股本及净利润'
-#             olddf=pywencai.get(question=word,loop=True)
-#             logger.info(f"{olddf}")
-#             olddf=olddf[~(olddf[f"股票简称"].str.contains("S"))]
-#             olddf=olddf[~(olddf[f"股票简称"].str.contains("退"))]
-#             guben=[column for column in olddf.columns if f"总股本[" in column]
-#             olddf["总股本"]=olddf[guben]
-#             lirun=[column for column in olddf.columns if f"归属母公司股东的净利润(ttm)[" in column]
-#             olddf["归母净利润"]=olddf[lirun]
-#             # olddf["总股本"]=olddf[f"总股本[{strday}]"]
-#             # olddf["归母净利润"]=olddf[f"归属母公司股东的净利润(ttm)[{strday}]"]
-#             # olddf=olddf[["最新价","股票简称","股票代码","总股本","归母净利润"]]
-#             olddf=olddf.dropna(subset=['最新价'])#去掉未上市的标的【当然停牌数据也被去掉了】
-#             olddf=olddf[olddf["归母净利润"]>0]
-#             olddf["代码"]=olddf["股票代码"]
-#             olddf.to_csv("问财数据.csv")
-#             olddf=olddf[olddf["代码"].isin(stocks)]
-#             olddf=olddf[["代码","总股本","最新价"]]
-#             olddf["总股本"]=olddf["总股本"].astype(float)
-#             olddf["最新价"]=olddf["最新价"].astype(float)
-#             olddf=olddf[olddf["最新价"]>4]#只要大于4元的
-#             logger.info(f"{olddf}")#如果不修改数据格式,那么很可能数据大小越界
-        
-#             #股本数据结合价格合成市值数据
-#             olddf["总市值"]=olddf["总股本"]*olddf["最新价"]
-#             olddf["排名"]=olddf["总市值"].rank(method="max",ascending=True,na_option='bottom')
-#             olddf['代码']=olddf['代码'].str.replace(r'\D','',regex=True).astype(str)
-#             if (choosename=="中小板"):
-#                 numbuystock=10#设置持仓数量
-#             if (choosename=="微盘股"):
-#                 numbuystock=30#设置持仓数量
-#             dfone=olddf.nsmallest(math.ceil(numbuystock),"排名")
-#             dftwo=olddf.nsmallest(math.ceil(1.5*numbuystock),"排名")
-#             dftwo.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"卖出.csv")
-#             dfone.to_csv(str(basepath)+f"/{str(start_date)}"+choosename+"买入.csv")
-#             dftwo["代码"]=dftwo["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
-#             dfone["代码"]=dfone["代码"].apply(lambda x:symbol_convert(x)).astype(str)#需要指定类型为字符串
-#             buylisttwo=dftwo["代码"].values
-#             buylistone=dfone["代码"].values
-#             logger.info(f"******,{buylistone},{buylisttwo}")
-
-# now=datetime.datetime.now()
-
-# start_date=now.strftime("%Y%m%d")#测试当天的数据
-# # last_date=(now-datetime.timedelta(days=730)).strftime("%Y%m%d")
-# last_date=(now-datetime.timedelta(days=250)).strftime("%Y%m%d")
-# while True:
-#     # 获取交易日期
-#     tradelist=xtdata.get_trading_dates("SH",start_time="",end_time=start_date,count=2)
-#     logger.info(f"{tradelist}")
-#     if len(tradelist)!=0:
-#         logger.info("日期获取成功")
-#         today=tradelist[-1]
-#         today=datetime.datetime.fromtimestamp(today/1000)
-#         today=today.strftime("%Y%m%d")
-#         yesterday=tradelist[0]
-#         yesterday=datetime.datetime.fromtimestamp(yesterday/1000)
-#         yesterday=yesterday.strftime("%Y%m%d")
-#         break
-#     else:
-#         logger.info("日期获取失败")
-#         time.sleep(10)
-#         today=now.strftime("%Y%m%d")
-#         yesterday=(now-datetime.timedelta(days=1)).strftime("%Y%m%d")
-#         break
-# logger.info(f"******"+"today"+today+"yesterday"+yesterday)
-
-# #交易模块
-# import random
-# from xtquant.xttype import StockAccount
-# from xtquant.xttrader import XtQuantTrader
-# from xtquant import xtconstant
-# # QMT账号
-# # mini_qmt_path = r"D:\迅投极速交易终端 睿智融科版\userdata_mini"# miniQMT安装路径
-# # account_id = "2011506"# QMT账号
-# # account_id = "2011908"
-# # mini_qmt_path = r"D:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
-# mini_qmt_path = r"C:\国金QMT交易端模拟\userdata_mini"# miniQMT安装路径
-
-# account_id = "55013189"
-# if (account_id=='55013189')or(account_id=='2011506')or(account_id=="2011908"):#密码:wth000
-#     # choosename="可转债"
-#     choosename="微盘股"
-#     tradeway="taker"#设置主动吃单
-#     # tradeway="maker"#设置被动吃单
-# else:
-#     choosename="微盘股"
-#     tradeway="taker"#设置主动吃单
-# session_id = int(random.randint(100000,999999))# 创建session_id
-# trade_api = XtQuantTrader(mini_qmt_path,session_id)# 创建交易对象
-# trade_api.start()# 启动交易对象
-
-# while True:
-#     connect_result = trade_api.connect()# 连接客户端
-#     print("连接结果",connect_result)
-#     if connect_result==0:
-#         logger.info("连接成功")
-#         break
-#     else:
-#         logger.info("重新链接")
-#         time.sleep(1)
-
-# # import pandas as pd
-# # # 【需要额外判断交易日判断数据对不对，错了及时推送报错到微信或者钉钉】
-# # dfstock=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF成份证券信息20241016.csv")
-# # # ,交易日,交易所代码,ETF交易代码,ETF成份证券代码,成分证券名称,成分证券数量,现金替代标志,溢价比例,申购替代金额,赎回替代金额,挂牌市场,ETF申赎类型
-# # #关键数据：最大现金替代比例【也就是说可以如果股票数量{实物申购}不足，最多可以使用多大比例的现金进行替代】
-# # dfetf=pd.read_csv(r"C:\Users\13480\gitee\trade\【本地选股（A股）】SDK\【华鑫证券】奇点\ETF清单信息20241016.csv")
-# # # ,交易日,交易所代码,ETF交易代码,ETF申赎代码,最小申购赎回单位份数,最大现金替代比例,预估现金差额,前一交易日现金差额,前一交易日基金单位净值,前一交易日申赎基准单位净值,当日申购赎回基准单位的红利金额,ETF申赎类型,ETF证券名称
-# # # dfetf["前一交易日申赎基准单位净值"]=dfetf["前一交易日基金单位净值"]*dfetf["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
-# # dfetf["前一交易日基金单位净值"]=dfetf["前一交易日申赎基准单位净值"]/dfetf["最小申购赎回单位份数"]#这里的前一交易日基金单位净值是四舍五入之后的数据，应该以前一交易日申赎基准单位净值为准计算单笔最小下单金额和单位净值
-# # # dfetf["ETF交易代码"].tolist()#ETF详情
-# #[获取IOPV数据]（不适合miniqmt）
-# # etfiopv=xtdata.get_etf_iopv("510050.SH")
-# # print(etfiopv)
-# # #下载所有ETF数据[VIP权限数据]（否则程序会报错需要升级客户端或者使用投研版）
-# # # xtdata.download_etf_info()
-# # # etfinfo=xtdata.get_etf_info()#获取ETF基金代码为511050的全部ETF申赎清单数据【需要升级成投研版或者升级客户端】
-# # # #实时申赎数据[VIP权限数据]
-# # # from xtquant import xtdata
-# # # xtdata.download_history_data(stock, 'etfstatistics', start_time, end_time, incrementally = True)
-# # # data = xtdata.get_market_data_ex([], stock_list, period = 'etfstatistics', start_time = "", end_time = "")
-
-# acc = StockAccount(account_id)# 创建账号对象
-# trade_api.subscribe(acc)# 订阅账号
+acc = StockAccount(account_id)# 创建账号对象
+trade_api.subscribe(acc)# 订阅账号
 # #设置交易参数并且获取买卖计划
 # bidrate=0.005#设置盘口价差为0.004
 # timecancellwait=60#设置撤单函数筛选订单的确认时间
@@ -409,8 +205,7 @@ except Exception as e:
 # # cancellorder=False#取消一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
 # cancellorder=True#设置一分钟不成交或者已成交金额达到目标值自动撤单并回补撤单金额的任务
 
-# logger.info(f"{now},{choosename},{account_id},{start_date},{last_date},{today},{yesterday}")
-# choose_stocks(choosename,now,start_date,last_date,today,yesterday)#使用特定函数根据策略名称配置相应参数
+logger.info(f"{now},{choosename},{account_id},{start_date},{last_date},{today},{yesterday}")
 
 # buyfilename=choosename+"买入.csv"
 # sellfilename=choosename+"卖出.csv"
