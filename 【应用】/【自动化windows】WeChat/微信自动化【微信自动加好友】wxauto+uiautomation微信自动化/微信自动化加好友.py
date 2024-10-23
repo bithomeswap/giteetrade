@@ -57,7 +57,7 @@ wechatWindow = auto.WindowControl(searchDepth=1, Name="微信", ClassName='WeCha
 num=0
 while True:
     num+=1
-    if num>=41:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
+    if num>=62:#这里尽量把前二十人跳过去【另外还有一个索引越界{UI当中无法展示该名片}的问题】
         button = wechatWindow.ButtonControl(Name='收起')
         if button.Exists():
             print("有收起按钮无需重新打开")
@@ -91,11 +91,16 @@ while True:
         m=num%4#列数
         n=(num-m)/4#行数
         print(f"目前为为第{n}行{m}列")#每行四个用户，需要计算向下滚动的距离
-        button.WheelDown(wheelTimes=int(math.floor(n*7/13)),#7次13行多一点，6次13行少一点
-                                interval=0.1,#滚动间隔
-                                waitTime=0.2,#等待时间【任务完成后的等待时间】
-                                )#模拟鼠标向下滚动
-
+        if num<200:
+            button.WheelDown(wheelTimes=int(math.floor(n*6/13)),#7次13行多一点，6次13行少一点
+                                    interval=0.1,#滚动间隔
+                                    waitTime=0.1,#等待时间【任务完成后的等待时间】
+                                    )#模拟鼠标向下滚动
+        else:
+            button.WheelDown(wheelTimes=int(math.floor(n*7/13)),#7次13行多一点，6次13行少一点
+                                    interval=0.1,#滚动间隔
+                                    waitTime=0.2,#等待时间【任务完成后的等待时间】
+                                    )#模拟鼠标向下滚动
         #执行加好友操作
         children.Click()#点开具体某个群成员的信息对话框
         button = wechatWindow.ButtonControl(Name='添加到通讯录')
