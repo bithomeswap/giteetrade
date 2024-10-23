@@ -437,10 +437,15 @@ buydflist=dfone["代码"].tolist()
 thistime=datetime.datetime.now()
 
 # #【设置1、4月空仓】
+# thistime=(context.blotter.current_dt)
 # if ((thistime.month==4)or(thistime.month==1)):
-#     logger.info(thistime.month,"当前月份空仓")
-#     selldflist=[]
-#     buydflist=[]
+    # print(thistime.month,"当前月份空仓")
+    # selldflist=[]
+    # buydflist=[]
+    
+#【设置一键清仓】
+selldflist=[]
+buydflist=[]
 
 if not dfposition.empty:#持仓不为空值
     positionsymbols=dfposition["symbol"].tolist()
@@ -461,12 +466,26 @@ if not dfposition.empty:#持仓不为空值
         f"{positionsymbols}"
     )
     selldf=dfposition.copy()#只针对持仓当中的标的筛选应卖出标的
-    buydf=dfone.copy()
-    selldf=selldf[~(selldf["symbol"].isin(dftwo["代码"].tolist()))]
-    logger.info(f"实际应卖出股票,去掉应持有标的后,{len(selldf)}")
-    # selldf=selldf[~(selldf["symbol"].isin(upstocks))]
-    logger.info(f"实际应卖出股票,去掉涨停标的后,{len(selldf)}")
+    buydf=dfone[dfone["代码"].isin(buydflist)]
+    # buydf=buydf[~(buydf["symbol"].isin(upstocks))]#涨停不买【本地代码当中在前面已经对此单独进行了验证，这里无需执行ptrade上类似的代码】
+    selldf=selldf[~(selldf["symbol"].isin(selldflist))]
+    print("实际应卖出股票，去掉应持有标的后",len(selldf))
+    # selldf=selldf[~(selldf["symbol"].isin(upstocks))]#涨停不卖【本地代码当中在前面已经对此单独进行了验证，这里无需执行ptrade上类似的代码】
+    # selldf=selldf[~(selldf["symbol"].isin(downstocks))]#跌停不卖【本地代码当中在前面已经对此单独进行了验证，这里无需执行ptrade上类似的代码】
+    print("实际应卖出股票，去掉涨停标的后",len(selldf))
     if len(selldf)>0:
+        # print("应卖出股票只数大于0，需要先根据是否涨停再次计算卖出计划")
+        # # 只保留未停牌的股票【获取当前tick确认其trade_status不为STOPT】【本地代码当中在前面已经对此单独进行了验证，这里无需执行ptrade上类似的代码】
+        # notstopstocks=[]
+        # for stock in selldf["symbol"].tolist():#错在没有分别对每一个标的进行过滤参数传错了
+        #     stock_trade_status=get_snapshot(stock)[stock]["trade_status"]
+        #     print("stock_trade_status",stock_trade_status,type(stock_trade_status))
+        #     # if (stock_trade_status!="STOPT"):#仅仅保留未停牌状态的标的                    
+        #     if (stock_trade_status=="TRADE"):#仅仅保留处于连续竞价状态的标的
+        #         print(stock,"未停牌")
+        #         notstopstocks.append(stock)
+        # selldf=selldf[(selldf["symbol"].isin(notstopstocks))]
+        # print("实际应卖出股票，只保留可以交易标的后",len(selldf))
         #应买入股票处理
         buydf=buydf[~(buydf["代码"].isin(selldf["symbol"].tolist()))]
         buydf=buydf[~(buydf["代码"].isin(dfposition["symbol"].tolist()))]
@@ -481,7 +500,7 @@ if not dfposition.empty:#持仓不为空值
     else:
         logger.info("应卖出股票只数小于0,直接去除掉当前的持仓标的计算买入计划")
         #应买入股票处理
-        buydf=buydf[~(buydf["代码"].isin(dfposition["symbol"].tolist()))]
+        buydf=buydf[~(buydf["symbol"].isin(dfposition["symbol"].tolist()))]
         logger.info(f"实际应买入股票,去除应卖出标的后,{len(buydf)}")
         #计算卖出后剩余持仓数量
         hodlstocks=len(dfposition["symbol"].tolist())-len(selldf["symbol"].tolist())
