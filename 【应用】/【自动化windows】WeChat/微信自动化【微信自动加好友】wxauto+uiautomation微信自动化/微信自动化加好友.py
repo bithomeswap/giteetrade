@@ -48,6 +48,8 @@ def IsGroup(chatBox:PaneControl):
 is_group = IsGroup(wx.ChatBox)
 print("是否是群聊",is_group)
 
+import akshare
+akshare.bond_cb_index_jsl
 #自动化加好友【这个是添加群好友不是根据联系方式自动加好友】
 import random#添加随机数
 import time

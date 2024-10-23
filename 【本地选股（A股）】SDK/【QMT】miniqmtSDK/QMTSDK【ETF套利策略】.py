@@ -8,46 +8,15 @@
 
 # pip install lxml
 import requests
-from bs4 import BeautifulSoup
+import pandas as pd
 # 目标网页URL
-url = r'https://www.jisilu.cn/data/etf/#index'
-# # 发送HTTP请求
-# response = requests.get(url)
-# # 检查请求是否成功
-# if response.status_code == 200:
-#     # 使用BeautifulSoup解析HTML内容
-#     soup = BeautifulSoup(response.text,'html.parser')
-#     # 查找页面中所有的tbody标签
-#     tbody_list = soup.find_all('tbody')
-#     # 遍历所有找到的tbody标签
-#     for tbody in tbody_list:
-#         # 在每个tbody标签下查找所有的行<tr>
-#         rows = tbody.find_all('tr')
-#         # 遍历所有行<tr>
-#         for row in rows:
-#             # 在每行中查找所有的单元格<td>或<th>
-#             cells = row.find_all(['td', 'th'])
-#             # 遍历所有单元格<td>或<th>
-#             for cell in cells:
-#                 # 打印单元格的文本内容
-#                 print(cell.get_text(strip=True))
-# else:
-#     print('请求失败，状态码：', response.status_code)
-import requests
-from lxml import html
-# 发送HTTP请求
-response = requests.get(url)
-# 检查请求是否成功
-if response.status_code == 200:
-    # 使用lxml解析网页
-    tree = html.fromstring(response.content)
-    # 使用XPath提取tbody下的所有数据
-    tbody_data = tree.xpath(r'/html/body/div[4]/div[2]/div[3]/table/tbody')
-    # 遍历提取的数据并打印
-    for data in tbody_data:
-        print(data.text_content().strip())
-else:
-    print('请求失败，状态码：', response.status_code)
+# url = r'https://www.jisilu.cn/data/etf/#index'
+url = "https://www.jisilu.cn/webapi/etf/index_history/"
+r = requests.get(url)
+from akshare.utils import demjson
+data_dict = demjson.decode(r.text)["data"]
+temp_df = pd.DataFrame(data_dict)
+print(temp_df)
 
 # #申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
 # #【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】
