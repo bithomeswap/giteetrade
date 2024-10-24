@@ -175,3 +175,31 @@ def getetflist():#把下面的数据获取挪进来
 # response = requests.post(url, headers=headers, cookies=cookies, data=data)
 # print(response.text)
 # print(response)
+
+
+import requests
+
+
+headers = {
+    "Accept": "*/*",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+    "Connection": "keep-alive",
+    "Origin": "https://www.efunds.com.cn",
+    "Referer": "https://www.efunds.com.cn/",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0",
+    "sec-ch-ua": "\"Chromium\";v=\"130\", \"Microsoft Edge\";v=\"130\", \"Not?A_Brand\";v=\"99\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\""
+}
+url = "https://api.efunds.com.cn/xcowch/front/etffund/stocklist"
+params = {
+    "fundCode": "159150",
+    "tDate": "2024-10-24"
+}
+response = requests.get(url, headers=headers, params=params)
+
+print(response.text)
+print(response)
