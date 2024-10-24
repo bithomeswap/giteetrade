@@ -1,55 +1,56 @@
+#大牛市的时候可以专门排一字板的开板，一般是适当洗牌换人，这种时候普涨情绪好，拉的高不容易被监管，游资主力也都比较格局。【大牛市一般不套人，排错了问题不大】
 import getiopv#网页里面请求的网络资源当中{:}符号标注的一般是后端的数据库
 # listdf=getiopv.getetflist()#获取申赎清单
 # print(listdf)
 df=getiopv.getiopv()#获取实时iopv
 print(df)
-df=df.rename(columns={"last_dt":"日期",
-                      "last_time":"时间",
-                      "链接":"urls",
+df=df.rename(columns={
+                      "fund_nm":"名称",
+                      "fund_id":"代码",#不含.SH或者.SZ的后缀
+                      "last_dt":"日期",
+                      "last_time":"推送时间",
+                      "last_est_time":"数据时间",
+                      "urls":"链接",
                       "fee":"总管理费用",
                       "m_fee":"管理费",
                       "t_fee":"托管费",
+                      "creation_unit":"最小申购单位",#单位万份
                       "fund_nm":"名称",
                       "fund_id":"代码",#不含.SH或者.SZ的后缀
                       "issuer_nm":"管理人",
                       "t0":"是否T0",#N不T0，Y是T0，主要是外盘和债券T0，美股ETF好像直接被过滤掉了
-                      "amount":"成交额",
+                      "amount":"份额",#亿份【这个份额可能是实时的，跟同花顺有偏差】
                       "unit_total":"规模",#单位是亿元
                       "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
-                      "unit_incr":"规模变化",
+                      "price":"现价",
+                      "volume":"成交额",#万元【这个是确确实实的成交额】
+                      "ex_dt":"分红除权日",
+                      "ex_info":"分红除权信息",
+                      "index_nm":"指数名称",
+                      "increase_rt":"涨跌幅",
+                      "index_increase_rt":"指数涨跌幅",
+                      "estimate_value":"估值",
+                      "fund_nav":"昨日基金净值",
+                      "nav_dt":"昨日基金净值发布时间",
+                      "discount_rt":"溢价率",#-0.12，-0.13
+                      "idx_price_dt":"指数价格时间",
+                      "eval_flg":"是否有估值",#为N的话估值列为空，为Y的话可能有值【但是也有没值的部分，没值的部分可能是集思录没有进行计算，同花顺上反正是有数据的】，据kimi的说法：在集思录中，eval_flg字段通常用于表示某个项目或数据是否经过了评估（evaluation）的标志。在
+                    #   "amount_notes":"",#没有数据
+                    #   "owned":"",#没有数据
+                    #   "holded":"",#没有数据
+                    #   "pe":"",#没有数据
+                    #   "pb":"",#没有数据
                       })
+df=df.sort_values(by='溢价率',ascending=False)
 df.to_csv("iopv.csv")
-# df=df.rename(columns={"last_dt":"日期",
-#                       "last_time":"时间",
-#                       "链接":"urls",
-#                       "fee":"总管理费用",
-#                       "m_fee":"管理费",
-#                       "t_fee":"托管费",
-#                       "fund_nm":"名称",
-#                       "fund_id":"代码",#不含.SH或者.SZ的后缀
-#                       "issuer_nm":"管理人",
-#                       "t0":"是否T0",#N不T0，Y是T0，主要是外盘和债券T0，美股ETF好像直接被过滤掉了
-#                       "amount":"成交额",
-#                       "unit_total":"规模",#单位是亿元
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       "unit_incr":"规模变化",
-#                       })
+# #进行成交额等数据清洗之后再排序
+# topdf=df.copy()
+# # topdf=topdf[topdf[]]
+# topdf.to_csv("iopv高溢价率.csv")
+# lowdf=df.copy()
+# lowdf.to_csv("iopv高折价率.csv")
+
+
 
 # #申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
 # #【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】
