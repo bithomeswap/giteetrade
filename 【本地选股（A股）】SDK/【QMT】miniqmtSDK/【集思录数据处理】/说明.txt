@@ -1,3 +1,4 @@
+爬虫工具库：https://www.spidertools.cn/#/curl2Request
 cookie和headers加一下，不然他们知道你用的python
 在请求上右键复制到 curl（bash）
 填到这个工具里，就可以自动生成 python 代码了

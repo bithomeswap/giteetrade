@@ -1,21 +1,55 @@
-# #【同花顺APP上有申赎清单信息，但是没接口拿到】
-# #【iopv数据据说软件上的计算方式有延迟，而且抢的人多肯定要高频低延迟才能抢到】
-# # 集思录的ETF净值数据比问财出来的速度快【估值就是iopv，现价除以估值就是溢价率】
-# # 爬虫循环获取网页信息比较可靠【每一个基金也可以单独获取申赎额度等信息】
-# # 集思录ETF净值数据地址：https://www.jisilu.cn/data/etf/#index
-# # 景顺长城申赎详情：https://www.igwfmc.com/main/jjcp/product/513980/detail.html
-# # 国联安申赎详情：https://www.cpicfunds.com/product/516480/index.shtml
-import requests
-import pandas as pd
-import time
-
 import getiopv#网页里面请求的网络资源当中{:}符号标注的一般是后端的数据库
-df=getiopv.getiopv()
+# listdf=getiopv.getetflist()#获取申赎清单
+# print(listdf)
+df=getiopv.getiopv()#获取实时iopv
 print(df)
-
-# #现在就差一个ETF申赎清单【上交所官网有公布各个标的的申赎清单】但是这个是政府网站，不好直接爬怕有风险，尽量逐个基金去试。
-# https://www.sse.com.cn/disclosure/fund/etflist/detail.shtml?fundid=510010
-
+df=df.rename(columns={"last_dt":"日期",
+                      "last_time":"时间",
+                      "链接":"urls",
+                      "fee":"总管理费用",
+                      "m_fee":"管理费",
+                      "t_fee":"托管费",
+                      "fund_nm":"名称",
+                      "fund_id":"代码",#不含.SH或者.SZ的后缀
+                      "issuer_nm":"管理人",
+                      "t0":"是否T0",#N不T0，Y是T0，主要是外盘和债券T0，美股ETF好像直接被过滤掉了
+                      "amount":"成交额",
+                      "unit_total":"规模",#单位是亿元
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      "unit_incr":"规模变化",
+                      })
+df.to_csv("iopv.csv")
+# df=df.rename(columns={"last_dt":"日期",
+#                       "last_time":"时间",
+#                       "链接":"urls",
+#                       "fee":"总管理费用",
+#                       "m_fee":"管理费",
+#                       "t_fee":"托管费",
+#                       "fund_nm":"名称",
+#                       "fund_id":"代码",#不含.SH或者.SZ的后缀
+#                       "issuer_nm":"管理人",
+#                       "t0":"是否T0",#N不T0，Y是T0，主要是外盘和债券T0，美股ETF好像直接被过滤掉了
+#                       "amount":"成交额",
+#                       "unit_total":"规模",#单位是亿元
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       "unit_incr":"规模变化",
+#                       })
 
 # #申赎清单可以从上交所，iopv可以走集思录，成交额直接问财一遍过
 # #【据说湘财证券在研发相关的ETF套利模块，未来会给普通用户使用，自己从头去写成本过高了】

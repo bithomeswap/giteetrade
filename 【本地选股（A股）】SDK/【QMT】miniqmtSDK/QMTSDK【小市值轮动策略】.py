@@ -1,4 +1,5 @@
 #勾选独立交易之后，行情、交易、交易+行情选项一个都不要选择，才能启动miniqmt成功，否则无法执行订单
+#【其实就是启动的时间短很多模块没加载出来导致下单功能和数据功能无法使用，等个几分钟就正常了】
 import datetime
 import time
 import math
@@ -443,9 +444,9 @@ thistime=datetime.datetime.now()
     # selldflist=[]
     # buydflist=[]
     
-# #【设置一键清仓】
-# selldflist=[]
-# buydflist=[]
+#【设置一键清仓】
+selldflist=[]
+buydflist=[]
 
 if not dfposition.empty:#持仓不为空值
     positionsymbols=dfposition["symbol"].tolist()
