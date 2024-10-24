@@ -40,8 +40,8 @@ def getiopv():#有可能错误的参数会导致报错
     }
     params["___jsl"] = f"LST___t={int(time.time()*1000)}"
     response = requests.get(url, headers=headers, cookies=cookies, params=params)
-    print(response.text)
-    print(response)
+    # print(response.text)
+    # print(response)
     df = pd.DataFrame([row["cell"] for row in response.json()["rows"]])#这个里面有iopv数据
     # # 目标网页URL【直接抓实时的iopv数据】
     # url = r'https://www.jisilu.cn/data/etf/etf_list/'#["rows"]这个ETF数据游客就能查看，或者使用针对性链接https://www.jisilu.cn/data/etf/etf_list/?___jsl=LST___t=1729690579460&rp=25&page=1%20%E8%AF%B7%E6%B1%82%E6%96%B9%E6%B3%95:%20GET
