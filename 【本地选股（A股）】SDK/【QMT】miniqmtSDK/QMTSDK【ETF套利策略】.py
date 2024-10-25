@@ -58,10 +58,12 @@ except Exception as e:
   df.to_csv(f"ETF详情{startday}.csv")
 #过滤最近十天的成交额
 for day in tradedays[-10:]:
-    print(day)
-    df[f"{day.replace('-','')}日成交额"]=df[f"基金@成交额[{day.replace('-','')}]"].astype(float)
-    df=df.sort_values(by=f"{day.replace('-','')}日成交额",ascending=False)#成交额降序排列
-    df=df[df[f"{day.replace('-','')}日成交额"]>10000000]#卡在最近十天每天成交额大于一个亿从999只变成了418只
+    print(day.replace('-',''),startday)
+    if day.replace('-','')!=startday:#卡掉目前这一天的数据
+        print(day)
+        df[f"{day.replace('-','')}日成交额"]=df[f"基金@成交额[{day.replace('-','')}]"].astype(float)
+        df=df.sort_values(by=f"{day.replace('-','')}日成交额",ascending=False)#成交额降序排列
+        df=df[df[f"{day.replace('-','')}日成交额"]>10000000]#卡在最近十天每天成交额大于一个亿从999只变成了418只
 # print(df)
 df=df[["基金代码","基金简称","code","基金@最高申购费率","基金@最高赎回费率"]]
 print(df)
@@ -118,8 +120,10 @@ df=df.merge(iopvdf,on="code",how="inner")#拼接只要两边都有的数据
 df=df.sort_values(by='溢价率',ascending=False)
 df["基金@最高申购费率"]=df["基金@最高申购费率"].astype(float)
 df["基金@最高赎回费率"]=df["基金@最高赎回费率"].astype(float)
-df.loc[df["溢价率"]>0,"申购费后利润率"]=abs(df["溢价率"])-df["基金@最高申购费率"]/100
-df.loc[df["溢价率"]<0,"赎回费后利润率"]=abs(df["溢价率"])-df["基金@最高赎回费率"]/100
+# df.loc[df["溢价率"]>0,"申购费后利润率"]=abs(df["溢价率"])-df["基金@最高申购费率"]/100#原则上申购费率在国金证券可以降低到0
+# df.loc[df["溢价率"]<0,"赎回费后利润率"]=abs(df["溢价率"])-df["基金@最高赎回费率"]/100#原则上申购费率在国金证券可以降低到0
+df.loc[df["溢价率"]>0,"申购费后利润率"]=abs(df["溢价率"])-0.005#原则上申购费率在国金证券可以降低到0【但是滑点还是少不了】
+df.loc[df["溢价率"]<0,"赎回费后利润率"]=abs(df["溢价率"])-0.005#原则上申购费率在国金证券可以降低到0【但是滑点还是少不了】
 df["最小申购单位"]=df["最小申购单位"].astype(float)
 #进行成交额等数据清洗之后再排序
 topdf=df.copy()
